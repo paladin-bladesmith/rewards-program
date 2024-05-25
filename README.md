@@ -1,2 +1,1 @@
-# paladin-rewards-program
-Paladin Rewards program
+# Paladin Rewards Program
