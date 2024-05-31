@@ -41,7 +41,7 @@ pub enum PaladinRewardsInstruction {
     /// 0. `[w]` Active rewards account.
     /// 1. `[w]` Distribution account.
     /// 2. `[ ]` Token mint.
-    UpdateMintRewards,
+    SweepActiveRewards,
     /// Moves SOL rewards to the following parties:
     ///
     /// - 1%  Piggy bank
@@ -65,7 +65,6 @@ pub enum PaladinRewardsInstruction {
     /// 0. `[w]` Holder rewards account.
     /// 1. `[ ]` PAL token account.
     /// 2. `[ ]` PAL token mint.
-    /// 3. `[s]` PAL token account owner.
     InitializeHolderRewardInfo,
     /// Moves accrued SOL rewards into the provided PAL token account.
     ///
@@ -94,7 +93,7 @@ impl PaladinRewardsInstruction {
                 data.extend_from_slice(staked_rewards_address.as_ref());
                 data
             }
-            PaladinRewardsInstruction::UpdateMintRewards => vec![1],
+            PaladinRewardsInstruction::SweepActiveRewards => vec![1],
             PaladinRewardsInstruction::DistributeRewards => vec![2],
             PaladinRewardsInstruction::InitializeHolderRewardInfo => vec![3],
             PaladinRewardsInstruction::HarvestRewards => vec![4],
@@ -111,7 +110,7 @@ impl PaladinRewardsInstruction {
                     staked_rewards_address: *bytemuck::from_bytes(&rest[32..64]),
                 })
             }
-            Some((&1, _)) => Ok(PaladinRewardsInstruction::UpdateMintRewards),
+            Some((&1, _)) => Ok(PaladinRewardsInstruction::SweepActiveRewards),
             Some((&2, _)) => Ok(PaladinRewardsInstruction::DistributeRewards),
             Some((&3, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewardInfo),
             Some((&4, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
@@ -146,9 +145,9 @@ pub fn initialize_mint_reward_info(
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
-/// Creates an [UpdateMintRewards](enum.PaladinRewardsInstruction.html)
+/// Creates an [SweepActiveRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-pub fn update_mint_rewards(
+pub fn sweep_active_rewards(
     active_rewards_account: &Pubkey,
     distribution_account: &Pubkey,
     token_mint: &Pubkey,
@@ -158,7 +157,7 @@ pub fn update_mint_rewards(
         AccountMeta::new(*distribution_account, false),
         AccountMeta::new_readonly(*token_mint, false),
     ];
-    let data = PaladinRewardsInstruction::UpdateMintRewards.pack();
+    let data = PaladinRewardsInstruction::SweepActiveRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -188,13 +187,11 @@ pub fn initialize_holder_reward_info(
     holder_rewards_account: &Pubkey,
     pal_token_account: &Pubkey,
     pal_token_mint: &Pubkey,
-    pal_token_account_owner: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_account, false),
         AccountMeta::new_readonly(*pal_token_account, false),
         AccountMeta::new_readonly(*pal_token_mint, false),
-        AccountMeta::new_readonly(*pal_token_account_owner, true),
     ];
     let data = PaladinRewardsInstruction::InitializeHolderRewardInfo.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
@@ -235,8 +232,8 @@ mod tests {
     }
 
     #[test]
-    fn test_pack_unpack_update_mint_rewards() {
-        let original = PaladinRewardsInstruction::UpdateMintRewards;
+    fn test_pack_unpack_sweep_active_rewards() {
+        let original = PaladinRewardsInstruction::SweepActiveRewards;
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

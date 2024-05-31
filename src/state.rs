@@ -75,7 +75,8 @@ pub struct MintRewards {
     pub total_rewards: u64,
     /// The address of the piggy bank account.
     pub piggy_bank_address: Pubkey,
-    /// The address of the active rewards account.
+    /// The address of the active rewards PDA.
+    /// Seeds: `"active" + mint_address`.
     pub active_rewards_address: Pubkey,
     /// The addresses of all staked PAL rewards accounts.
     /// Stored as a slice.

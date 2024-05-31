@@ -16,9 +16,9 @@ fn process_initialize_mint_reward_info(
     Ok(())
 }
 
-/// Processes an [UpdateMintRewards](enum.PaladinRewardsInstruction.html)
+/// Processes an [SweepActiveRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_update_mint_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+fn process_sweep_active_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
     Ok(())
 }
 
@@ -61,9 +61,9 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
                 staked_rewards_address,
             )
         }
-        PaladinRewardsInstruction::UpdateMintRewards => {
-            msg!("Instruction: UpdateMintRewards");
-            process_update_mint_rewards(program_id, accounts)
+        PaladinRewardsInstruction::SweepActiveRewards => {
+            msg!("Instruction: SweepActiveRewards");
+            process_sweep_active_rewards(program_id, accounts)
         }
         PaladinRewardsInstruction::DistributeRewards => {
             msg!("Instruction: DistributeRewards");
