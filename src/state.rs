@@ -47,20 +47,14 @@ pub fn get_mint_rewards_address(mint_address: &Pubkey) -> Pubkey {
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct HolderRewards {
-    /// The amount of total rewards accumulated by the system that this account
-    /// last saw.
-    pub last_seen_rewards: u64,
-    /// The amount of rewards that have not been harvested by the holder.
-    pub unharvested_rewards: u64,
+    /// The amount of rewards that can be harvested by the holder.
+    pub credits: u64,
 }
 
 impl HolderRewards {
     /// Creates a new [HolderRewards](struct.HolderRewards.html) instance.
-    pub fn new(last_seen_rewards: u64, unharvested_rewards: u64) -> Self {
-        Self {
-            last_seen_rewards,
-            unharvested_rewards,
-        }
+    pub fn new(credits: u64) -> Self {
+        Self { credits }
     }
 }
 
