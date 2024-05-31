@@ -5,24 +5,12 @@ use {
     solana_program::pubkey::Pubkey,
 };
 
-/// The seed prefix (`"active"`) in bytes used to derive the address of the
-/// active rewards account. Seeds: `"active" + mint_address`.
-pub const SEED_PREFIX_ACTIVE_REWARDS: &[u8] = b"active";
 /// The seed prefix (`"holder"`) in bytes used to derive the address of the
 /// holder rewards account. Seeds: `"holder" + token_account_address`.
 pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 /// The seed prefix (`"mint"`) in bytes used to derive the address of the
 /// mint rewards account. Seeds: `"mint" + mint_address`.
 pub const SEED_PREFIX_MINT_REWARDS: &[u8] = b"mint";
-
-/// Derive the address of an active rewards account.
-pub fn get_active_rewards_address(mint_address: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(
-        &[SEED_PREFIX_ACTIVE_REWARDS, mint_address.as_ref()],
-        &crate::id(),
-    )
-    .0
-}
 
 /// Derive the address of a holder rewards account.
 pub fn get_holder_rewards_address(token_account_address: &Pubkey) -> Pubkey {
@@ -69,9 +57,6 @@ pub struct MintRewards {
     pub total_rewards: u64,
     /// The address of the piggy bank account.
     pub piggy_bank_address: Pubkey,
-    /// The address of the active rewards PDA.
-    /// Seeds: `"active" + mint_address`.
-    pub active_rewards_address: Pubkey,
     /// The addresses of all staked PAL rewards accounts.
     /// Stored as a slice.
     pub staked_pal_rewards_address: Pubkey,
@@ -82,13 +67,11 @@ impl MintRewards {
     pub fn new(
         total_rewards: u64,
         piggy_bank_address: &Pubkey,
-        active_rewards_address: &Pubkey,
         staked_pal_rewards_address: &Pubkey,
     ) -> Self {
         Self {
             total_rewards,
             piggy_bank_address: *piggy_bank_address,
-            active_rewards_address: *active_rewards_address,
             staked_pal_rewards_address: *staked_pal_rewards_address,
         }
     }

@@ -16,7 +16,6 @@ pub enum PaladinRewardsInstruction {
     ///
     /// - Initialize a rewards account for the mint (distribution account),
     ///   configured with the distribution addresses:
-    ///   - Active rewards
     ///   - Piggy bank
     ///   - Staked PAL rewards
     /// - Initialize an active rewards account for the mint.
@@ -25,23 +24,13 @@ pub enum PaladinRewardsInstruction {
     /// Accounts expected by this instruction:
     ///
     /// 0. `[w]` Distribution account.
-    /// 1. `[w]` Active rewards account.
-    /// 2. `[w]` Transfer hook extra account metas account.
-    /// 3. `[ ]` Token mint.
-    /// 4. `[s]` Mint authority.
+    /// 1. `[w]` Transfer hook extra account metas account.
+    /// 2. `[ ]` Token mint.
+    /// 3. `[s]` Mint authority.
     InitializeMintRewardInfo {
         piggy_bank_address: Pubkey,
         staked_rewards_address: Pubkey,
     },
-    /// Moves the active rewards to the distribution account and updates total
-    /// rewards.
-    ///
-    /// Accounts expected by this instruction:
-    ///
-    /// 0. `[w]` Active rewards account.
-    /// 1. `[w]` Distribution account.
-    /// 2. `[ ]` Token mint.
-    SweepActiveRewards,
     /// Moves SOL rewards to the following parties:
     ///
     /// - 1%  Piggy bank
@@ -51,11 +40,10 @@ pub enum PaladinRewardsInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Active rewards account.
-    /// 1. `[w]` Distribution account.
-    /// 2. `[w]` Piggy bank account.
-    /// 3. `[w]` Staked PAL rewards account.
-    /// 4. `[w]` Leader account.
+    /// 0. `[w]` Distribution account.
+    /// 1. `[w]` Piggy bank account.
+    /// 2. `[w]` Staked PAL rewards account.
+    /// 3. `[w]` Leader account.
     DistributeRewards,
     /// Initializes holder reward info by storing the last seen total rewards
     /// in the distribution account.
@@ -93,10 +81,9 @@ impl PaladinRewardsInstruction {
                 data.extend_from_slice(staked_rewards_address.as_ref());
                 data
             }
-            PaladinRewardsInstruction::SweepActiveRewards => vec![1],
-            PaladinRewardsInstruction::DistributeRewards => vec![2],
-            PaladinRewardsInstruction::InitializeHolderRewardInfo => vec![3],
-            PaladinRewardsInstruction::HarvestRewards => vec![4],
+            PaladinRewardsInstruction::DistributeRewards => vec![1],
+            PaladinRewardsInstruction::InitializeHolderRewardInfo => vec![2],
+            PaladinRewardsInstruction::HarvestRewards => vec![3],
         }
     }
 
@@ -110,10 +97,9 @@ impl PaladinRewardsInstruction {
                     staked_rewards_address: *bytemuck::from_bytes(&rest[32..64]),
                 })
             }
-            Some((&1, _)) => Ok(PaladinRewardsInstruction::SweepActiveRewards),
-            Some((&2, _)) => Ok(PaladinRewardsInstruction::DistributeRewards),
-            Some((&3, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewardInfo),
-            Some((&4, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
+            Some((&1, _)) => Ok(PaladinRewardsInstruction::DistributeRewards),
+            Some((&2, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewardInfo),
+            Some((&3, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -123,7 +109,6 @@ impl PaladinRewardsInstruction {
 /// instruction.
 pub fn initialize_mint_reward_info(
     distribution_account: &Pubkey,
-    active_rewards_account: &Pubkey,
     transfer_hook_extra_account_metas_account: &Pubkey,
     token_mint: &Pubkey,
     mint_authority: &Pubkey,
@@ -132,7 +117,6 @@ pub fn initialize_mint_reward_info(
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*distribution_account, false),
-        AccountMeta::new(*active_rewards_account, false),
         AccountMeta::new(*transfer_hook_extra_account_metas_account, false),
         AccountMeta::new_readonly(*token_mint, false),
         AccountMeta::new_readonly(*mint_authority, true),
@@ -145,33 +129,15 @@ pub fn initialize_mint_reward_info(
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
-/// Creates an [SweepActiveRewards](enum.PaladinRewardsInstruction.html)
-/// instruction.
-pub fn sweep_active_rewards(
-    active_rewards_account: &Pubkey,
-    distribution_account: &Pubkey,
-    token_mint: &Pubkey,
-) -> Instruction {
-    let accounts = vec![
-        AccountMeta::new(*active_rewards_account, false),
-        AccountMeta::new(*distribution_account, false),
-        AccountMeta::new_readonly(*token_mint, false),
-    ];
-    let data = PaladinRewardsInstruction::SweepActiveRewards.pack();
-    Instruction::new_with_bytes(crate::id(), &data, accounts)
-}
-
 /// Creates a [DistributeRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 pub fn distribute_rewards(
-    active_rewards_account: &Pubkey,
     distribution_account: &Pubkey,
     piggy_bank_account: &Pubkey,
     staked_pal_rewards_account: &Pubkey,
     leader_account: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new(*active_rewards_account, false),
         AccountMeta::new(*distribution_account, false),
         AccountMeta::new(*piggy_bank_account, false),
         AccountMeta::new(*staked_pal_rewards_account, false),
@@ -226,14 +192,6 @@ mod tests {
             piggy_bank_address,
             staked_rewards_address,
         };
-        let packed = original.pack();
-        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
-        assert_eq!(original, unpacked);
-    }
-
-    #[test]
-    fn test_pack_unpack_sweep_active_rewards() {
-        let original = PaladinRewardsInstruction::SweepActiveRewards;
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);
