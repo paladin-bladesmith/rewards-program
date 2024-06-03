@@ -4,6 +4,7 @@ use solana_program::{
     instruction::{AccountMeta, Instruction},
     program_error::ProgramError,
     pubkey::Pubkey,
+    system_program,
 };
 
 /// Instructions supported by the Paladin Rewards program.
@@ -27,6 +28,7 @@ pub enum PaladinRewardsInstruction {
     /// 1. `[w]` Transfer hook extra account metas account.
     /// 2. `[ ]` Token mint.
     /// 3. `[s]` Mint authority.
+    /// 4. `[ ]` System program.
     InitializeMintRewardInfo {
         piggy_bank_address: Pubkey,
         staked_rewards_address: Pubkey,
@@ -53,6 +55,7 @@ pub enum PaladinRewardsInstruction {
     /// 0. `[w]` Holder rewards account.
     /// 1. `[ ]` PAL token account.
     /// 2. `[ ]` PAL token mint.
+    /// 3. `[ ]` System program.
     InitializeHolderRewardInfo,
     /// Moves accrued SOL rewards into the provided PAL token account.
     ///
@@ -120,6 +123,7 @@ pub fn initialize_mint_reward_info(
         AccountMeta::new(*transfer_hook_extra_account_metas_account, false),
         AccountMeta::new_readonly(*token_mint, false),
         AccountMeta::new_readonly(*mint_authority, true),
+        AccountMeta::new_readonly(system_program::id(), false),
     ];
     let data = PaladinRewardsInstruction::InitializeMintRewardInfo {
         piggy_bank_address: *piggy_bank_address,
@@ -158,6 +162,7 @@ pub fn initialize_holder_reward_info(
         AccountMeta::new(*holder_rewards_account, false),
         AccountMeta::new_readonly(*pal_token_account, false),
         AccountMeta::new_readonly(*pal_token_mint, false),
+        AccountMeta::new_readonly(system_program::id(), false),
     ];
     let data = PaladinRewardsInstruction::InitializeHolderRewardInfo.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
