@@ -14,20 +14,26 @@ pub const SEED_PREFIX_MINT_REWARDS: &[u8] = b"mint";
 
 /// Derive the address of a holder rewards account.
 pub fn get_holder_rewards_address(token_account_address: &Pubkey) -> Pubkey {
+    get_holder_rewards_address_and_bump_seed(token_account_address).0
+}
+
+pub fn get_holder_rewards_address_and_bump_seed(token_account_address: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[SEED_PREFIX_HOLDER_REWARDS, token_account_address.as_ref()],
         &crate::id(),
     )
-    .0
 }
 
 /// Derive the address of a mint rewards account.
 pub fn get_mint_rewards_address(mint_address: &Pubkey) -> Pubkey {
+    get_mint_rewards_address_and_bump_seed(mint_address).0
+}
+
+pub fn get_mint_rewards_address_and_bump_seed(mint_address: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[SEED_PREFIX_MINT_REWARDS, mint_address.as_ref()],
         &crate::id(),
     )
-    .0
 }
 
 /// A holder rewards account which tracks the rewards accumulated by a holder
@@ -64,13 +70,9 @@ pub struct MintRewards {
 
 impl MintRewards {
     /// Creates a new [MintRewards](struct.MintRewards.html) instance.
-    pub fn new(
-        total_rewards: u64,
-        piggy_bank_address: &Pubkey,
-        staked_pal_rewards_address: &Pubkey,
-    ) -> Self {
+    pub fn new(piggy_bank_address: &Pubkey, staked_pal_rewards_address: &Pubkey) -> Self {
         Self {
-            total_rewards,
+            total_rewards: 0,
             piggy_bank_address: *piggy_bank_address,
             staked_pal_rewards_address: *staked_pal_rewards_address,
         }

@@ -11,9 +11,17 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 bytemuck = "1.16.0"
 solana-program = "1.18.14"
+spl-associated-token-account = { version = "3.0.2", features = ["no-entrypoint"] }
 spl-program-error = "0.4.0"
+spl-tlv-account-resolution = "0.6.3"
+spl-token-2022 = { version = "3.0.2", features = ["no-entrypoint"] }
+spl-transfer-hook-interface = "0.6.3"
 
 [dev-dependencies]
+solana-program-test = "1.18.15"
+solana-sdk = "1.18.15"
+spl-pod = "0.2.2"
+spl-type-length-value = "0.4.3"
 
 [features]
 bpf-entrypoint = []
