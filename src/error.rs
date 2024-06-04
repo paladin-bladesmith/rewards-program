@@ -17,4 +17,10 @@ pub enum PaladinRewardsError {
     /// Incorrect extra metas address.
     #[error("Incorrect extra metas address")]
     IncorrectExtraMetasAddress,
+    /// Incorrect holder rewards address.
+    #[error("Incorrect holder rewards address")]
+    IncorrectHolderRewardsAddress,
+    /// Token account mint mismatch.
+    #[error("Token account mint mismatch")]
+    TokenAccountMintMismatch,
 }
