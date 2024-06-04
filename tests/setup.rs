@@ -1,11 +1,14 @@
 #![cfg(feature = "test-sbf")]
+#![allow(dead_code)]
 
 use {
+    paladin_rewards_program::state::HolderRewardsPool,
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
         program_option::COption,
         pubkey::Pubkey,
+        system_program,
     },
     spl_token_2022::{
         extension::{
@@ -60,6 +63,44 @@ pub async fn setup_mint(
             lamports,
             data,
             owner: spl_token_2022::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+#[allow(clippy::arithmetic_side_effects)]
+pub async fn setup_system_account(
+    context: &mut ProgramTestContext,
+    address: &Pubkey,
+    excess_lamports: u64,
+) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(0) + excess_lamports;
+
+    context.set_account(
+        address,
+        &AccountSharedData::new(lamports, 0, &system_program::id()),
+    );
+}
+
+#[allow(clippy::arithmetic_side_effects)]
+pub async fn setup_holder_rewards_pool_account(
+    context: &mut ProgramTestContext,
+    holder_rewards_pool_address: &Pubkey,
+    total_rewards: u64,
+) {
+    let state = HolderRewardsPool { total_rewards };
+    let data = bytemuck::bytes_of(&state).to_vec();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data.len()) + total_rewards;
+
+    context.set_account(
+        holder_rewards_pool_address,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_rewards_program::id(),
             ..Account::default()
         }),
     );
