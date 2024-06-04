@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use {
-    paladin_rewards_program::state::HolderRewardsPool,
+    paladin_rewards_program::state::{HolderRewards, HolderRewardsPool},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -139,6 +139,33 @@ pub async fn setup_holder_rewards_pool_account(
 
     context.set_account(
         holder_rewards_pool_address,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_rewards_program::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+#[allow(clippy::arithmetic_side_effects)]
+pub async fn setup_holder_rewards_account(
+    context: &mut ProgramTestContext,
+    holder_rewards: &Pubkey,
+    unharvested_rewards: u64,
+    last_seen_total_rewards: u64,
+) {
+    let state = HolderRewards {
+        unharvested_rewards,
+        last_seen_total_rewards,
+    };
+    let data = bytemuck::bytes_of(&state).to_vec();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data.len()) + unharvested_rewards;
+
+    context.set_account(
+        holder_rewards,
         &AccountSharedData::from(Account {
             lamports,
             data,
