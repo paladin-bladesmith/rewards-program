@@ -6,9 +6,10 @@ use {
         extra_metas::get_extra_account_metas,
         instruction::PaladinRewardsInstruction,
         state::{
-            get_holder_rewards_address_and_bump_seed, get_holder_rewards_pool_address,
-            get_holder_rewards_pool_address_and_bump_seed, HolderRewards, HolderRewardsPool,
-            SEED_PREFIX_HOLDER_REWARDS, SEED_PREFIX_HOLDER_REWARDS_POOL,
+            get_holder_rewards_address, get_holder_rewards_address_and_bump_seed,
+            get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
+            HolderRewards, HolderRewardsPool, SEED_PREFIX_HOLDER_REWARDS,
+            SEED_PREFIX_HOLDER_REWARDS_POOL,
         },
     },
     solana_program::{
@@ -361,7 +362,95 @@ fn process_initialize_holder_rewards(
 
 /// Processes a [HarvestRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_harvest_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+
+    // Run checks on the token_account.
+    let mint = {
+        // Ensure the token account is owned by SPL Token-2022.
+        if !token_account_info.owner.eq(&spl_token_2022::id()) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        let token_account_data = token_account_info.try_borrow_data()?;
+        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+
+        token_account.base.mint
+    };
+
+    // Run checks on the holder rewards account.
+    let amount = {
+        // Ensure the holder rewards account is owned by the Paladin Rewards
+        // program.
+        if !holder_rewards_info.owner.eq(program_id) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the provided holder rewards address is the correct address
+        // derived from the token account.
+        if !holder_rewards_info
+            .key
+            .eq(&get_holder_rewards_address(token_account_info.key))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+        }
+
+        let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+        let holder_rewards_state =
+            bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        // Reset the unharvested rewards in the holder rewards.
+        std::mem::take(&mut holder_rewards_state.unharvested_rewards)
+    };
+
+    // Run checks on the holder rewards pool.
+    {
+        // Ensure the holder rewards pool is owned by the Paladin Rewards
+        // program.
+        if !holder_rewards_pool_info.owner.eq(program_id) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the provided holder rewards pool address is the correct
+        // address derived from the mint.
+        if !holder_rewards_pool_info
+            .key
+            .eq(&get_holder_rewards_pool_address(&mint))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+        }
+
+        let total_rewards = {
+            let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
+            let holder_rewards_pool_state =
+                bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
+                    .map_err(|_| ProgramError::InvalidAccountData)?;
+            holder_rewards_pool_state.total_rewards
+        };
+
+        // Sanity check to ensure the holder rewards pool has enough rewards.
+        if total_rewards < amount || holder_rewards_info.lamports() < amount {
+            return Err(ProgramError::InsufficientFunds);
+        }
+    };
+
+    // Move the amount from the holder rewards pool to the token account.
+    let new_holder_rewards_pool_lamports = holder_rewards_pool_info
+        .lamports()
+        .checked_sub(amount)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    let new_token_account_lamports = token_account_info
+        .lamports()
+        .checked_add(amount)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
+    **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+
     Ok(())
 }
 
