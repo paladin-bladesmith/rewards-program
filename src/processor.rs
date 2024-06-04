@@ -3,6 +3,7 @@
 use {
     crate::instruction::PaladinRewardsInstruction,
     solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, pubkey::Pubkey},
+    spl_transfer_hook_interface::instruction::TransferHookInstruction,
 };
 
 /// Processes an [InitializeMintRewardInfo](enum.PaladinRewardsInstruction.html)
@@ -38,34 +39,48 @@ fn process_harvest_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> P
     Ok(())
 }
 
+/// Processes an SPL Transfer Hook Interface: Execute instruction.
+pub fn process_spl_transfer_hook_execute(
+    _program_id: &Pubkey,
+    _accounts: &[AccountInfo],
+    _amount: u64,
+) -> ProgramResult {
+    Ok(())
+}
+
 /// Processes a
 /// [PaladinRewardsInstruction](enum.PaladinRewardsInstruction.html).
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
-    let instruction = PaladinRewardsInstruction::unpack(input)?;
-    match instruction {
-        PaladinRewardsInstruction::InitializeMintRewardInfo {
-            piggy_bank_address,
-            staked_rewards_address,
-        } => {
-            msg!("Instruction: InitializeMintRewardInfo");
-            process_initialize_mint_reward_info(
-                program_id,
-                accounts,
+    if let Ok(TransferHookInstruction::Execute { amount }) = TransferHookInstruction::unpack(input)
+    {
+        process_spl_transfer_hook_execute(program_id, accounts, amount)
+    } else {
+        let instruction = PaladinRewardsInstruction::unpack(input)?;
+        match instruction {
+            PaladinRewardsInstruction::InitializeMintRewardInfo {
                 piggy_bank_address,
                 staked_rewards_address,
-            )
-        }
-        PaladinRewardsInstruction::DistributeRewards => {
-            msg!("Instruction: DistributeRewards");
-            process_distribute_rewards(program_id, accounts)
-        }
-        PaladinRewardsInstruction::InitializeHolderRewardInfo => {
-            msg!("Instruction: InitializeHolderRewardInfo");
-            process_initialize_holder_reward_info(program_id, accounts)
-        }
-        PaladinRewardsInstruction::HarvestRewards => {
-            msg!("Instruction: HarvestRewards");
-            process_harvest_rewards(program_id, accounts)
+            } => {
+                msg!("Instruction: InitializeMintRewardInfo");
+                process_initialize_mint_reward_info(
+                    program_id,
+                    accounts,
+                    piggy_bank_address,
+                    staked_rewards_address,
+                )
+            }
+            PaladinRewardsInstruction::DistributeRewards => {
+                msg!("Instruction: DistributeRewards");
+                process_distribute_rewards(program_id, accounts)
+            }
+            PaladinRewardsInstruction::InitializeHolderRewardInfo => {
+                msg!("Instruction: InitializeHolderRewardInfo");
+                process_initialize_holder_reward_info(program_id, accounts)
+            }
+            PaladinRewardsInstruction::HarvestRewards => {
+                msg!("Instruction: HarvestRewards");
+                process_harvest_rewards(program_id, accounts)
+            }
         }
     }
 }
