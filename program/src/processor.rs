@@ -6,8 +6,9 @@ use {
         extra_metas::get_extra_account_metas,
         instruction::PaladinRewardsInstruction,
         state::{
-            collect_holder_rewards_pool_signer_seeds,
-            get_holder_rewards_pool_address_and_bump_seed, HolderRewardsPool,
+            collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
+            get_holder_rewards_address_and_bump_seed, get_holder_rewards_pool_address,
+            get_holder_rewards_pool_address_and_bump_seed, HolderRewards, HolderRewardsPool,
         },
     },
     solana_program::{
@@ -23,13 +24,28 @@ use {
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
         extension::{transfer_hook::TransferHook, BaseStateWithExtensions, StateWithExtensions},
-        state::Mint,
+        state::{Account, Mint},
     },
     spl_transfer_hook_interface::{
         collect_extra_account_metas_signer_seeds, get_extra_account_metas_address_and_bump_seed,
         instruction::{ExecuteInstruction, TransferHookInstruction},
     },
 };
+
+fn calculate_reward_share(
+    token_supply: u64,
+    token_account_balance: u64,
+    total_rewards: u64,
+) -> Result<u64, ProgramError> {
+    if token_supply == 0 {
+        return Ok(0);
+    }
+    // (token_amount / total_token_supply) * pool_rewards
+    token_account_balance
+        .checked_div(token_supply)
+        .and_then(|share| share.checked_mul(total_rewards))
+        .ok_or(ProgramError::ArithmeticOverflow)
+}
 
 /// Processes an
 /// [InitializeHolderRewardsPool](enum.PaladinRewardsInstruction.html)
@@ -210,9 +226,109 @@ fn process_distribute_rewards(
 /// [InitializeHolderRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 fn process_initialize_holder_rewards(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
 ) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let _system_program = next_account_info(accounts_iter)?;
+
+    let token_supply = {
+        let mint_data = mint_info.try_borrow_data()?;
+        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+        mint.base.supply
+    };
+
+    let token_account_balance = {
+        let token_account_data = token_account_info.try_borrow_data()?;
+        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+
+        // Ensure the provided token account is for the mint.
+        if !token_account.base.mint.eq(mint_info.key) {
+            return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+        }
+
+        token_account.base.amount
+    };
+
+    let total_rewards = {
+        // Ensure the holder rewards pool is owned by the Paladin Rewards
+        // program.
+        if !holder_rewards_pool_info.owner.eq(&crate::id()) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the provided holder rewards pool address is the correct
+        // address derived from the mint.
+        if !holder_rewards_pool_info
+            .key
+            .eq(&get_holder_rewards_pool_address(mint_info.key))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+        }
+
+        let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
+        let holder_rewards_pool_state =
+            bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        holder_rewards_pool_state.total_rewards
+    };
+
+    // Calculate unharvested rewards for the token account.
+    // Since the holder rewards account is being initialized, the
+    // `unharvested_rewards` is calculated from the current `total_rewards` in
+    // the pool.
+    let unharvested_rewards =
+        calculate_reward_share(token_supply, token_account_balance, total_rewards)?;
+
+    // Initialize the holder rewards account.
+    {
+        let (holder_rewards_address, bump_seed) =
+            get_holder_rewards_address_and_bump_seed(token_account_info.key);
+        let bump_seed = [bump_seed];
+        let holder_rewards_signer_seeds =
+            collect_holder_rewards_signer_seeds(token_account_info.key, &bump_seed);
+
+        // Ensure the provided holder rewards address is the correct address
+        // derived from the token account.
+        if !holder_rewards_info.key.eq(&holder_rewards_address) {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+        }
+
+        // Ensure the holder rewards account has not already been initialized.
+        if holder_rewards_info.data.borrow().len() != 0 {
+            return Err(ProgramError::AccountAlreadyInitialized);
+        }
+
+        // Allocate & assign.
+        invoke_signed(
+            &system_instruction::allocate(
+                &holder_rewards_address,
+                std::mem::size_of::<HolderRewards>() as u64,
+            ),
+            &[holder_rewards_info.clone()],
+            &[&holder_rewards_signer_seeds],
+        )?;
+        invoke_signed(
+            &system_instruction::assign(&holder_rewards_address, program_id),
+            &[holder_rewards_info.clone()],
+            &[&holder_rewards_signer_seeds],
+        )?;
+
+        // Write the data.
+        let mut data = holder_rewards_info.try_borrow_mut_data()?;
+        *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
+            HolderRewards {
+                last_seen_total_rewards: total_rewards,
+                unharvested_rewards,
+            };
+    }
+
     Ok(())
 }
 
