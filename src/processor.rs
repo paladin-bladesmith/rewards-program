@@ -6,13 +6,11 @@ use {
     spl_transfer_hook_interface::instruction::TransferHookInstruction,
 };
 
-/// Processes an [InitializeMintRewardInfo](enum.PaladinRewardsInstruction.html)
+/// Processes an [InitializeStakerRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_initialize_mint_reward_info(
+fn process_initialize_staker_rewards(
     _program_id: &Pubkey,
     _accounts: &[AccountInfo],
-    _piggy_bank_address: Pubkey,
-    _staked_rewards_address: Pubkey,
 ) -> ProgramResult {
     Ok(())
 }
@@ -24,9 +22,9 @@ fn process_distribute_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -
 }
 
 /// Processes an
-/// [InitializeHolderRewardInfo](enum.PaladinRewardsInstruction.html)
+/// [InitializeHolderRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_initialize_holder_reward_info(
+fn process_initialize_holder_rewards(
     _program_id: &Pubkey,
     _accounts: &[AccountInfo],
 ) -> ProgramResult {
@@ -39,7 +37,8 @@ fn process_harvest_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> P
     Ok(())
 }
 
-/// Processes an SPL Transfer Hook Interface: Execute instruction.
+/// Processes an SPL Transfer Hook Interface
+/// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
 pub fn process_spl_transfer_hook_execute(
     _program_id: &Pubkey,
     _accounts: &[AccountInfo],
@@ -57,25 +56,17 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
     } else {
         let instruction = PaladinRewardsInstruction::unpack(input)?;
         match instruction {
-            PaladinRewardsInstruction::InitializeMintRewardInfo {
-                piggy_bank_address,
-                staked_rewards_address,
-            } => {
-                msg!("Instruction: InitializeMintRewardInfo");
-                process_initialize_mint_reward_info(
-                    program_id,
-                    accounts,
-                    piggy_bank_address,
-                    staked_rewards_address,
-                )
+            PaladinRewardsInstruction::InitializeStakerRewards => {
+                msg!("Instruction: InitializeStakerRewards");
+                process_initialize_staker_rewards(program_id, accounts)
             }
             PaladinRewardsInstruction::DistributeRewards => {
                 msg!("Instruction: DistributeRewards");
                 process_distribute_rewards(program_id, accounts)
             }
-            PaladinRewardsInstruction::InitializeHolderRewardInfo => {
-                msg!("Instruction: InitializeHolderRewardInfo");
-                process_initialize_holder_reward_info(program_id, accounts)
+            PaladinRewardsInstruction::InitializeHolderRewards => {
+                msg!("Instruction: InitializeHolderRewards");
+                process_initialize_holder_rewards(program_id, accounts)
             }
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");
