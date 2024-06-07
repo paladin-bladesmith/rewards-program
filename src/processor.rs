@@ -6,9 +6,10 @@ use {
     spl_transfer_hook_interface::instruction::TransferHookInstruction,
 };
 
-/// Processes an [InitializeStakerRewards](enum.PaladinRewardsInstruction.html)
+/// Processes an
+/// [InitializeHolderRewardsPool](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_initialize_staker_rewards(
+fn process_initialize_holder_rewards_pool(
     _program_id: &Pubkey,
     _accounts: &[AccountInfo],
 ) -> ProgramResult {
@@ -17,7 +18,11 @@ fn process_initialize_staker_rewards(
 
 /// Processes a [DistributeRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_distribute_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+fn process_distribute_rewards(
+    _program_id: &Pubkey,
+    _accounts: &[AccountInfo],
+    _amount: u64,
+) -> ProgramResult {
     Ok(())
 }
 
@@ -56,13 +61,13 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
     } else {
         let instruction = PaladinRewardsInstruction::unpack(input)?;
         match instruction {
-            PaladinRewardsInstruction::InitializeStakerRewards => {
-                msg!("Instruction: InitializeStakerRewards");
-                process_initialize_staker_rewards(program_id, accounts)
+            PaladinRewardsInstruction::InitializeHolderRewardsPool => {
+                msg!("Instruction: InitializeHolderRewardsPool");
+                process_initialize_holder_rewards_pool(program_id, accounts)
             }
-            PaladinRewardsInstruction::DistributeRewards => {
+            PaladinRewardsInstruction::DistributeRewards(amount) => {
                 msg!("Instruction: DistributeRewards");
-                process_distribute_rewards(program_id, accounts)
+                process_distribute_rewards(program_id, accounts, amount)
             }
             PaladinRewardsInstruction::InitializeHolderRewards => {
                 msg!("Instruction: InitializeHolderRewards");
