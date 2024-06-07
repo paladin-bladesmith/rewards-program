@@ -7,8 +7,9 @@ use {
         instruction::PaladinRewardsInstruction,
         state::{
             collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
-            get_holder_rewards_address_and_bump_seed, get_holder_rewards_pool_address,
-            get_holder_rewards_pool_address_and_bump_seed, HolderRewards, HolderRewardsPool,
+            get_holder_rewards_address, get_holder_rewards_address_and_bump_seed,
+            get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
+            HolderRewards, HolderRewardsPool,
         },
     },
     solana_program::{
@@ -25,11 +26,16 @@ use {
     },
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
-        extension::{transfer_hook::TransferHook, BaseStateWithExtensions, StateWithExtensions},
+        extension::{
+            transfer_hook::{TransferHook, TransferHookAccount},
+            BaseStateWithExtensions, StateWithExtensions,
+        },
         state::{Account, Mint},
     },
     spl_transfer_hook_interface::{
-        collect_extra_account_metas_signer_seeds, get_extra_account_metas_address_and_bump_seed,
+        collect_extra_account_metas_signer_seeds,
+        error::TransferHookError,
+        get_extra_account_metas_address_and_bump_seed,
         instruction::{ExecuteInstruction, TransferHookInstruction},
     },
 };
@@ -362,10 +368,194 @@ fn process_harvest_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> P
 /// Processes an SPL Transfer Hook Interface
 /// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
 pub fn process_spl_transfer_hook_execute(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
     _amount: u64,
 ) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let source_token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let destination_token_account_info = next_account_info(accounts_iter)?;
+    let _source_owner_info = next_account_info(accounts_iter)?;
+    let _extra_metas_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let source_holder_rewards_info = next_account_info(accounts_iter)?;
+    let destination_holder_rewards_info = next_account_info(accounts_iter)?;
+
+    let token_supply = {
+        let mint_data = mint_info.try_borrow_data()?;
+        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+        mint.base.supply
+    };
+
+    let current_total_rewards = {
+        // Ensure the holder rewards pool is owned by the Paladin Rewards
+        // program.
+        if !holder_rewards_pool_info.owner.eq(program_id) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the provided holder rewards pool address is the correct
+        // address derived from the mint.
+        if !holder_rewards_pool_info
+            .key
+            .eq(&get_holder_rewards_pool_address(mint_info.key))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+        }
+
+        let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
+        let holder_rewards_pool_state =
+            bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        holder_rewards_pool_state.total_rewards
+    };
+
+    // Update the source holder rewards account.
+    {
+        // Ensure the source holder rewards account is owned by the Paladin
+        // Rewards program.
+        if !source_holder_rewards_info.owner.eq(program_id) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the source holder rewards address is the correct address
+        // derived from the source token account.
+        if !source_holder_rewards_info
+            .key
+            .eq(&get_holder_rewards_address(source_token_account_info.key))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+        }
+
+        let mut holder_rewards_data = source_holder_rewards_info.try_borrow_mut_data()?;
+        let holder_rewards_state =
+            bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        // Calculate the source token account's updated share of the pool
+        // rewards.
+        //
+        // Since the holder rewards account may already have unharvested
+        // rewards, calculate the share of rewards that have not been seen
+        // by the holder rewards account.
+        //
+        // Then, adjust the unharvested rewards with the additional share.
+        //
+        // Token account balances are updated before transfer hooks are called,
+        // so the token account balance is the balance _after_ the transfer.
+        // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
+        //
+        // Since the source is being _debited_ tokens, subtract the calculated
+        // share from the source holder rewards account's unharvested rewards.
+        let last_seen_total_rewards = std::mem::replace(
+            &mut holder_rewards_state.last_seen_total_rewards,
+            current_total_rewards,
+        );
+        let unseen_total_rewards = current_total_rewards
+            .checked_sub(last_seen_total_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        let token_account_balance = {
+            let token_account_data = source_token_account_info.try_borrow_data()?;
+            let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+
+            // Ensure the provided token account is for the mint.
+            if !token_account.base.mint.eq(mint_info.key) {
+                return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+            }
+
+            // Ensure the provided token account is transferring.
+            let extension = token_account.get_extension::<TransferHookAccount>()?;
+            if !bool::from(extension.transferring) {
+                return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
+            }
+
+            token_account.base.amount
+        };
+
+        let unseen_unharvested_rewards =
+            calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
+        holder_rewards_state.unharvested_rewards = holder_rewards_state
+            .unharvested_rewards
+            .saturating_sub(unseen_unharvested_rewards);
+    }
+
+    // Update the destination holder rewards account.
+    {
+        // Ensure the destination holder rewards account is owned by the Paladin
+        // Rewards program.
+        if !destination_holder_rewards_info.owner.eq(program_id) {
+            return Err(ProgramError::InvalidAccountOwner);
+        }
+
+        // Ensure the destination holder rewards address is the correct address
+        // derived from the destination token account.
+        if !destination_holder_rewards_info
+            .key
+            .eq(&get_holder_rewards_address(
+                destination_token_account_info.key,
+            ))
+        {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+        }
+
+        let mut holder_rewards_data = destination_holder_rewards_info.try_borrow_mut_data()?;
+        let holder_rewards_state =
+            bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        // Calculate the destination token account's updated share of the pool
+        // rewards.
+        //
+        // Since the holder rewards account may already have unharvested
+        // rewards, calculate the share of rewards that have not been seen
+        // by the holder rewards account.
+        //
+        // Then, adjust the unharvested rewards with the additional share.
+        //
+        // Token account balances are updated before transfer hooks are called,
+        // so the token account balance is the balance _after_ the transfer.
+        // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
+        //
+        // Since the destination is being _credited_ tokens, add the calculated
+        // share to the destination holder rewards account's unharvested rewards.
+        let last_seen_total_rewards = std::mem::replace(
+            &mut holder_rewards_state.last_seen_total_rewards,
+            current_total_rewards,
+        );
+        let unseen_total_rewards = current_total_rewards
+            .checked_sub(last_seen_total_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        let token_account_balance = {
+            let token_account_data = destination_token_account_info.try_borrow_data()?;
+            let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+
+            // Ensure the provided token account is for the mint.
+            if !token_account.base.mint.eq(mint_info.key) {
+                return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+            }
+
+            // Ensure the provided token account is transferring.
+            let extension = token_account.get_extension::<TransferHookAccount>()?;
+            if !bool::from(extension.transferring) {
+                return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
+            }
+
+            token_account.base.amount
+        };
+
+        let unseen_unharvested_rewards =
+            calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
+        holder_rewards_state.unharvested_rewards = holder_rewards_state
+            .unharvested_rewards
+            .checked_add(unseen_unharvested_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+    }
+
     Ok(())
 }
 
