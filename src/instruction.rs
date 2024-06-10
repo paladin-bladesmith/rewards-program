@@ -30,8 +30,8 @@ pub enum PaladinRewardsInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Holder rewards pool account.
-    /// 1. `[w, s]` Payer account.
+    /// 0. `[w, s]` Payer account.
+    /// 1. `[w]` Holder rewards pool account.
     /// 2. `[ ]` System program.
     DistributeRewards(u64),
     /// Initializes a holder rewards account for a token account.
@@ -42,7 +42,7 @@ pub enum PaladinRewardsInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Holder rewards pool account.
+    /// 0. `[ ]` Holder rewards pool account.
     /// 1. `[w]` Holder rewards account.
     /// 2. `[ ]` Token account.
     /// 3. `[ ]` Token mint.
@@ -57,6 +57,7 @@ pub enum PaladinRewardsInstruction {
     /// 0. `[w]` Holder rewards pool account.
     /// 1. `[w]` Holder rewards account.
     /// 2. `[w]` Token account.
+    /// 3. `[ ]` Token mint.
     HarvestRewards,
 }
 
@@ -120,13 +121,13 @@ pub fn initialize_holder_rewards_pool(
 /// Creates a [DistributeRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 pub fn distribute_rewards(
-    holder_rewards_pool_address: &Pubkey,
     payer_address: &Pubkey,
+    holder_rewards_pool_address: &Pubkey,
     amount: u64,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*payer_address, true),
+        AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
     let data = PaladinRewardsInstruction::DistributeRewards(amount).pack();
@@ -142,7 +143,7 @@ pub fn initialize_holder_rewards(
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new_readonly(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
@@ -157,11 +158,13 @@ pub fn harvest_rewards(
     holder_rewards_pool_address: &Pubkey,
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
+    mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*token_account_address, false),
+        AccountMeta::new_readonly(*mint_address, false),
     ];
     let data = PaladinRewardsInstruction::HarvestRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
