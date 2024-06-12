@@ -5,7 +5,16 @@ use spl_program_error::*;
 /// Errors that can be returned by the Paladin Rewards program.
 #[spl_program_error]
 pub enum PaladinRewardsError {
-    /// Placeholder.
-    #[error("This is a placeholder error")]
-    Placeholder,
+    /// Incorrect mint authority.
+    #[error("Incorrect mint authority")]
+    IncorrectMintAuthority,
+    /// Incorrect transfer hook program ID.
+    #[error("Incorrect transfer hook program ID")]
+    IncorrectTransferHookProgramId,
+    /// Incorrect holder rewards pool address.
+    #[error("Incorrect holder rewards pool address")]
+    IncorrectHolderRewardsPoolAddress,
+    /// Incorrect extra metas address.
+    #[error("Incorrect extra metas address")]
+    IncorrectExtraMetasAddress,
 }
