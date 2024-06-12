@@ -62,7 +62,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
             &holder_rewards_pool,
             &AccountSharedData::new_data(
                 100_000_000,
-                &vec![0; 165],
+                &vec![0; 8],
                 &Pubkey::new_unique(), // Incorrect owner.
             )
             .unwrap(),
@@ -135,6 +135,7 @@ async fn fail_holder_rewards_pool_invalid_data() {
     );
 }
 
+#[allow(clippy::arithmetic_side_effects)]
 #[tokio::test]
 async fn success() {
     let holder_rewards_pool = Pubkey::new_unique();
@@ -182,6 +183,11 @@ async fn success() {
             total_rewards: amount
         }
     );
+
+    // Assert the pool was debited lamports.
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let expected_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>()) + amount;
+    assert_eq!(holder_rewards_pool_account.lamports, expected_lamports);
 
     // Assert the payer's account balance was debited.
     let payer_resulting_lamports = context
