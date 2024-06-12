@@ -609,8 +609,5 @@ async fn success() {
     let state = TlvStateBorrowed::unpack(&extra_metas_account.data).unwrap();
     let bytes = state.get_first_bytes::<ExecuteInstruction>().unwrap();
     let extra_account_metas = PodSlice::<ExtraAccountMeta>::unpack(bytes).unwrap();
-    assert_eq!(
-        extra_account_metas.data(),
-        &get_extra_account_metas().unwrap()
-    );
+    assert_eq!(extra_account_metas.data(), &get_extra_account_metas());
 }

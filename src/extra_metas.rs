@@ -1,11 +1,10 @@
 use {
     crate::state::{SEED_PREFIX_HOLDER_REWARDS, SEED_PREFIX_HOLDER_REWARDS_POOL},
-    solana_program::program_error::ProgramError,
     spl_tlv_account_resolution::{account::ExtraAccountMeta, seeds::Seed},
 };
 
-/// Extra account metas required by the Paladin Rewards program's SPL Transfer
-/// Hook Interface implementation.
+/// Extra account metas required by the Paladin Rewards program's SPL
+/// Transfer Hook Interface implementation.
 ///
 /// Accounts required (* = extra meta):
 ///
@@ -17,8 +16,8 @@ use {
 /// 5. `[ ]` * Holder rewards pool account.
 /// 6. `[w]` * Source holder rewards account.
 /// 7. `[w]` * Destination holder rewards account.
-pub fn get_extra_account_metas() -> Result<[ExtraAccountMeta; 3], ProgramError> {
-    Ok([
+pub fn get_extra_account_metas() -> [ExtraAccountMeta; 3] {
+    [
         // Holder rewards pool account.
         ExtraAccountMeta::new_with_seeds(
             &[
@@ -31,7 +30,8 @@ pub fn get_extra_account_metas() -> Result<[ExtraAccountMeta; 3], ProgramError> 
             ],
             false,
             false,
-        )?,
+        )
+        .unwrap(),
         // Source holder rewards account.
         ExtraAccountMeta::new_with_seeds(
             &[
@@ -44,7 +44,8 @@ pub fn get_extra_account_metas() -> Result<[ExtraAccountMeta; 3], ProgramError> 
             ],
             false,
             true,
-        )?,
+        )
+        .unwrap(),
         // Destination holder rewards account.
         ExtraAccountMeta::new_with_seeds(
             &[
@@ -57,6 +58,7 @@ pub fn get_extra_account_metas() -> Result<[ExtraAccountMeta; 3], ProgramError> 
             ],
             false,
             true,
-        )?,
-    ])
+        )
+        .unwrap(),
+    ]
 }

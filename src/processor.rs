@@ -144,7 +144,7 @@ fn process_initialize_holder_rewards_pool(
             return Err(ProgramError::AccountAlreadyInitialized);
         }
 
-        let extra_metas = get_extra_account_metas()?;
+        let extra_metas = get_extra_account_metas();
         let account_size = ExtraAccountMetaList::size_of(extra_metas.len())?;
 
         // Allocate & assign.
@@ -161,6 +161,7 @@ fn process_initialize_holder_rewards_pool(
 
         // Write the data.
         let mut data = extra_metas_info.try_borrow_mut_data()?;
+        msg!("JOE: I think it's failing here...");
         ExtraAccountMetaList::init::<ExecuteInstruction>(&mut data, &extra_metas)?;
     }
 
