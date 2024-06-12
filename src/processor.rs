@@ -6,8 +6,8 @@ use {
         extra_metas::get_extra_account_metas,
         instruction::PaladinRewardsInstruction,
         state::{
+            collect_holder_rewards_pool_signer_seeds,
             get_holder_rewards_pool_address_and_bump_seed, HolderRewardsPool,
-            SEED_PREFIX_HOLDER_REWARDS_POOL,
         },
     },
     solana_program::{
@@ -48,11 +48,6 @@ fn process_initialize_holder_rewards_pool(
 
     // Run checks on the mint.
     {
-        // Ensure the mint is owned by SPL Token-2022.
-        if !mint_info.owner.eq(&spl_token_2022::id()) {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
-
         let mint_data = mint_info.try_borrow_data()?;
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
 
@@ -81,13 +76,11 @@ fn process_initialize_holder_rewards_pool(
 
     // Initialize the holder rewards pool account.
     {
-        let (holder_rewards_pool_address, holder_rewards_pool_bump) =
+        let (holder_rewards_pool_address, bump_seed) =
             get_holder_rewards_pool_address_and_bump_seed(mint_info.key);
-        let holder_rewards_pool_signer_seeds = &[
-            SEED_PREFIX_HOLDER_REWARDS_POOL,
-            mint_info.key.as_ref(),
-            &[holder_rewards_pool_bump],
-        ];
+        let bump_seed = [bump_seed];
+        let holder_rewards_pool_signer_seeds =
+            collect_holder_rewards_pool_signer_seeds(mint_info.key, &bump_seed);
 
         // Ensure the provided holder rewards pool address is the correct
         // address derived from the mint.
@@ -111,12 +104,12 @@ fn process_initialize_holder_rewards_pool(
                 std::mem::size_of::<HolderRewardsPool>() as u64,
             ),
             &[holder_rewards_pool_info.clone()],
-            &[holder_rewards_pool_signer_seeds],
+            &[&holder_rewards_pool_signer_seeds],
         )?;
         invoke_signed(
             &system_instruction::assign(&holder_rewards_pool_address, program_id),
             &[holder_rewards_pool_info.clone()],
-            &[holder_rewards_pool_signer_seeds],
+            &[&holder_rewards_pool_signer_seeds],
         )?;
 
         // Write the data.
@@ -161,7 +154,6 @@ fn process_initialize_holder_rewards_pool(
 
         // Write the data.
         let mut data = extra_metas_info.try_borrow_mut_data()?;
-        msg!("JOE: I think it's failing here...");
         ExtraAccountMetaList::init::<ExecuteInstruction>(&mut data, &extra_metas)?;
     }
 

@@ -22,9 +22,25 @@ pub fn get_holder_rewards_address(token_account_address: &Pubkey) -> Pubkey {
 /// Derive the address of a holder rewards account, with bump seed.
 pub fn get_holder_rewards_address_and_bump_seed(token_account_address: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
-        &[SEED_PREFIX_HOLDER_REWARDS, token_account_address.as_ref()],
+        &collect_holder_rewards_seeds(token_account_address),
         &crate::id(),
     )
+}
+
+pub(crate) fn collect_holder_rewards_seeds(token_account_address: &Pubkey) -> [&[u8]; 2] {
+    [SEED_PREFIX_HOLDER_REWARDS, token_account_address.as_ref()]
+}
+
+#[allow(unused)] // For now.
+pub(crate) fn collect_holder_rewards_signer_seeds<'a>(
+    token_account_address: &'a Pubkey,
+    bump_seed: &'a [u8],
+) -> [&'a [u8]; 3] {
+    [
+        SEED_PREFIX_HOLDER_REWARDS,
+        token_account_address.as_ref(),
+        bump_seed,
+    ]
 }
 
 /// Derive the address of a holder rewards pool account.
@@ -35,9 +51,24 @@ pub fn get_holder_rewards_pool_address(mint_address: &Pubkey) -> Pubkey {
 /// Derive the address of a holder rewards pool account, with bump seed.
 pub fn get_holder_rewards_pool_address_and_bump_seed(mint_address: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
-        &[SEED_PREFIX_HOLDER_REWARDS_POOL, mint_address.as_ref()],
+        &collect_holder_rewards_pool_seeds(mint_address),
         &crate::id(),
     )
+}
+
+pub(crate) fn collect_holder_rewards_pool_seeds(mint_address: &Pubkey) -> [&[u8]; 2] {
+    [SEED_PREFIX_HOLDER_REWARDS_POOL, mint_address.as_ref()]
+}
+
+pub(crate) fn collect_holder_rewards_pool_signer_seeds<'a>(
+    mint_address: &'a Pubkey,
+    bump_seed: &'a [u8],
+) -> [&'a [u8]; 3] {
+    [
+        SEED_PREFIX_HOLDER_REWARDS_POOL,
+        mint_address.as_ref(),
+        bump_seed,
+    ]
 }
 
 /// A holder rewards account which tracks the rewards accumulated by a holder

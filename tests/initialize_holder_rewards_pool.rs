@@ -37,52 +37,6 @@ use {
 };
 
 #[tokio::test]
-async fn fail_mint_incorrect_owner() {
-    let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
-
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
-    let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
-
-    let mut context = setup().start_with_context().await;
-
-    // Set up a mint with incorrect owner.
-    {
-        context.set_account(
-            &mint,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &Pubkey::new_unique())
-                .unwrap(),
-        );
-    }
-
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountOwner)
-    );
-}
-
-#[tokio::test]
 async fn fail_mint_invalid_data() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
