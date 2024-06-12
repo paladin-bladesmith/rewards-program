@@ -214,9 +214,8 @@ async fn fail_mint_incorrect_transfer_hook_program_id() {
         let mut account_data = vec![0; account_size];
         let mut state =
             StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut account_data).unwrap();
-        state.init_extension::<TransferHook>(true).unwrap();
         state
-            .get_extension_mut::<TransferHook>()
+            .init_extension::<TransferHook>(true)
             .unwrap()
             .program_id = Some(Pubkey::new_unique()).try_into().unwrap(); // Incorrect program ID.
         state.base = Mint {

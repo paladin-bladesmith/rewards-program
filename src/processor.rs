@@ -120,11 +120,9 @@ fn process_initialize_holder_rewards_pool(
         )?;
 
         // Write the data.
-        let holder_rewards_pool_state = HolderRewardsPool::default();
-        let holder_rewards_pool_data = bytemuck::bytes_of(&holder_rewards_pool_state);
-        holder_rewards_pool_info
-            .try_borrow_mut_data()?
-            .copy_from_slice(holder_rewards_pool_data);
+        let mut data = holder_rewards_pool_info.try_borrow_mut_data()?;
+        *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
+            HolderRewardsPool::default();
     }
 
     // Initialize the extra metas account.

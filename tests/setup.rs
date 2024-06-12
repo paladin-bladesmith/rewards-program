@@ -39,9 +39,8 @@ pub async fn setup_mint(
     let mut data = vec![0; account_size];
     {
         let mut state = StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut data).unwrap();
-        state.init_extension::<TransferHook>(true).unwrap();
         state
-            .get_extension_mut::<TransferHook>()
+            .init_extension::<TransferHook>(true)
             .unwrap()
             .program_id = Some(paladin_rewards_program::id()).try_into().unwrap();
         state.base = Mint {
