@@ -35,7 +35,7 @@ jobs:
           key: ${{ runner.os }}-cargo-programs-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-programs
       - name: Build programs
-        run: pnpm programs:build
+        run: pnpm programs:build --features bpf-entrypoint
       - name: Upload program builds
         uses: actions/upload-artifact@v4
         with:
@@ -69,7 +69,7 @@ jobs:
             ${{ runner.os }}-cargo-programs-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo-programs
       - name: Test programs
-        run: pnpm programs:test
+        run: pnpm programs:test --features bpf-entrypoint
 
   # generate_idls:
   #   name: Check IDL generation
