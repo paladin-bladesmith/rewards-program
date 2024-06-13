@@ -258,7 +258,7 @@ fn process_initialize_holder_rewards(
     let total_rewards = {
         // Ensure the holder rewards pool is owned by the Paladin Rewards
         // program.
-        if !holder_rewards_pool_info.owner.eq(&crate::id()) {
+        if !holder_rewards_pool_info.owner.eq(program_id) {
             return Err(ProgramError::InvalidAccountOwner);
         }
 

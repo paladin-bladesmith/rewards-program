@@ -172,8 +172,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     {
         context.set_account(
             &holder_rewards_pool,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &Pubkey::new_unique())
-                .unwrap(),
+            &AccountSharedData::new_data(100_000_000, &vec![5; 8], &Pubkey::new_unique()).unwrap(),
         );
     }
 
@@ -257,8 +256,12 @@ async fn fail_holder_rewards_pool_invalid_data() {
     {
         context.set_account(
             &holder_rewards_pool,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
+            &AccountSharedData::new_data(
+                100_000_000,
+                &vec![5; 165],
+                &paladin_rewards_program::id(),
+            )
+            .unwrap(),
         );
     }
 
@@ -281,7 +284,7 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
     assert_eq!(
         err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountOwner)
+        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
     );
 }
 
@@ -345,7 +348,7 @@ async fn fail_holder_rewards_account_initialized() {
             &holder_rewards,
             &AccountSharedData::from(Account {
                 lamports: 1_000_000_000,
-                data: vec![2; 45],
+                data: vec![2; 16],
                 owner: paladin_rewards_program::id(),
                 ..Account::default()
             }),
