@@ -14,7 +14,7 @@ use {
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
-        program::invoke_signed,
+        program::{invoke, invoke_signed},
         program_error::ProgramError,
         program_option::COption,
         pubkey::Pubkey,
@@ -163,10 +163,46 @@ fn process_initialize_holder_rewards_pool(
 /// Processes a [DistributeRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 fn process_distribute_rewards(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
-    _amount: u64,
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    amount: u64,
 ) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let payer_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let _system_program_info = next_account_info(accounts_iter)?;
+
+    // Ensure the payer account is a signer.
+    if !payer_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+
+    // Ensure the holder rewards pool account is owned by the Paladin Rewards
+    // program.
+    if !holder_rewards_pool_info.owner.eq(program_id) {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    // Update the total rewards in the holder rewards pool.
+    {
+        let mut holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+        let holder_rewards_pool_state =
+            bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut holder_rewards_pool_data)
+                .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        holder_rewards_pool_state.total_rewards = holder_rewards_pool_state
+            .total_rewards
+            .checked_add(amount)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+    }
+
+    // Move the amount from the payer to the holder rewards pool.
+    invoke(
+        &system_instruction::transfer(payer_info.key, holder_rewards_pool_info.key, amount),
+        &[payer_info.clone(), holder_rewards_pool_info.clone()],
+    )?;
+
     Ok(())
 }
 
