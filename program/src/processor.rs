@@ -40,10 +40,14 @@ fn calculate_reward_share(
     if token_supply == 0 {
         return Ok(0);
     }
-    // (token_amount / total_token_supply) * pool_rewards
-    token_account_balance
-        .checked_div(token_supply)
-        .and_then(|share| share.checked_mul(total_rewards))
+    // Calculation: (token_amount / total_token_supply) * pool_rewards
+    //
+    // However, multiplication is done first to avoid truncation, ie:
+    // (token_amount * pool_rewards) / total_token_supply
+    (token_account_balance as u128)
+        .checked_mul(total_rewards as u128)
+        .and_then(|product| product.checked_div(token_supply as u128))
+        .and_then(|share| u64::try_from(share).ok())
         .ok_or(ProgramError::ArithmeticOverflow)
 }
 

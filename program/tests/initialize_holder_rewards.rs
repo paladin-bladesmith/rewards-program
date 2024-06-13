@@ -441,7 +441,8 @@ async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u
         if token_supply == 0 {
             0
         } else {
-            (token_account_balance / token_supply) * total_rewards
+            ((token_account_balance as u128) * (total_rewards as u128) / (token_supply as u128))
+                as u64
         }
     };
 
@@ -452,11 +453,19 @@ async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u
         .await
         .unwrap()
         .unwrap();
+    let holder_rewards_state = bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
+
     assert_eq!(
-        bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
+        holder_rewards_state,
         &HolderRewards {
             last_seen_total_rewards: total_rewards,
             unharvested_rewards: expected_unharvested_rewards,
         },
     );
+
+    // If token supply was not zero, ensure the calculated unharvested rewards is
+    // non-zero.
+    if token_supply != 0 {
+        assert_ne!(holder_rewards_state.unharvested_rewards, 0);
+    }
 }
