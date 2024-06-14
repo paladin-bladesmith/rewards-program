@@ -2,6 +2,7 @@
 
 use {
     bytemuck::{Pod, Zeroable},
+    shank::ShankAccount,
     solana_program::pubkey::Pubkey,
 };
 
@@ -73,7 +74,7 @@ pub(crate) fn collect_holder_rewards_pool_signer_seeds<'a>(
 
 /// A holder rewards account which tracks the rewards accumulated by a holder
 /// of tokens.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewards {
     /// The last seen total rewards amount in the aggregate holder rewards
@@ -88,7 +89,7 @@ pub struct HolderRewards {
 /// of rewards to holders.
 ///
 /// All rewards ready to be distributed are stored directly on this account.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewardsPool {
     /// Total holder rewards available for distribution.

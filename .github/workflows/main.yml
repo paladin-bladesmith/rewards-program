@@ -71,38 +71,38 @@ jobs:
       - name: Test programs
         run: pnpm programs:test --features bpf-entrypoint
 
-  # generate_idls:
-  #   name: Check IDL generation
-  #   needs: build_programs
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Git checkout
-  #       uses: actions/checkout@v4
-  #     - name: Setup environment
-  #       uses: ./.github/actions/setup
-  #       with:
-  #         node: ${{ env.NODE_VERSION }}
-  #         solana: ${{ env.SOLANA_VERSION }}
-  #     - name: Cache cargo dependencies
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: ${{ env.CARGO_CACHE }}
-  #         key: ${{ runner.os }}-cargo-programs-${{ hashFiles('**/Cargo.lock') }}
-  #         restore-keys: ${{ runner.os }}-cargo-programs
-  #     - name: Cache local cargo dependencies
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: |
-  #           .cargo/bin/
-  #           .cargo/registry/index/
-  #           .cargo/registry/cache/
-  #           .cargo/git/db/
-  #         key: ${{ runner.os }}-cargo-local-${{ hashFiles('**/Cargo.lock') }}
-  #         restore-keys: ${{ runner.os }}-cargo-local
-  #     - name: Generate IDLs
-  #       run: pnpm generate:idls
-  #     - name: Ensure working directory is clean
-  #       run: test -z "$(git status --porcelain)"
+  generate_idls:
+    name: Check IDL generation
+    needs: build_programs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          node: ${{ env.NODE_VERSION }}
+          solana: ${{ env.SOLANA_VERSION }}
+      - name: Cache cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CARGO_CACHE }}
+          key: ${{ runner.os }}-cargo-programs-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-programs
+      - name: Cache local cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cargo/bin/
+            .cargo/registry/index/
+            .cargo/registry/cache/
+            .cargo/git/db/
+          key: ${{ runner.os }}-cargo-local-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-local
+      - name: Generate IDLs
+        run: pnpm generate:idls
+      - name: Ensure working directory is clean
+        run: test -z "$(git status --porcelain)"
 
   # generate_clients:
   #   name: Check client generation
