@@ -1,14 +1,18 @@
 //! Program instruction types.
 
-use solana_program::{
-    instruction::{AccountMeta, Instruction},
-    program_error::ProgramError,
-    pubkey::Pubkey,
-    system_program,
+use {
+    shank::ShankInstruction,
+    solana_program::{
+        instruction::{AccountMeta, Instruction},
+        program_error::ProgramError,
+        pubkey::Pubkey,
+        system_program,
+    },
 };
 
 /// Instructions supported by the Paladin Rewards program.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[rustfmt::skip]
+#[derive(Clone, Copy, Debug, PartialEq, ShankInstruction)]
 pub enum PaladinRewardsInstruction {
     /// Configures a holder rewards pool for a mint that has been configured
     /// with the rewards program as a transfer hook program.
@@ -25,6 +29,34 @@ pub enum PaladinRewardsInstruction {
     /// 2. `[ ]` Token mint.
     /// 3. `[s]` Mint authority.
     /// 4. `[ ]` System program.
+    #[account(
+        0,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        1,
+        writable,
+        name = "extra_account_metas",
+        desc = "Transfer hook extra account metas account."
+    )]
+    #[account(
+        2,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        3,
+        signer,
+        name = "mint_authority",
+        desc = "Mint authority.",
+    )]
+    #[account(
+        4,
+        name = "system_program",
+        desc = "System program.",
+    )]
     InitializeHolderRewardsPool,
     /// Moves SOL rewards to the holder rewards pool and updates the total.
     ///
@@ -33,6 +65,24 @@ pub enum PaladinRewardsInstruction {
     /// 0. `[w, s]` Payer account.
     /// 1. `[w]` Holder rewards pool account.
     /// 2. `[ ]` System program.
+    #[account(
+        0,
+        writable,
+        signer,
+        name = "payer",
+        desc = "Payer account.",
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        2,
+        name = "system_program",
+        desc = "System program.",
+    )]
     DistributeRewards(u64),
     /// Initializes a holder rewards account for a token account.
     ///
@@ -47,6 +97,32 @@ pub enum PaladinRewardsInstruction {
     /// 2. `[ ]` Token account.
     /// 3. `[ ]` Token mint.
     /// 4. `[ ]` System program.
+    #[account(
+        0, 
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account.",
+    )]
+    #[account(
+        1, 
+        writable,
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
+    )]
+    #[account(
+        2, 
+        name = "token_account",
+        desc = "Token account.",
+    )]
+    #[account(
+        3, 
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        4, 
+        name = "system_program",
+        desc = "System program.",
+    )]
     InitializeHolderRewards,
     /// Moves accrued SOL rewards into the provided token account based on the
     /// share of the total rewards pool represented in the holder rewards
@@ -58,6 +134,29 @@ pub enum PaladinRewardsInstruction {
     /// 1. `[w]` Holder rewards account.
     /// 2. `[w]` Token account.
     /// 3. `[ ]` Token mint.
+    #[account(
+        0,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
+    )]
+    #[account(
+        2,
+        writable,
+        name = "token_account",
+        desc = "Token account.",
+    )]
+    #[account(
+        3,
+        name = "mint",
+        desc = "Token mint.",
+    )]
     HarvestRewards,
 }
 

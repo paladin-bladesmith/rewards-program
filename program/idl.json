@@ -1,0 +1,223 @@
+{
+  "version": "0.1.0",
+  "name": "paladin_rewards_program",
+  "instructions": [
+    {
+      "name": "InitializeHolderRewardsPool",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "extraAccountMetas",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Transfer hook extra account metas account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "mintAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Mint authority."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program."
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "DistributeRewards",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "Payer account."
+          ]
+        },
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "InitializeHolderRewards",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards account."
+          ]
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program."
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    },
+    {
+      "name": "HarvestRewards",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards account."
+          ]
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "HolderRewards",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lastSeenTotalRewards",
+            "type": "u64"
+          },
+          {
+            "name": "unharvestedRewards",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HolderRewardsPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalRewards",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q",
+    "binaryVersion": "0.4.2",
+    "libVersion": "0.4.2"
+  }
+}
