@@ -18,13 +18,13 @@ importers:
         specifier: ^0.20.2
         version: 0.20.8(fastestsmallesttextencoderdecoder@1.0.22)
       '@kinobi-so/renderers-rust':
-        specifier: ^0.20.3
-        version: 0.20.8(fastestsmallesttextencoderdecoder@1.0.22)
+        specifier: ^0.20.10
+        version: 0.20.10(fastestsmallesttextencoderdecoder@1.0.22)
       '@metaplex-foundation/shank-js':
         specifier: ^0.1.7
         version: 0.1.7
       kinobi:
-        specifier: ^0.20.1
+        specifier: ^0.20.4
         version: 0.20.4
       typescript:
         specifier: ^5.4.2
@@ -57,8 +57,8 @@ packages:
   '@kinobi-so/renderers-js@0.20.8':
     resolution: {integrity: sha512-U7mcnYXcZRPbONAI8bXPAedp4J2/X3/b63PkR9Cc/NLBQNqtz4cde/u0vB2JD12bHLlcgwahFKOcbSinx4aO7A==}
 
-  '@kinobi-so/renderers-rust@0.20.8':
-    resolution: {integrity: sha512-9lM5rfYgYJAoYhEYdPUpGkxGLx9r6QRkXI9S/+6/Q15HCSHlarMkX1LTGNsHxh+zyaVleedAewJuSM3Z3bjG9w==}
+  '@kinobi-so/renderers-rust@0.20.10':
+    resolution: {integrity: sha512-I4NINXbUJR3gPKoS/fNQ92YuCGFtKd+Ca+nxY+5qmVl9ctB3wIrFvUoNMq0eES8Xh6jyBtF73ocBFKBzFfn1NQ==}
 
   '@kinobi-so/validators@0.20.4':
     resolution: {integrity: sha512-PyhfM1fgsAPrDgMOB1VjvW+CytPTtLMLB0bSCU+0GRm8IoZ8pj74cIcB5XPjai3N5dU7kDMYz1nZLnCFsoXfLg==}
@@ -473,7 +473,7 @@ snapshots:
       - chokidar
       - fastestsmallesttextencoderdecoder
 
-  '@kinobi-so/renderers-rust@0.20.8(fastestsmallesttextencoderdecoder@1.0.22)':
+  '@kinobi-so/renderers-rust@0.20.10(fastestsmallesttextencoderdecoder@1.0.22)':
     dependencies:
       '@kinobi-so/errors': 0.20.4
       '@kinobi-so/nodes': 0.20.4
