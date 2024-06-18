@@ -23,6 +23,8 @@ runs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       shell: bash
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
     - name: Install Solana
       if: ${{ inputs.solana != '' }}
       uses: metaplex-foundation/actions/install-solana@v1
