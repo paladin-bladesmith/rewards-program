@@ -13,6 +13,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set env vars
+      run: |
+        source ci/rust-version.sh
+        echo "RUST_NIGHTLY=$rust_nightly" >> $GITHUB_ENV
+      shell: bash
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
     - name: Setup Node.js
@@ -23,8 +28,11 @@ runs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       shell: bash
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+    - name: Install Rust Nightly
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ env.RUST_NIGHTLY }}
+        components: rustfmt
     - name: Install Solana
       if: ${{ inputs.solana != '' }}
       uses: metaplex-foundation/actions/install-solana@v1
