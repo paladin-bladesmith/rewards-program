@@ -209,7 +209,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -298,7 +298,7 @@ async fn fail_holder_rewards_incorrect_address() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -338,7 +338,7 @@ async fn fail_holder_rewards_account_initialized() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -391,7 +391,7 @@ async fn fail_holder_rewards_account_initialized() {
 #[test_case(20_000_000_000, 50_000_000, 50_000_000)]
 #[test_case(20_000_000_000, 50_000_000, 40_000_000_000)]
 #[tokio::test]
-async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u64) {
+async fn success(token_supply: u64, token_account_balance: u64, active_rewards: u64) {
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
 
@@ -399,8 +399,16 @@ async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u
     let holder_rewards = get_holder_rewards_address(&token_account);
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
+    let expected_last_seen_total_rewards = active_rewards + 500_000; // Arbitrary.
+
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, total_rewards).await;
+    setup_holder_rewards_pool_account(
+        &mut context,
+        &holder_rewards_pool,
+        active_rewards,
+        expected_last_seen_total_rewards,
+    )
+    .await;
     setup_token_account(
         &mut context,
         &token_account,
@@ -441,7 +449,7 @@ async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u
         if token_supply == 0 {
             0
         } else {
-            ((token_account_balance as u128) * (total_rewards as u128) / (token_supply as u128))
+            ((token_account_balance as u128) * (active_rewards as u128) / (token_supply as u128))
                 as u64
         }
     };
@@ -458,7 +466,7 @@ async fn success(token_supply: u64, token_account_balance: u64, total_rewards: u
     assert_eq!(
         holder_rewards_state,
         &HolderRewards {
-            last_seen_total_rewards: total_rewards,
+            last_seen_total_rewards: expected_last_seen_total_rewards,
             unharvested_rewards: expected_unharvested_rewards,
         },
     );

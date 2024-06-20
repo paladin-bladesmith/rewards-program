@@ -128,13 +128,14 @@ pub async fn setup_system_account(
 pub async fn setup_holder_rewards_pool_account(
     context: &mut ProgramTestContext,
     holder_rewards_pool_address: &Pubkey,
+    excess_lamports: u64,
     total_rewards: u64,
 ) {
     let state = HolderRewardsPool { total_rewards };
     let data = bytemuck::bytes_of(&state).to_vec();
 
     let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(data.len()) + total_rewards;
+    let lamports = rent.minimum_balance(data.len()) + excess_lamports;
 
     context.set_account(
         holder_rewards_pool_address,
