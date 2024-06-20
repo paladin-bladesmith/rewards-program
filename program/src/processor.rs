@@ -19,7 +19,9 @@ use {
         program_error::ProgramError,
         program_option::COption,
         pubkey::Pubkey,
+        rent::Rent,
         system_instruction,
+        sysvar::Sysvar,
     },
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
@@ -259,7 +261,7 @@ fn process_initialize_holder_rewards(
         token_account.base.amount
     };
 
-    let total_rewards = {
+    let last_seen_total_rewards = {
         // Ensure the holder rewards pool is owned by the Paladin Rewards
         // program.
         if !holder_rewards_pool_info.owner.eq(program_id) {
@@ -284,11 +286,26 @@ fn process_initialize_holder_rewards(
     };
 
     // Calculate unharvested rewards for the token account.
+    //
     // Since the holder rewards account is being initialized, the
-    // `unharvested_rewards` is calculated from the current `total_rewards` in
-    // the pool.
-    let unharvested_rewards =
-        calculate_reward_share(token_supply, token_account_balance, total_rewards)?;
+    // `unharvested_rewards` is calculated from the _available_ rewards in the
+    // pool, ie. `pool.lamports - rent_exempt_minimum`.
+    //
+    // If the program used total rewards for this calculation, new holders
+    // would be able to claim rewards that were already distributed to other
+    // holders.
+    //
+    // If the program used zero rewards for this calculation, new holders
+    // would not be able to claim rewards until the next distribution, which
+    // could result in some lamports left unclaimable in the pool.
+    let unharvested_rewards = {
+        let rent = <Rent as Sysvar>::get()?;
+        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+        let active_rewards = holder_rewards_pool_info
+            .lamports()
+            .saturating_sub(rent_exempt_lamports);
+        calculate_reward_share(token_supply, token_account_balance, active_rewards)?
+    };
 
     // Initialize the holder rewards account.
     {
@@ -328,7 +345,7 @@ fn process_initialize_holder_rewards(
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
-                last_seen_total_rewards: total_rewards,
+                last_seen_total_rewards,
                 unharvested_rewards,
             };
     }
