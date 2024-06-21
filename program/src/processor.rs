@@ -301,10 +301,10 @@ fn process_initialize_holder_rewards(
     let unharvested_rewards = {
         let rent = <Rent as Sysvar>::get()?;
         let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
-        let active_rewards = holder_rewards_pool_info
+        let available_rewards = holder_rewards_pool_info
             .lamports()
             .saturating_sub(rent_exempt_lamports);
-        calculate_reward_share(token_supply, token_account_balance, active_rewards)?
+        calculate_reward_share(token_supply, token_account_balance, available_rewards)?
     };
 
     // Initialize the holder rewards account.
