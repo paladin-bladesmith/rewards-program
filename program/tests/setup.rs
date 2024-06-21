@@ -2,7 +2,10 @@
 #![allow(dead_code)]
 
 use {
-    paladin_rewards_program::state::HolderRewardsPool,
+    paladin_rewards_program::{
+        extra_metas::get_extra_account_metas,
+        state::{HolderRewards, HolderRewardsPool},
+    },
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -10,12 +13,17 @@ use {
         pubkey::Pubkey,
         system_program,
     },
+    spl_pod::primitives::PodBool,
+    spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
         },
         state::{Account as TokenAccount, AccountState, Mint},
+    },
+    spl_transfer_hook_interface::{
+        get_extra_account_metas_address, instruction::ExecuteInstruction,
     },
 };
 
@@ -67,12 +75,13 @@ pub async fn setup_mint(
     );
 }
 
-pub async fn setup_token_account(
+async fn setup_token_account_inner(
     context: &mut ProgramTestContext,
     token_account: &Pubkey,
     owner: &Pubkey,
     mint: &Pubkey,
     amount: u64,
+    is_transferring: bool,
 ) {
     let account_size = ExtensionType::try_calculate_account_len::<TokenAccount>(&[
         ExtensionType::TransferHookAccount,
@@ -86,7 +95,10 @@ pub async fn setup_token_account(
     {
         let mut state =
             StateWithExtensionsMut::<TokenAccount>::unpack_uninitialized(&mut data).unwrap();
-        state.init_extension::<TransferHookAccount>(true).unwrap();
+        state
+            .init_extension::<TransferHookAccount>(true)
+            .unwrap()
+            .transferring = PodBool::from(is_transferring);
         state.base = TokenAccount {
             amount,
             mint: *mint,
@@ -107,6 +119,26 @@ pub async fn setup_token_account(
             ..Account::default()
         }),
     );
+}
+
+pub async fn setup_token_account(
+    context: &mut ProgramTestContext,
+    token_account: &Pubkey,
+    owner: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+) {
+    setup_token_account_inner(context, token_account, owner, mint, amount, false).await;
+}
+
+pub async fn setup_token_account_transferring(
+    context: &mut ProgramTestContext,
+    token_account: &Pubkey,
+    owner: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+) {
+    setup_token_account_inner(context, token_account, owner, mint, amount, true).await;
 }
 
 #[allow(clippy::arithmetic_side_effects)]
@@ -139,6 +171,56 @@ pub async fn setup_holder_rewards_pool_account(
 
     context.set_account(
         holder_rewards_pool_address,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_rewards_program::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+#[allow(clippy::arithmetic_side_effects)]
+pub async fn setup_holder_rewards_account(
+    context: &mut ProgramTestContext,
+    holder_rewards: &Pubkey,
+    unharvested_rewards: u64,
+    last_seen_total_rewards: u64,
+) {
+    let state = HolderRewards {
+        unharvested_rewards,
+        last_seen_total_rewards,
+    };
+    let data = bytemuck::bytes_of(&state).to_vec();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data.len());
+
+    context.set_account(
+        holder_rewards,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_rewards_program::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+pub async fn setup_extra_metas_account(context: &mut ProgramTestContext, mint: &Pubkey) {
+    let address = get_extra_account_metas_address(mint, &paladin_rewards_program::id());
+
+    let extra_metas = get_extra_account_metas();
+    let data_len = ExtraAccountMetaList::size_of(extra_metas.len()).unwrap();
+
+    let mut data = vec![0; data_len];
+    ExtraAccountMetaList::init::<ExecuteInstruction>(&mut data, &extra_metas).unwrap();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data_len);
+
+    context.set_account(
+        &address,
         &AccountSharedData::from(Account {
             lamports,
             data,
