@@ -32,7 +32,6 @@ pub(crate) fn collect_holder_rewards_seeds(token_account_address: &Pubkey) -> [&
     [SEED_PREFIX_HOLDER_REWARDS, token_account_address.as_ref()]
 }
 
-#[allow(unused)] // For now.
 pub(crate) fn collect_holder_rewards_signer_seeds<'a>(
     token_account_address: &'a Pubkey,
     bump_seed: &'a [u8],

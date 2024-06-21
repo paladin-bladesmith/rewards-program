@@ -144,7 +144,7 @@ async fn success() {
 
     let mut context = setup().start_with_context().await;
     setup_system_account(&mut context, &payer.pubkey(), amount).await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
 
     // For checks later.
     let payer_beginning_lamports = context

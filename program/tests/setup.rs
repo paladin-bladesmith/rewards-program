@@ -12,10 +12,10 @@ use {
     },
     spl_token_2022::{
         extension::{
-            transfer_hook::TransferHook, BaseStateWithExtensionsMut, ExtensionType,
-            StateWithExtensionsMut,
+            transfer_hook::{TransferHook, TransferHookAccount},
+            BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
         },
-        state::Mint,
+        state::{Account as TokenAccount, AccountState, Mint},
     },
 };
 
@@ -67,6 +67,48 @@ pub async fn setup_mint(
     );
 }
 
+pub async fn setup_token_account(
+    context: &mut ProgramTestContext,
+    token_account: &Pubkey,
+    owner: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+) {
+    let account_size = ExtensionType::try_calculate_account_len::<TokenAccount>(&[
+        ExtensionType::TransferHookAccount,
+    ])
+    .unwrap();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(account_size);
+
+    let mut data = vec![0; account_size];
+    {
+        let mut state =
+            StateWithExtensionsMut::<TokenAccount>::unpack_uninitialized(&mut data).unwrap();
+        state.init_extension::<TransferHookAccount>(true).unwrap();
+        state.base = TokenAccount {
+            amount,
+            mint: *mint,
+            owner: *owner,
+            state: AccountState::Initialized,
+            ..TokenAccount::default()
+        };
+        state.pack_base();
+        state.init_account_type().unwrap();
+    }
+
+    context.set_account(
+        token_account,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: spl_token_2022::id(),
+            ..Account::default()
+        }),
+    );
+}
+
 #[allow(clippy::arithmetic_side_effects)]
 pub async fn setup_system_account(
     context: &mut ProgramTestContext,
@@ -86,13 +128,14 @@ pub async fn setup_system_account(
 pub async fn setup_holder_rewards_pool_account(
     context: &mut ProgramTestContext,
     holder_rewards_pool_address: &Pubkey,
+    excess_lamports: u64,
     total_rewards: u64,
 ) {
     let state = HolderRewardsPool { total_rewards };
     let data = bytemuck::bytes_of(&state).to_vec();
 
     let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(data.len()) + total_rewards;
+    let lamports = rent.minimum_balance(data.len()) + excess_lamports;
 
     context.set_account(
         holder_rewards_pool_address,

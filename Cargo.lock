@@ -2620,6 +2620,7 @@ dependencies = [
  "spl-token-2022 3.0.2",
  "spl-transfer-hook-interface 0.6.3",
  "spl-type-length-value 0.4.3",
+ "test-case",
 ]
 
 [[package]]
