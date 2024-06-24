@@ -4,36 +4,34 @@
 # Obtain the environment variables without any automatic toolchain updating:
 #   $ source ci/rust-version.sh
 #
-# Obtain the environment variables updating both stable and nightly, only stable, or
-# only nightly:
-#   $ source ci/rust-version.sh all
-#   $ source ci/rust-version.sh stable
-#   $ source ci/rust-version.sh nightly
-
-# Then to build with either stable or nightly:
-#   $ cargo +"$rust_stable" build
-#   $ cargo +"$rust_nightly" build
-#
 
 if [[ -n $RUST_STABLE_VERSION ]]; then
   stable_version="$RUST_STABLE_VERSION"
 else
   base="$(dirname "${BASH_SOURCE[0]}")"
   source "$base/read-cargo-variable.sh"
-  stable_version=$(readCargoVariable channel "$base/../rust-toolchain.toml")
+  stable_version=$(readCargoVariable toolchain channel "$base/../rust-toolchain.toml")
 fi
 
-if [[ -n $RUST_NIGHTLY_VERSION ]]; then
-  nightly_version="$RUST_NIGHTLY_VERSION"
+if [[ -n $RUSTFMT_NIGHTLY_VERSION ]]; then
+  rustfmt_nightly_version="$RUSTFMT_NIGHTLY_VERSION"
 else
-  nightly_version=2023-10-05
+  base="$(dirname "${BASH_SOURCE[0]}")"
+  source "$base/read-cargo-variable.sh"
+  rustfmt_nightly_version="$(readCargoVariable workspace.metadata.scripts.rustfmt.toolchain channel "$base/../Cargo.toml")"
+fi
+
+if [[ -n $CLIPPY_NIGHTLY_VERSION ]]; then
+  clippy_nightly_version="$CLIPPY_NIGHTLY_VERSION"
+else
+  base="$(dirname "${BASH_SOURCE[0]}")"
+  source "$base/read-cargo-variable.sh"
+  clippy_nightly_version="$(readCargoVariable workspace.metadata.scripts.clippy.toolchain channel "$base/../Cargo.toml")"
 fi
 
 export rust_stable="$stable_version"
-export rust_stable_docker_image=solanalabs/rust:"$stable_version"
-
-export rust_nightly=nightly-"$nightly_version"
-export rust_nightly_docker_image=solanalabs/rust-nightly:"$nightly_version"
+export rustfmt_nightly_version="$rustfmt_nightly_version"
+export clippy_nightly_version="$clippy_nightly_version"
 
 [[ -z $1 ]] || (
 

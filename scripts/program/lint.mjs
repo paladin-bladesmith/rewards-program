@@ -1,11 +1,15 @@
 #!/usr/bin/env zx
 import 'zx/globals';
-import { workingDirectory, getProgramFolders } from '../utils.mjs';
+import {
+  workingDirectory,
+  getClippyToolchain,
+  getProgramFolders,
+} from '../utils.mjs';
 
 // Lint the programs using clippy.
 await Promise.all(
   getProgramFolders().map(async (folder) => {
     await $`cd ${path.join(workingDirectory, folder)}`.quiet();
-    await $`cargo clippy ${process.argv.slice(3)}`;
+    await $`cargo ${getClippyToolchain()} clippy ${process.argv.slice(3)}`;
   })
 );
