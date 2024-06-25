@@ -173,8 +173,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     {
         context.set_account(
             &holder_rewards_pool,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &system_program::id())
-                .unwrap(),
+            &AccountSharedData::new_data(100_000_000, &vec![5; 8], &system_program::id()).unwrap(),
         );
     }
 
@@ -306,8 +305,7 @@ async fn fail_holder_rewards_incorrect_owner() {
     {
         context.set_account(
             &holder_rewards,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &system_program::id())
-                .unwrap(),
+            &AccountSharedData::new_data(100_000_000, &vec![5; 16], &system_program::id()).unwrap(),
         );
     }
 
