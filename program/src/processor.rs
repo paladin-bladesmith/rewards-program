@@ -370,7 +370,7 @@ fn process_harvest_rewards(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> P
 pub fn process_spl_transfer_hook_execute(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    _amount: u64,
+    amount: u64,
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
@@ -447,9 +447,6 @@ pub fn process_spl_transfer_hook_execute(
         // Token account balances are updated before transfer hooks are called,
         // so the token account balance is the balance _after_ the transfer.
         // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
-        //
-        // Since the source is being _debited_ tokens, subtract the calculated
-        // share from the source holder rewards account's unharvested rewards.
         let last_seen_total_rewards = std::mem::replace(
             &mut holder_rewards_state.last_seen_total_rewards,
             current_total_rewards,
@@ -473,14 +470,22 @@ pub fn process_spl_transfer_hook_execute(
                 return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
             }
 
-            token_account.base.amount
+            // The token account balance is the balance _after_ the transfer.
+            // Since it was just debited, add back the transfer amount to calculate
+            // the rewards share _before_ the transfer.
+            token_account
+                .base
+                .amount
+                .checked_add(amount)
+                .ok_or(ProgramError::ArithmeticOverflow)?
         };
 
         let unseen_unharvested_rewards =
             calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
         holder_rewards_state.unharvested_rewards = holder_rewards_state
             .unharvested_rewards
-            .saturating_sub(unseen_unharvested_rewards);
+            .checked_add(unseen_unharvested_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
     }
 
     // Update the destination holder rewards account.
@@ -519,9 +524,6 @@ pub fn process_spl_transfer_hook_execute(
         // Token account balances are updated before transfer hooks are called,
         // so the token account balance is the balance _after_ the transfer.
         // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
-        //
-        // Since the destination is being _credited_ tokens, add the calculated
-        // share to the destination holder rewards account's unharvested rewards.
         let last_seen_total_rewards = std::mem::replace(
             &mut holder_rewards_state.last_seen_total_rewards,
             current_total_rewards,
@@ -545,7 +547,10 @@ pub fn process_spl_transfer_hook_execute(
                 return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
             }
 
-            token_account.base.amount
+            // The token account balance is the balance _after_ the transfer.
+            // Since it was just debited, subtract the transfer amount to calculate
+            // the rewards share _before_ the transfer.
+            token_account.base.amount.saturating_sub(amount)
         };
 
         let unseen_unharvested_rewards =
