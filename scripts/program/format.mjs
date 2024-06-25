@@ -6,10 +6,13 @@ import {
   getProgramFolders,
 } from '../utils.mjs';
 
+const channel = getRustfmtToolchain();
+const toolchain = channel ? `+${channel}` : '';
+
 // Format the programs.
 await Promise.all(
   getProgramFolders().map(async (folder) => {
     await $`cd ${path.join(workingDirectory, folder)}`.quiet();
-    await $`cargo ${getRustfmtToolchain()} fmt ${process.argv.slice(3)}`;
+    await $`cargo ${toolchain} fmt ${process.argv.slice(3)}`;
   })
 );

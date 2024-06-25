@@ -29,10 +29,12 @@ kinobi.accept(
 
 // Render Rust.
 const rustClient = path.join(__dirname, "..", "clients", "rust");
+const channel = getRustfmtToolchain();
+const toolchain = channel ? `+${channel}` : undefined;
 kinobi.accept(
   renderRustVisitor(path.join(rustClient, "src", "generated"), {
     formatCode: true,
     crateFolder: rustClient,
-    toolchain: getRustfmtToolchain(),
+    toolchain,
   })
 );

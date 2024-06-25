@@ -13,12 +13,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set env vars
-      run: |
-        source ci/rust-version.sh
-        echo "RUSTFMT_NIGHTLY_VERSION=$rustfmt_nightly_version" >> $GITHUB_ENV
-        echo "CLIPPY_NIGHTLY_VERSION=$clippy_nightly_version" >> $GITHUB_ENV
-      shell: bash
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
     - name: Setup Node.js
@@ -29,6 +23,9 @@ runs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       shell: bash
+    - name: Set env vars
+      shell: bash
+      run: pnpm ci:set-env
     - name: Install Rustfmt
       uses: dtolnay/rust-toolchain@master
       with:
