@@ -4,7 +4,7 @@ import * as k from "kinobi";
 import { rootNodeFromAnchor } from "@kinobi-so/nodes-from-anchor";
 import { renderVisitor as renderJavaScriptVisitor } from "@kinobi-so/renderers-js";
 import { renderVisitor as renderRustVisitor } from "@kinobi-so/renderers-rust";
-import { getAllProgramIdls, getRustfmtToolchain } from "./utils.mjs";
+import { getAllProgramIdls, getRustfmtToolchain, getToolchainArg } from "./utils.mjs";
 
 // Instanciate Kinobi.
 const [idl, ...additionalIdls] = getAllProgramIdls().map(idl => rootNodeFromAnchor(require(idl)))
@@ -29,12 +29,10 @@ kinobi.accept(
 
 // Render Rust.
 const rustClient = path.join(__dirname, "..", "clients", "rust");
-const channel = getRustfmtToolchain();
-const toolchain = channel ? `+${channel}` : undefined;
 kinobi.accept(
   renderRustVisitor(path.join(rustClient, "src", "generated"), {
     formatCode: true,
     crateFolder: rustClient,
-    toolchain,
+    toolchain: getToolchainArg(getRustfmtToolchain())
   })
 );
