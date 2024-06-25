@@ -442,14 +442,31 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     // Since the holder rewards account may already have unharvested rewards,
     // calculate the share of rewards that have not been seen by the holder
     // rewards account.
-    let unseen_total_rewards = current_total_rewards
-        .checked_sub(last_seen_total_rewards)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-    let unseen_unharvested_rewards =
-        calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
-    let rewards_to_harvest = unharvested_rewards
-        .checked_add(unseen_unharvested_rewards)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
+    let rewards_to_harvest = {
+        // Rewards accrued by the system that haven't been seen by the holder.
+        let unseen_total_rewards = current_total_rewards.saturating_sub(last_seen_total_rewards);
+
+        // The holder's share of the unseen rewards.
+        let unseen_unharvested_rewards =
+            calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
+
+        // The total unharvested rewards the holder is eligible to claim.
+        let total_eligible_rewards = unharvested_rewards
+            .checked_add(unseen_unharvested_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        // Make sure the pool can't be overdrawn by harvesting.
+        let rent = <Rent as Sysvar>::get()?;
+        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+
+        // If the pool doesn't have enough lamports to cover the rewards, only
+        // harvest the available lamports.
+        total_eligible_rewards.min(
+            holder_rewards_pool_info
+                .lamports()
+                .saturating_sub(rent_exempt_lamports),
+        )
+    };
 
     // Move the amount from the holder rewards pool to the token account.
     let new_holder_rewards_pool_lamports = holder_rewards_pool_info
