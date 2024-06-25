@@ -420,27 +420,214 @@ async fn fail_holder_rewards_invalid_data() {
     );
 }
 
-#[allow(clippy::arithmetic_side_effects)]
-#[test_case(0, 0, 0, 0)]
-#[test_case(10, 5, 10, 0)]
-#[test_case(10, 5, 10, 2)]
-#[test_case(10, 5, 10, 5)]
-#[test_case(500_000, 1_000, 50_000_000, 0)]
-#[test_case(500_000, 1_000, 50_000_000, 50_000)]
-#[test_case(500_000, 1_000, 50_000_000, 100_000)]
-#[test_case(100_000_000, 10_000_000, 50_000_000, 0)]
-#[test_case(100_000_000, 10_000_000, 50_000_000, 2_500_000)]
-#[test_case(100_000_000, 10_000_000, 50_000_000, 5_000_000)]
-#[test_case(20_000_000_000, 50_000_000, 40_000_000_000, 0)]
-#[test_case(20_000_000_000, 50_000_000, 40_000_000_000, 50_000_000)]
-#[test_case(20_000_000_000, 50_000_000, 40_000_000_000, 100_000_000)]
-#[tokio::test]
-async fn success(
+struct System {
     token_supply: u64,
-    token_account_balance: u64,
     total_rewards: u64,
+    pool_excess_lamports: u64,
+}
+
+struct Holder {
+    token_account_balance: u64,
+    last_seen_total_rewards: u64,
     unharvested_rewards: u64,
-) {
+}
+
+#[test_case(
+    System {
+        token_supply: 0,
+        total_rewards: 0,
+        pool_excess_lamports: 0,
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 0,
+        unharvested_rewards: 0,
+    },
+    0;
+    "all zeroes, no rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 0,
+        unharvested_rewards: 0,
+    },
+    0;
+    "share of token supply is zero, 0 unharvested, 0 last seen, no rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    2_500;
+    "share of token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 1_000, // Not enough.
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    1_000;
+    "share of token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
+)]
+#[test_case(
+    System {
+        token_supply: 0,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 0,
+        unharvested_rewards: 0,
+    },
+    0;
+    "token supply is zero, 0 unharvested, 0 last seen, no rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 0,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    2_500;
+    "token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
+)]
+#[test_case(
+    System {
+        token_supply: 0,
+        total_rewards: 10_000,
+        pool_excess_lamports: 1_000, // Not enough.
+    },
+    Holder {
+        token_account_balance: 0,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    1_000;
+    "token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 0,
+        unharvested_rewards: 0,
+    },
+    5_000;
+    "50% of token supply, 0 unharvested, 0 last seen, pool has enough, 50% of rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 2_000, // Not enough.
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 0,
+        unharvested_rewards: 0,
+    },
+    2_000; // Pool excess.
+    "50% of token supply, 0 unharvested, 0 last seen, pool underfunded, pool excess"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 0, // Harvested since last seen.
+    },
+    2_500;
+    "50% of token supply, 0 unharvested, half last seen, pool has enough, half of 50% of rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 1_000, // Not enough.
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 0, // Harvested since last seen.
+    },
+    1_000;
+    "50% of token supply, 0 unharvested, half last seen, pool underfunded, pool excess"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 20_000,
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    5_000;
+    "50% of token supply, some unharvested, half last seen, pool has enough, 50% of rewards"
+)]
+#[test_case(
+    System {
+        token_supply: 10_000,
+        total_rewards: 10_000,
+        pool_excess_lamports: 1_000, // Not enough.
+    },
+    Holder {
+        token_account_balance: 5_000,
+        last_seen_total_rewards: 5_000, // Last saw half.
+        unharvested_rewards: 2_500, // Not yet harvested.
+    },
+    1_000;
+    "50% of token supply, some unharvested, half last seen, pool underfunded, pool excess"
+)]
+#[tokio::test]
+async fn success(system: System, holder: Holder, expected_harvested_rewards: u64) {
+    let System {
+        token_supply,
+        total_rewards,
+        pool_excess_lamports,
+    } = system;
+
+    let Holder {
+        token_account_balance,
+        last_seen_total_rewards,
+        unharvested_rewards,
+    } = holder;
+
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
 
@@ -452,7 +639,7 @@ async fn success(
     setup_holder_rewards_pool_account(
         &mut context,
         &holder_rewards_pool,
-        total_rewards,
+        pool_excess_lamports,
         total_rewards,
     )
     .await;
@@ -460,7 +647,7 @@ async fn success(
         &mut context,
         &holder_rewards,
         unharvested_rewards,
-        total_rewards,
+        last_seen_total_rewards,
     )
     .await;
     setup_token_account(
@@ -504,14 +691,6 @@ async fn success(
         .await
         .unwrap();
 
-    let expected_harvested_rewards = {
-        if token_supply == 0 {
-            0
-        } else {
-            (token_account_balance / token_supply) * total_rewards + unharvested_rewards
-        }
-    };
-
     // Assert the holder rewards account's unharvested rewards was updated.
     let holder_rewards_account = context
         .banks_client
@@ -537,7 +716,7 @@ async fn success(
         .lamports;
     assert_eq!(
         pool_resulting_lamports,
-        pool_beginning_lamports - expected_harvested_rewards,
+        pool_beginning_lamports.saturating_sub(expected_harvested_rewards),
     );
 
     // Assert the token account's balance was credited.
@@ -550,6 +729,6 @@ async fn success(
         .lamports;
     assert_eq!(
         token_account_resulting_lamports,
-        token_account_beginning_lamports + expected_harvested_rewards,
+        token_account_beginning_lamports.saturating_add(expected_harvested_rewards),
     );
 }
