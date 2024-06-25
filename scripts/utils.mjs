@@ -73,3 +73,20 @@ export function getCargo(folder) {
     )
   );
 }
+
+export function getToolchainArg(channel) {
+  return channel ? `+${channel}` : '';
+}
+
+export function getCargoMetadata(folder) {
+  const cargo = getCargo(folder);
+  return folder ? cargo?.package?.metadata : cargo?.workspace?.metadata;
+}
+
+export function getClippyToolchain(folder) {
+  return getCargoMetadata(folder).scripts?.clippy?.toolchain?.channel;
+}
+
+export function getRustfmtToolchain(folder) {
+  return getCargoMetadata(folder).scripts?.rustfmt?.toolchain?.channel;
+}
