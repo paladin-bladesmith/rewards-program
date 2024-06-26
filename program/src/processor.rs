@@ -35,6 +35,55 @@ use {
     },
 };
 
+fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
+    let mint_data = mint_info.try_borrow_data()?;
+    let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+    Ok(mint.base.supply)
+}
+
+fn get_token_account_balance_checked(
+    mint: &Pubkey,
+    token_account_info: &AccountInfo,
+) -> Result<u64, ProgramError> {
+    let token_account_data = token_account_info.try_borrow_data()?;
+    let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+
+    // Ensure the provided token account is for the mint.
+    if !token_account.base.mint.eq(mint) {
+        return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+    }
+
+    Ok(token_account.base.amount)
+}
+
+fn get_total_rewards_checked(
+    program_id: &Pubkey,
+    mint: &Pubkey,
+    holder_rewards_pool_info: &AccountInfo,
+) -> Result<u64, ProgramError> {
+    // Ensure the holder rewards pool is owned by the Paladin Rewards
+    // program.
+    if !holder_rewards_pool_info.owner.eq(program_id) {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    // Ensure the provided holder rewards pool address is the correct
+    // address derived from the mint.
+    if !holder_rewards_pool_info
+        .key
+        .eq(&get_holder_rewards_pool_address(mint))
+    {
+        return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+    }
+
+    let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
+    let holder_rewards_pool_state =
+        bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    Ok(holder_rewards_pool_state.total_rewards)
+}
+
 fn calculate_reward_share(
     token_supply: u64,
     token_account_balance: u64,
@@ -244,47 +293,13 @@ fn process_initialize_holder_rewards(
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program = next_account_info(accounts_iter)?;
 
-    let token_supply = {
-        let mint_data = mint_info.try_borrow_data()?;
-        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
-        mint.base.supply
-    };
+    let token_supply = get_token_supply(mint_info)?;
 
-    let token_account_balance = {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+    let token_account_balance =
+        get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
-        // Ensure the provided token account is for the mint.
-        if !token_account.base.mint.eq(mint_info.key) {
-            return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
-        }
-
-        token_account.base.amount
-    };
-
-    let last_seen_total_rewards = {
-        // Ensure the holder rewards pool is owned by the Paladin Rewards
-        // program.
-        if !holder_rewards_pool_info.owner.eq(program_id) {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
-
-        // Ensure the provided holder rewards pool address is the correct
-        // address derived from the mint.
-        if !holder_rewards_pool_info
-            .key
-            .eq(&get_holder_rewards_pool_address(mint_info.key))
-        {
-            return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
-        }
-
-        let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
-        let holder_rewards_pool_state =
-            bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
-                .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        holder_rewards_pool_state.total_rewards
-    };
+    let last_seen_total_rewards =
+        get_total_rewards_checked(program_id, mint_info.key, holder_rewards_pool_info)?;
 
     // Calculate unharvested rewards for the token account.
     //
@@ -364,47 +379,13 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
 
-    let token_supply = {
-        let mint_data = mint_info.try_borrow_data()?;
-        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
-        mint.base.supply
-    };
+    let token_supply = get_token_supply(mint_info)?;
 
-    let token_account_balance = {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+    let token_account_balance =
+        get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
-        // Ensure the provided token account is for the mint.
-        if !token_account.base.mint.eq(mint_info.key) {
-            return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
-        }
-
-        token_account.base.amount
-    };
-
-    let current_total_rewards = {
-        // Ensure the holder rewards pool is owned by the Paladin Rewards
-        // program.
-        if !holder_rewards_pool_info.owner.eq(program_id) {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
-
-        // Ensure the provided holder rewards pool address is the correct
-        // address derived from the mint.
-        if !holder_rewards_pool_info
-            .key
-            .eq(&get_holder_rewards_pool_address(mint_info.key))
-        {
-            return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
-        }
-
-        let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
-        let holder_rewards_pool_state =
-            bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
-                .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        holder_rewards_pool_state.total_rewards
-    };
+    let current_total_rewards =
+        get_total_rewards_checked(program_id, mint_info.key, holder_rewards_pool_info)?;
 
     let (last_seen_total_rewards, unharvested_rewards) = {
         // Ensure the holder rewards account is owned by the Paladin Rewards
