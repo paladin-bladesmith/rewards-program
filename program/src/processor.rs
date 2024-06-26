@@ -56,11 +56,11 @@ fn get_token_account_balance_checked(
     Ok(token_account.base.amount)
 }
 
-fn get_total_rewards_checked(
+fn check_pool(
     program_id: &Pubkey,
     mint: &Pubkey,
     holder_rewards_pool_info: &AccountInfo,
-) -> Result<u64, ProgramError> {
+) -> ProgramResult {
     // Ensure the holder rewards pool is owned by the Paladin Rewards
     // program.
     if !holder_rewards_pool_info.owner.eq(program_id) {
@@ -76,12 +76,7 @@ fn get_total_rewards_checked(
         return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
     }
 
-    let holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_data()?;
-    let holder_rewards_pool_state =
-        bytemuck::try_from_bytes::<HolderRewardsPool>(&holder_rewards_pool_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-    Ok(holder_rewards_pool_state.total_rewards)
+    Ok(())
 }
 
 fn calculate_reward_share(
@@ -298,8 +293,10 @@ fn process_initialize_holder_rewards(
     let token_account_balance =
         get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
-    let last_seen_total_rewards =
-        get_total_rewards_checked(program_id, mint_info.key, holder_rewards_pool_info)?;
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
+    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Calculate unharvested rewards for the token account.
     //
@@ -361,7 +358,7 @@ fn process_initialize_holder_rewards(
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
-                last_seen_total_rewards,
+                last_seen_total_rewards: pool_state.total_rewards,
                 unharvested_rewards,
             };
     }
@@ -384,8 +381,11 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let token_account_balance =
         get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
-    let current_total_rewards =
-        get_total_rewards_checked(program_id, mint_info.key, holder_rewards_pool_info)?;
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
+    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+    let current_total_rewards = pool_state.total_rewards;
 
     // Ensure the holder rewards account is owned by the Paladin Rewards
     // program.
