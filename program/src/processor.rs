@@ -387,37 +387,31 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let current_total_rewards =
         get_total_rewards_checked(program_id, mint_info.key, holder_rewards_pool_info)?;
 
-    let (last_seen_total_rewards, unharvested_rewards) = {
-        // Ensure the holder rewards account is owned by the Paladin Rewards
-        // program.
-        if !holder_rewards_info.owner.eq(program_id) {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
+    // Ensure the holder rewards account is owned by the Paladin Rewards
+    // program.
+    if !holder_rewards_info.owner.eq(program_id) {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
 
-        // Ensure the provided holder rewards address is the correct address
-        // derived from the token account.
-        if !holder_rewards_info
-            .key
-            .eq(&get_holder_rewards_address(token_account_info.key))
-        {
-            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
-        }
+    // Ensure the provided holder rewards address is the correct address
+    // derived from the token account.
+    if !holder_rewards_info
+        .key
+        .eq(&get_holder_rewards_address(token_account_info.key))
+    {
+        return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+    }
 
-        let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-        let holder_rewards_state =
-            bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
-                .map_err(|_| ProgramError::InvalidAccountData)?;
+    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+    let holder_rewards_state =
+        bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
 
-        // Update the holder rewards state with the new "last seen" total
-        // rewards and zero out the unharvested rewards.
-        (
-            std::mem::replace(
-                &mut holder_rewards_state.last_seen_total_rewards,
-                current_total_rewards,
-            ),
-            std::mem::take(&mut holder_rewards_state.unharvested_rewards),
-        )
-    };
+    // Update the holder rewards state with the new "last seen" total rewards.
+    let last_seen_total_rewards = std::mem::replace(
+        &mut holder_rewards_state.last_seen_total_rewards,
+        current_total_rewards,
+    );
 
     // Calculate unharvested rewards for the token account.
     // Since the holder rewards account may already have unharvested rewards,
@@ -434,9 +428,14 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
 
         // The total unharvested rewards the holder is eligible to claim.
-        let total_eligible_rewards = unharvested_rewards
+        let total_eligible_rewards = holder_rewards_state
+            .unharvested_rewards
             .checked_add(unseen_unharvested_rewards)
             .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        // Temporarily update unharvested rewards to reflect total eligible
+        // rewards. This will be re-adjusted post-harvest.
+        holder_rewards_state.unharvested_rewards = total_eligible_rewards;
 
         // Make sure the pool can't be overdrawn by harvesting.
         let rent = <Rent as Sysvar>::get()?;
@@ -463,6 +462,11 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         .ok_or(ProgramError::ArithmeticOverflow)?;
     **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
     **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+
+    // Update the holder rewards state with the new "unharvested" rewards.
+    holder_rewards_state.unharvested_rewards = holder_rewards_state
+        .unharvested_rewards
+        .saturating_sub(rewards_to_harvest);
 
     Ok(())
 }

@@ -443,6 +443,7 @@ struct Holder {
         last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
+    0,
     0;
     "all zeroes, no rewards"
 )]
@@ -457,6 +458,7 @@ struct Holder {
         last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
+    0,
     0;
     "share of token supply is zero, 0 unharvested, 0 last seen, no rewards"
 )]
@@ -471,7 +473,8 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    2_500;
+    2_500, // Fully harvested unharvested rewards.
+    0; // Token account balance is zero, no new rewards.
     "share of token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
 )]
 #[test_case(
@@ -485,8 +488,9 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    1_000;
-    "share of token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
+    1_000, // Only harvested what was in the pool.
+    2_500 - 1_000; // Token account balance is zero, no new rewards, but some was unharvested since pool was underfunded.
+    "share of token supply is zero, some unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
     System {
@@ -499,7 +503,8 @@ struct Holder {
         last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
-    0;
+    0, // Token supply is zero, no new rewards.
+    0; // No unharvested rewards to harvest.
     "token supply is zero, 0 unharvested, 0 last seen, no rewards"
 )]
 #[test_case(
@@ -513,7 +518,8 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    2_500;
+    2_500, // Fully harvested unharvested rewards.
+    0; // Token supply is zero, no new rewards.
     "token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
 )]
 #[test_case(
@@ -527,7 +533,8 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    1_000;
+    1_000, // Only harvested what was in the pool.
+    2_500 - 1_000; // Token supply is zero, no new rewards, but some was unharvested since pool was underfunded.
     "token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
 )]
 #[test_case(
@@ -541,7 +548,8 @@ struct Holder {
         last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
-    5_000;
+    5_000, // 50% of total rewards.
+    0; // No unharvested rewards remain, pool had enough.
     "50% of token supply, 0 unharvested, 0 last seen, pool has enough, 50% of rewards"
 )]
 #[test_case(
@@ -555,8 +563,9 @@ struct Holder {
         last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
-    2_000; // Pool excess.
-    "50% of token supply, 0 unharvested, 0 last seen, pool underfunded, pool excess"
+    2_000, // Pool excess.
+    5_000 - 2_000; // 50% of total rewards, but pool was underfunded.
+    "50% of token supply, 0 unharvested, 0 last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
     System {
@@ -569,7 +578,8 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 0, // Harvested since last seen.
     },
-    2_500;
+    2_500, // 50% of unseen rewards.
+    0; // No unharvested rewards remain, pool had enough.
     "50% of token supply, 0 unharvested, half last seen, pool has enough, half of 50% of rewards"
 )]
 #[test_case(
@@ -583,8 +593,9 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 0, // Harvested since last seen.
     },
-    1_000;
-    "50% of token supply, 0 unharvested, half last seen, pool underfunded, pool excess"
+    1_000, // Pool excess.
+    2_500 - 1_000; // 50% of unseen rewards, but pool was underfunded.
+    "50% of token supply, 0 unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
     System {
@@ -597,7 +608,8 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    5_000;
+    5_000, // 50% of total rewards.
+    0; // No unharvested rewards remain, pool had enough.
     "50% of token supply, some unharvested, half last seen, pool has enough, 50% of rewards"
 )]
 #[test_case(
@@ -611,11 +623,17 @@ struct Holder {
         last_seen_total_rewards: 5_000, // Last saw half.
         unharvested_rewards: 2_500, // Not yet harvested.
     },
-    1_000;
-    "50% of token supply, some unharvested, half last seen, pool underfunded, pool excess"
+    1_000, // Pool excess.
+    5_000 - 1_000; // 50% of total rewards, but pool was underfunded.
+    "50% of token supply, some unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[tokio::test]
-async fn success(system: System, holder: Holder, expected_harvested_rewards: u64) {
+async fn success(
+    system: System,
+    holder: Holder,
+    expected_harvested_rewards: u64,
+    expected_unharvested_rewards: u64,
+) {
     let System {
         token_supply,
         total_rewards,
@@ -702,7 +720,7 @@ async fn success(system: System, holder: Holder, expected_harvested_rewards: u64
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
         &HolderRewards {
             last_seen_total_rewards: total_rewards,
-            unharvested_rewards: 0,
+            unharvested_rewards: expected_unharvested_rewards,
         }
     );
 
