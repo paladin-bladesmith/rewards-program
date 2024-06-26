@@ -420,7 +420,7 @@ async fn fail_holder_rewards_invalid_data() {
     );
 }
 
-struct System {
+struct Pool {
     token_supply: u64,
     total_rewards: u64,
     pool_excess_lamports: u64,
@@ -433,7 +433,7 @@ struct Holder {
 }
 
 #[test_case(
-    System {
+    Pool {
         token_supply: 0,
         total_rewards: 0,
         pool_excess_lamports: 0,
@@ -448,7 +448,7 @@ struct Holder {
     "all zeroes, no rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -463,7 +463,7 @@ struct Holder {
     "share of token supply is zero, 0 unharvested, 0 last seen, no rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -478,7 +478,7 @@ struct Holder {
     "share of token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 1_000, // Not enough.
@@ -493,7 +493,7 @@ struct Holder {
     "share of token supply is zero, some unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 0,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -508,7 +508,7 @@ struct Holder {
     "token supply is zero, 0 unharvested, 0 last seen, no rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 0,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -523,7 +523,7 @@ struct Holder {
     "token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 0,
         total_rewards: 10_000,
         pool_excess_lamports: 1_000, // Not enough.
@@ -538,7 +538,7 @@ struct Holder {
     "token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -553,7 +553,7 @@ struct Holder {
     "50% of token supply, 0 unharvested, 0 last seen, pool has enough, 50% of rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 2_000, // Not enough.
@@ -568,7 +568,7 @@ struct Holder {
     "50% of token supply, 0 unharvested, 0 last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -583,7 +583,7 @@ struct Holder {
     "50% of token supply, 0 unharvested, half last seen, pool has enough, half of 50% of rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 1_000, // Not enough.
@@ -598,7 +598,7 @@ struct Holder {
     "50% of token supply, 0 unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 20_000,
@@ -613,7 +613,7 @@ struct Holder {
     "50% of token supply, some unharvested, half last seen, pool has enough, 50% of rewards"
 )]
 #[test_case(
-    System {
+    Pool {
         token_supply: 10_000,
         total_rewards: 10_000,
         pool_excess_lamports: 1_000, // Not enough.
@@ -629,16 +629,16 @@ struct Holder {
 )]
 #[tokio::test]
 async fn success(
-    system: System,
+    pool: Pool,
     holder: Holder,
     expected_harvested_rewards: u64,
     expected_unharvested_rewards: u64,
 ) {
-    let System {
+    let Pool {
         token_supply,
         total_rewards,
         pool_excess_lamports,
-    } = system;
+    } = pool;
 
     let Holder {
         token_account_balance,
