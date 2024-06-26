@@ -444,7 +444,9 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     // rewards account.
     let rewards_to_harvest = {
         // Rewards accrued by the system that haven't been seen by the holder.
-        let unseen_total_rewards = current_total_rewards.saturating_sub(last_seen_total_rewards);
+        let unseen_total_rewards = current_total_rewards
+            .checked_sub(last_seen_total_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
 
         // The holder's share of the unseen rewards.
         let unseen_unharvested_rewards =
@@ -464,7 +466,8 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         total_eligible_rewards.min(
             holder_rewards_pool_info
                 .lamports()
-                .saturating_sub(rent_exempt_lamports),
+                .checked_sub(rent_exempt_lamports)
+                .ok_or(ProgramError::ArithmeticOverflow)?,
         )
     };
 
