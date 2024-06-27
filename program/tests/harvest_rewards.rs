@@ -380,6 +380,14 @@ struct Holder {
     unharvested_rewards: u64,
 }
 
+enum ExpectedResult {
+    Ok {
+        harvested_rewards: u64,
+        unharvested_rewards: u64,
+    },
+    Err,
+}
+
 #[test_case(
     Pool {
         excess_lamports: 0,
@@ -390,8 +398,7 @@ struct Holder {
         last_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    0,
-    0;
+    ExpectedResult::Err;
     "All zeroes, no rewards"
 )]
 #[test_case(
@@ -404,8 +411,7 @@ struct Holder {
         last_rewards_per_token: 1_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
     },
-    0,
-    0;
+    ExpectedResult::Err;
     "Last harvested 1.0 rate, rate unchanged, no rewards"
 )]
 #[test_case(
@@ -418,8 +424,10 @@ struct Holder {
         last_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    50_000, // Pool excess.
-    50_000; // Remainder.
+    ExpectedResult::Ok {
+        harvested_rewards: 50_000, // Pool excess.
+        unharvested_rewards: 50_000, // Remainder.
+    };
     "No last harvested rate, eligible for 1 rate, pool is underfunded, receive pool excess"
 )]
 #[test_case(
@@ -432,8 +440,10 @@ struct Holder {
         last_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    100_000,
-    0;
+    ExpectedResult::Ok {
+        harvested_rewards: 100_000,
+        unharvested_rewards: 0,
+    };
     "No last harvested rate, eligible for 1 rate, pool has enough, receive 100% of rewards"
 )]
 #[test_case(
@@ -446,8 +456,10 @@ struct Holder {
         last_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    10_000,
-    0;
+    ExpectedResult::Ok {
+        harvested_rewards: 10_000,
+        unharvested_rewards: 0,
+    };
     "No last harvested rate, eligible for 1 rate, pool has enough, receive share"
 )]
 #[test_case(
@@ -460,8 +472,10 @@ struct Holder {
         last_rewards_per_token: 500_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
     },
-    5_000, // (1 - 0.5) * 10_000
-    0;
+    ExpectedResult::Ok {
+        harvested_rewards: 5_000, // (1 - 0.5) * 10_000
+        unharvested_rewards: 0,
+    };
     "Last harvested 0.5 rate, eligible for 0.5 rate, pool has enough, receive share"
 )]
 #[test_case(
@@ -474,17 +488,14 @@ struct Holder {
         last_rewards_per_token: 250_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
     },
-    7_500, // (1 - 0.25) * 10_000
-    0;
+    ExpectedResult::Ok {
+        harvested_rewards: 7_500, // (1 - 0.25) * 10_000
+        unharvested_rewards: 0,
+    };
     "Last harvested 0.25 rate, eligible for 0.75 rate, pool has enough, receive share"
 )]
 #[tokio::test]
-async fn success(
-    pool: Pool,
-    holder: Holder,
-    expected_harvested_rewards: u64,
-    expected_unharvested_rewards: u64,
-) {
+async fn success(pool: Pool, holder: Holder, expected_result: ExpectedResult) {
     let Pool {
         excess_lamports,
         rewards_per_token,
@@ -552,47 +563,70 @@ async fn success(
         context.last_blockhash,
     );
 
-    context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap();
+    let result = context.banks_client.process_transaction(transaction).await;
 
-    // Assert the holder rewards account's unharvested rewards was updated.
     let holder_rewards_account = context
         .banks_client
         .get_account(holder_rewards)
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(
-        bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards::new(rewards_per_token, expected_unharvested_rewards),
-    );
+    let holder_rewards_state = bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
 
-    // Assert the holder rewards pool's balance was debited.
-    let pool_resulting_lamports = context
-        .banks_client
-        .get_account(holder_rewards_pool)
-        .await
-        .unwrap()
-        .unwrap()
-        .lamports;
-    assert_eq!(
-        pool_resulting_lamports,
-        pool_beginning_lamports.saturating_sub(expected_harvested_rewards),
-    );
+    match expected_result {
+        ExpectedResult::Ok {
+            harvested_rewards: expected_harvested_rewards,
+            unharvested_rewards: expected_unharvested_rewards,
+        } => {
+            let _result = result.unwrap();
 
-    // Assert the token account's balance was credited.
-    let token_account_resulting_lamports = context
-        .banks_client
-        .get_account(token_account)
-        .await
-        .unwrap()
-        .unwrap()
-        .lamports;
-    assert_eq!(
-        token_account_resulting_lamports,
-        token_account_beginning_lamports.saturating_add(expected_harvested_rewards),
-    );
+            // Assert the holder rewards account state was updated.
+            assert_eq!(
+                holder_rewards_state,
+                &HolderRewards::new(rewards_per_token, expected_unharvested_rewards),
+            );
+
+            // Assert the holder rewards pool's balance was debited.
+            let pool_resulting_lamports = context
+                .banks_client
+                .get_account(holder_rewards_pool)
+                .await
+                .unwrap()
+                .unwrap()
+                .lamports;
+            assert_eq!(
+                pool_resulting_lamports,
+                pool_beginning_lamports.saturating_sub(expected_harvested_rewards),
+            );
+
+            // Assert the token account's balance was credited.
+            let token_account_resulting_lamports = context
+                .banks_client
+                .get_account(token_account)
+                .await
+                .unwrap()
+                .unwrap()
+                .lamports;
+            assert_eq!(
+                token_account_resulting_lamports,
+                token_account_beginning_lamports.saturating_add(expected_harvested_rewards),
+            );
+        }
+        ExpectedResult::Err => {
+            let err = result.unwrap_err().unwrap();
+            assert_eq!(
+                err,
+                TransactionError::InstructionError(
+                    0,
+                    InstructionError::Custom(PaladinRewardsError::NoRewardsToHarvest as u32)
+                )
+            );
+
+            // Assert the holder rewards account account state was _not_ updated.
+            assert_eq!(
+                holder_rewards_state,
+                &HolderRewards::new(last_rewards_per_token, unharvested_rewards),
+            );
+        }
+    }
 }

@@ -427,6 +427,10 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     )?;
     let rewards_to_harvest = eligible_rewards.min(pool_excess_lamports);
 
+    if rewards_to_harvest == 0 {
+        return Err(PaladinRewardsError::NoRewardsToHarvest.into());
+    }
+
     // Move the amount from the holder rewards pool to the token account.
     let new_holder_rewards_pool_lamports = holder_rewards_pool_info
         .lamports()
