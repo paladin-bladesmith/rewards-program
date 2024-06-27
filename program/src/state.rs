@@ -1,4 +1,137 @@
 //! Program state types.
+//!
+//!
+//! The Paladin rewards program's state plays a critical role in managing
+//! each holder's share of rewards in the pool.
+//!
+//! There are three main components involved in this strategy.
+//!
+//! The pool state tracks a running counter of the total rewards accrued by the
+//! system. It also tracks the current exchange rate of rewards per token,
+//! which is always calculated from the _total rewards_.
+//!
+//! The holder rewards state records what that exchange rate was when this
+//! holder last harvested rewards.
+//!
+//! This relationship ensures the system can properly manage changing token
+//! supply, caused by either minting new tokens or burning.
+//!
+//!
+//! Consider the following scenario.
+//!
+//! * `total_rewards`: The running counter of total rewards accrued by the
+//!   system, as stored in the pool's account state (`HolderRewardsPool`).
+//! * `rewards_per_share`: total rewards / token supply.
+//! * `available_rewards:` The number of lamports that can be withdrawn from
+//!   the pool without going below the rent-exempt minimum.
+//! * `last_seen_rate`: The rewards per share on the pool when the holder last
+//!   harvested.
+//!
+//! Pool:   token_supply:       100         Alice:  last_seen_rate:     0
+//!         total_rewards:      100                 token_balance:      25
+//!         rewards_per_token:  1                   eligible_for:       25
+//!         available_rewards:  100
+//!                                         Bob:    last_seen_rate:     0
+//!                                                 token_balance:      40
+//!                                                 eligible_for:       40
+//!
+//!                                         Carol:  last_seen_rate:     0
+//!                                                 token_balance:      35
+//!                                                 eligible_for:       35
+//!
+//! --> Mint 25 tokens to new holder Dave.
+//!
+//! When Dave's holder rewards account is created, the system updates the
+//! rewards per token rate to reflect the new token supply.
+//!
+//! Pool:   token_supply:       125         Alice:  last_seen_rate:     0
+//!         total_rewards:      100                 token_balance:      25
+//!         rewards_per_token:  0.8                 eligible_for:       20
+//!         available_rewards:  100
+//!                                         Bob:    last_seen_rate:     0
+//!                                                 token_balance:      40
+//!                                                 eligible_for:       32
+//!
+//!                                         Carol:  last_seen_rate:     0
+//!                                                 token_balance:      35
+//!                                                 eligible_for:       28
+//!
+//!                                         Dave:   last_seen_rate:     0
+//!                                                 token_balance:      25
+//!                                                 eligible_for:       20
+//!
+//! --> Bob harvests.
+//!
+//! The current rewards per token rate is stored in Bob's holder account state.
+//!
+//! Pool:   token_supply:       125         Alice:  last_seen_rate:     0
+//!         total_rewards:      100                 token_balance:      25
+//!         rewards_per_token:  0.8                 eligible_for:       20
+//!         available_rewards:  68
+//!                                         Bob:    last_seen_rate:     0.8
+//!                                                 token_balance:      40
+//!                                                 eligible_for:       0
+//!
+//!                                         Carol:  last_seen_rate:     0
+//!                                                 token_balance:      35
+//!                                                 eligible_for:       28
+//!
+//!                                         Dave:   last_seen_rate:     0
+//!                                                 token_balance:      25
+//!                                                 eligible_for:       20
+//!
+//! --> Alice harvests, then burns all of her tokens.
+//!
+//! Although Alice has modified the token supply by burning, the pool's rate
+//! isn't updated until the next reward distribution, so the remaining holders
+//! can still claim rewards at the old rate.
+//!
+//! Pool:   token_supply:       100         Alice:  last_seen_rate:     0.8
+//!         total_rewards:      100                 token_balance:      0
+//!         rewards_per_token:  0.8                 eligible_for:       0
+//!         available_rewards:  48
+//!                                         Bob:    last_seen_rate:     0.8
+//!                                                 token_balance:      40
+//!                                                 eligible_for:       0
+//!
+//!                                         Carol:  last_seen_rate:     0
+//!                                                 token_balance:      35
+//!                                                 eligible_for:       28
+//!
+//!                                         Dave:   last_seen_rate:     0
+//!                                                 token_balance:      25
+//!                                                 eligible_for:       20
+//!
+//! --> 200 rewards are deposited into the pool.
+//!
+//! The new rate is adjusted by calculating the rewards per token on _only_ the
+//! newly added rewards, then adding that rate to the existing rate.
+//!
+//! That means the new rate is 0.8 + (200 / 100) = 2.8.
+//!
+//! Since the rate has now been updated, Bob becomes eligible for a portion of
+//! the newly added rewards.
+//!
+//! He's eligible for (2.8 - 0.8) * 40 = 80 rewards.
+//!
+//! Pool:   token_supply:       100         Alice:  last_seen_rate:     0.8
+//!         total_rewards:      300                 token_balance:      0
+//!         rewards_per_token:  2.8                 eligible_for:       0
+//!         available_rewards:  248
+//!                                         Bob:    last_seen_rate:     0.8
+//!                                                 token_balance:      40
+//!                                                 eligible_for:       80
+//!
+//!                                         Carol:  last_seen_rate:     0
+//!                                                 token_balance:      35
+//!                                                 eligible_for:       98
+//!
+//!                                         Dave:   last_seen_rate:     0
+//!                                                 token_balance:      25
+//!                                                 eligible_for:       70
+//!
+//! Now the total unharvested claims is 80 + 98 + 70 = 248, which is exactly
+//! what's availabe in the pool.
 
 use {
     bytemuck::{Pod, Zeroable},
@@ -76,6 +209,11 @@ pub(crate) fn collect_holder_rewards_pool_signer_seeds<'a>(
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewards {
+    /// The rewards per token exchange rate when this holder last harvested.
+    ///
+    /// Stored as a `u128`, which includes a scaling factor of `1e9` to
+    /// represent the exchange rate with 9 decimal places of precision.
+    pub last_rewards_per_token: u128,
     /// The last seen total rewards amount in the aggregate holder rewards
     /// account.
     pub last_seen_total_rewards: u64,
@@ -91,6 +229,21 @@ pub struct HolderRewards {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewardsPool {
+    /// The current rewards per token exchange rate.
+    ///
+    /// Stored as a `u128`, which includes a scaling factor of `1e9` to
+    /// represent the exchange rate with 9 decimal places of precision.
+    pub rewards_per_token: u128,
     /// Total holder rewards available for distribution.
     pub total_rewards: u64,
+    _padding: u64,
+}
+impl HolderRewardsPool {
+    pub fn new(rewards_per_token: u128, total_rewards: u64) -> Self {
+        Self {
+            rewards_per_token,
+            total_rewards,
+            _padding: 0,
+        }
+    }
 }

@@ -165,7 +165,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -209,8 +209,8 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -297,7 +297,7 @@ async fn fail_holder_rewards_incorrect_owner() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -341,8 +341,8 @@ async fn fail_holder_rewards_incorrect_address() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -381,7 +381,7 @@ async fn fail_holder_rewards_invalid_data() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -658,6 +658,7 @@ async fn success(
         &mut context,
         &holder_rewards_pool,
         pool_excess_lamports,
+        0, // TODO: Changed in later commit.
         total_rewards,
     )
     .await;
@@ -665,6 +666,7 @@ async fn success(
         &mut context,
         &holder_rewards,
         unharvested_rewards,
+        0, // TODO: Changed in later commit.
         last_seen_total_rewards,
     )
     .await;
@@ -719,6 +721,7 @@ async fn success(
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
         &HolderRewards {
+            last_rewards_per_token: 0,
             last_seen_total_rewards: total_rewards,
             unharvested_rewards: expected_unharvested_rewards,
         }

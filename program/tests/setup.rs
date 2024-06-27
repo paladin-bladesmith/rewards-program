@@ -129,9 +129,10 @@ pub async fn setup_holder_rewards_pool_account(
     context: &mut ProgramTestContext,
     holder_rewards_pool_address: &Pubkey,
     excess_lamports: u64,
+    rewards_per_token: u128,
     total_rewards: u64,
 ) {
-    let state = HolderRewardsPool { total_rewards };
+    let state = HolderRewardsPool::new(rewards_per_token, total_rewards);
     let data = bytemuck::bytes_of(&state).to_vec();
 
     let rent = context.banks_client.get_rent().await.unwrap();
@@ -153,11 +154,13 @@ pub async fn setup_holder_rewards_account(
     context: &mut ProgramTestContext,
     holder_rewards: &Pubkey,
     unharvested_rewards: u64,
+    last_rewards_per_token: u128,
     last_seen_total_rewards: u64,
 ) {
     let state = HolderRewards {
-        unharvested_rewards,
+        last_rewards_per_token,
         last_seen_total_rewards,
+        unharvested_rewards,
     };
     let data = bytemuck::bytes_of(&state).to_vec();
 
