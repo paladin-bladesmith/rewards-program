@@ -222,16 +222,16 @@ pub struct HolderRewards {
     ///
     /// Stored as a `u128`, which includes a scaling factor of `1e9` to
     /// represent the exchange rate with 9 decimal places of precision.
-    pub last_rewards_per_token: u128,
+    pub last_accumulated_rewards_per_token: u128,
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
     pub unharvested_rewards: u64,
     _padding: u64,
 }
 impl HolderRewards {
-    pub fn new(last_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
+    pub fn new(last_accumulated_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
         Self {
-            last_rewards_per_token,
+            last_accumulated_rewards_per_token,
             unharvested_rewards,
             _padding: 0,
         }
@@ -249,5 +249,5 @@ pub struct HolderRewardsPool {
     ///
     /// Stored as a `u128`, which includes a scaling factor of `1e9` to
     /// represent the exchange rate with 9 decimal places of precision.
-    pub rewards_per_token: u128,
+    pub accumulated_rewards_per_token: u128,
 }

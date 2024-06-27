@@ -233,21 +233,21 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
 struct InitialPool {
     token_supply: u64,
-    rewards_per_token: u128,
+    accumulated_rewards_per_token: u128,
 }
 
 struct ExpectedPool {
-    rewards_per_token: u128,
+    accumulated_rewards_per_token: u128,
 }
 
 #[allow(clippy::arithmetic_side_effects)]
 #[test_case(
     InitialPool {
         token_supply: 0,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     100_000;
     "Zero token supply, zero rewards per token, increment total rewards"
@@ -255,10 +255,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        rewards_per_token: 2_500_000_000, // 0% + 250_000 / 100_000 = 250%
+        accumulated_rewards_per_token: 2_500_000_000, // 0% + 250_000 / 100_000 = 250%
     },
     250_000;
     "Zero initial rate and rewards, resulting rate 250%"
@@ -266,10 +266,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 1_000_000,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        rewards_per_token: 100_000_000, // 0% + 100_000 / 1_000_000 = 10%
+        accumulated_rewards_per_token: 100_000_000, // 0% + 100_000 / 1_000_000 = 10%
     },
     100_000;
     "Zero initial rate and rewards, resulting rate 10%"
@@ -277,10 +277,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 1_000_000,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        rewards_per_token: 1_000_000, // 0% + 1_000 / 1_000_000 = 0.1%
+        accumulated_rewards_per_token: 1_000_000, // 0% + 1_000 / 1_000_000 = 0.1%
     },
     1_000;
     "Zero initial rate and rewards, resulting rate 0.1%"
@@ -288,10 +288,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 1_000_000,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        rewards_per_token: 1_000, // 0 + 1 / 1_000_000 = 0.0001%
+        accumulated_rewards_per_token: 1_000, // 0 + 1 / 1_000_000 = 0.0001%
     },
     1;
     "Zero initial rate and rewards, resulting rate 0.0001%"
@@ -299,10 +299,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000, // 50%
     },
     ExpectedPool {
-        rewards_per_token: 525_000_000, // 50% + 2_500 / 100_000 = 52.5%
+        accumulated_rewards_per_token: 525_000_000, // 50% + 2_500 / 100_000 = 52.5%
     },
     2_500;
     "50% initial rate, rewards increase by 5%, resulting rate 52.5%"
@@ -310,10 +310,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000, // 50%
     },
     ExpectedPool {
-        rewards_per_token: 1_000_000_000, // 50% + 50_000 / 100_000 = 100%
+        accumulated_rewards_per_token: 1_000_000_000, // 50% + 50_000 / 100_000 = 100%
     },
     50_000;
     "50% initial rate, rewards increase by 100%, resulting rate 100%"
@@ -321,10 +321,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000, // 50%
     },
     ExpectedPool {
-        rewards_per_token: 1_750_000_000, // 50% + 125_000 / 100_000 = 175%
+        accumulated_rewards_per_token: 1_750_000_000, // 50% + 125_000 / 100_000 = 175%
     },
     125_000;
     "50% initial rate, rewards increase by 250%, resulting rate 175%"
@@ -333,10 +333,10 @@ struct ExpectedPool {
 async fn success(initial: InitialPool, expected: ExpectedPool, reward_amount: u64) {
     let InitialPool {
         token_supply,
-        rewards_per_token,
+        accumulated_rewards_per_token,
     } = initial;
     let ExpectedPool {
-        rewards_per_token: expected_rewards_per_token,
+        accumulated_rewards_per_token: expected_accumulated_rewards_per_token,
     } = expected;
 
     let mint = Pubkey::new_unique();
@@ -350,7 +350,7 @@ async fn success(initial: InitialPool, expected: ExpectedPool, reward_amount: u6
         &mut context,
         &holder_rewards_pool,
         0, // Excess lamports (not used here).
-        rewards_per_token,
+        accumulated_rewards_per_token,
     )
     .await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
@@ -390,7 +390,7 @@ async fn success(initial: InitialPool, expected: ExpectedPool, reward_amount: u6
     assert_eq!(
         bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data),
         &HolderRewardsPool {
-            rewards_per_token: expected_rewards_per_token,
+            accumulated_rewards_per_token: expected_accumulated_rewards_per_token,
         },
     );
 

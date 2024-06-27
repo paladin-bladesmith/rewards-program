@@ -338,7 +338,7 @@ async fn fail_holder_rewards_account_initialized() {
 async fn success() {
     // Since there's no math involved here, we just need to assert that the
     // new holder account records the current pool values.
-    let rewards_per_token = 500_000_000;
+    let accumulated_rewards_per_token = 500_000_000;
 
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
@@ -352,7 +352,7 @@ async fn success() {
         &mut context,
         &holder_rewards_pool,
         0, // Excess lamports (not used here).
-        rewards_per_token,
+        accumulated_rewards_per_token,
     )
     .await;
     setup_token_account(
@@ -408,6 +408,9 @@ async fn success() {
 
     assert_eq!(
         holder_rewards_state,
-        &HolderRewards::new(rewards_per_token, /* unharvested_rewards */ 0),
+        &HolderRewards::new(
+            accumulated_rewards_per_token,
+            /* unharvested_rewards */ 0
+        ),
     );
 }

@@ -95,13 +95,14 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 }
 
 fn calculate_eligible_rewards(
-    current_rewards_per_token: u128,
-    last_rewards_per_token: u128,
+    current_accumulated_rewards_per_token: u128,
+    last_accumulated_rewards_per_token: u128,
     token_account_balance: u64,
 ) -> Result<u64, ProgramError> {
-    // Calculation: (current_rewards_per_token - last_rewards_per_token) *
-    // token_account_balance
-    let marginal_rate = current_rewards_per_token.saturating_sub(last_rewards_per_token);
+    // Calculation: (current_accumulated_rewards_per_token
+    //   - last_accumulated_rewards_per_token) * token_account_balance
+    let marginal_rate =
+        current_accumulated_rewards_per_token.saturating_sub(last_accumulated_rewards_per_token);
     if marginal_rate == 0 {
         return Ok(0);
     }
@@ -275,12 +276,12 @@ fn process_distribute_rewards(
         // per token on the provided rewards amount, then adding that rate to
         // the old rate.
         let marginal_rate = calculate_rewards_per_token(amount, token_supply)?;
-        let new_rewards_per_token = pool_state
-            .rewards_per_token
+        let new_accumulated_rewards_per_token = pool_state
+            .accumulated_rewards_per_token
             .checked_add(marginal_rate)
             .ok_or(ProgramError::ArithmeticOverflow)?;
 
-        pool_state.rewards_per_token = new_rewards_per_token;
+        pool_state.accumulated_rewards_per_token = new_accumulated_rewards_per_token;
     }
 
     // Move the amount from the payer to the holder rewards pool.
@@ -360,7 +361,7 @@ fn process_initialize_holder_rewards(
         // Write the data.
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
-            HolderRewards::new(pool_state.rewards_per_token, 0);
+            HolderRewards::new(pool_state.accumulated_rewards_per_token, 0);
     }
 
     Ok(())
@@ -407,8 +408,9 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // Determine the amount the holder can harvest.
     //
-    // This is done by subtracting the `last_rewards_per_token` rate from the
-    // pool's current rate, then multiplying by the token account balance.
+    // This is done by subtracting the `last_accumulated_rewards_per_token`
+    // rate from the pool's current rate, then multiplying by the token account
+    // balance.
     //
     // If the pool doesn't have enough lamports to cover the rewards, only
     // harvest the available lamports. This should never happen, but the check
@@ -421,8 +423,8 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .saturating_sub(rent_exempt_lamports)
     };
     let eligible_rewards = calculate_eligible_rewards(
-        pool_state.rewards_per_token,
-        holder_rewards_state.last_rewards_per_token,
+        pool_state.accumulated_rewards_per_token,
+        holder_rewards_state.last_accumulated_rewards_per_token,
         token_account_balance,
     )?;
     let rewards_to_harvest = eligible_rewards.min(pool_excess_lamports);
@@ -444,7 +446,8 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
 
     // Update the holder rewards state.
-    holder_rewards_state.last_rewards_per_token = pool_state.rewards_per_token;
+    holder_rewards_state.last_accumulated_rewards_per_token =
+        pool_state.accumulated_rewards_per_token;
     holder_rewards_state.unharvested_rewards = eligible_rewards.saturating_sub(rewards_to_harvest);
 
     Ok(())

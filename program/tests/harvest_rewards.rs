@@ -371,12 +371,12 @@ async fn fail_holder_rewards_invalid_data() {
 
 struct Pool {
     excess_lamports: u64,
-    rewards_per_token: u128,
+    accumulated_rewards_per_token: u128,
 }
 
 struct Holder {
     token_account_balance: u64,
-    last_rewards_per_token: u128,
+    last_accumulated_rewards_per_token: u128,
     unharvested_rewards: u64,
 }
 
@@ -391,11 +391,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 0,
-        rewards_per_token: 0,
+        accumulated_rewards_per_token: 0,
     },
     Holder {
         token_account_balance: 100,
-        last_rewards_per_token: 0,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
     ExpectedResult::Err;
@@ -404,11 +404,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
     },
     ExpectedResult::Err;
@@ -417,11 +417,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 50_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100_000,
-        last_rewards_per_token: 0,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
     ExpectedResult::Ok {
@@ -433,11 +433,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100_000,
-        last_rewards_per_token: 0,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
     ExpectedResult::Ok {
@@ -449,11 +449,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_rewards_per_token: 0,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
     ExpectedResult::Ok {
@@ -465,11 +465,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
     },
     ExpectedResult::Ok {
@@ -481,11 +481,11 @@ enum ExpectedResult {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
     },
     ExpectedResult::Ok {
@@ -498,12 +498,12 @@ enum ExpectedResult {
 async fn success(pool: Pool, holder: Holder, expected_result: ExpectedResult) {
     let Pool {
         excess_lamports,
-        rewards_per_token,
+        accumulated_rewards_per_token,
     } = pool;
 
     let Holder {
         token_account_balance,
-        last_rewards_per_token,
+        last_accumulated_rewards_per_token,
         unharvested_rewards,
     } = holder;
 
@@ -519,14 +519,14 @@ async fn success(pool: Pool, holder: Holder, expected_result: ExpectedResult) {
         &mut context,
         &holder_rewards_pool,
         excess_lamports,
-        rewards_per_token,
+        accumulated_rewards_per_token,
     )
     .await;
     setup_holder_rewards_account(
         &mut context,
         &holder_rewards,
         unharvested_rewards,
-        last_rewards_per_token,
+        last_accumulated_rewards_per_token,
     )
     .await;
     setup_token_account(
@@ -583,7 +583,7 @@ async fn success(pool: Pool, holder: Holder, expected_result: ExpectedResult) {
             // Assert the holder rewards account state was updated.
             assert_eq!(
                 holder_rewards_state,
-                &HolderRewards::new(rewards_per_token, expected_unharvested_rewards),
+                &HolderRewards::new(accumulated_rewards_per_token, expected_unharvested_rewards),
             );
 
             // Assert the holder rewards pool's balance was debited.
@@ -625,7 +625,7 @@ async fn success(pool: Pool, holder: Holder, expected_result: ExpectedResult) {
             // Assert the holder rewards account account state was _not_ updated.
             assert_eq!(
                 holder_rewards_state,
-                &HolderRewards::new(last_rewards_per_token, unharvested_rewards),
+                &HolderRewards::new(last_accumulated_rewards_per_token, unharvested_rewards),
             );
         }
     }
