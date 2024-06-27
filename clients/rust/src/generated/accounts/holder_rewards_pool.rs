@@ -9,7 +9,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HolderRewardsPool {
-    pub rewards_per_token: u128,
+    pub accumulated_rewards_per_token: u128,
 }
 
 impl HolderRewardsPool {

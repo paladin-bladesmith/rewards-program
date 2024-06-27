@@ -29,16 +29,18 @@ import {
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
 
-export type HolderRewardsPool = { rewardsPerToken: bigint };
+export type HolderRewardsPool = { accumulatedRewardsPerToken: bigint };
 
-export type HolderRewardsPoolArgs = { rewardsPerToken: number | bigint };
+export type HolderRewardsPoolArgs = {
+  accumulatedRewardsPerToken: number | bigint;
+};
 
 export function getHolderRewardsPoolEncoder(): Encoder<HolderRewardsPoolArgs> {
-  return getStructEncoder([['rewardsPerToken', getU128Encoder()]]);
+  return getStructEncoder([['accumulatedRewardsPerToken', getU128Encoder()]]);
 }
 
 export function getHolderRewardsPoolDecoder(): Decoder<HolderRewardsPool> {
-  return getStructDecoder([['rewardsPerToken', getU128Decoder()]]);
+  return getStructDecoder([['accumulatedRewardsPerToken', getU128Decoder()]]);
 }
 
 export function getHolderRewardsPoolCodec(): Codec<

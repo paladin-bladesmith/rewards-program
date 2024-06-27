@@ -199,7 +199,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "lastRewardsPerToken",
+            "name": "lastAccumulatedRewardsPerToken",
             "type": "u128"
           },
           {
@@ -219,7 +219,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "rewardsPerToken",
+            "name": "accumulatedRewardsPerToken",
             "type": "u128"
           }
         ]

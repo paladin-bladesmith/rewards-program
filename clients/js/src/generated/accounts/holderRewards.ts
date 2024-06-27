@@ -32,20 +32,20 @@ import {
 } from '@solana/web3.js';
 
 export type HolderRewards = {
-  lastRewardsPerToken: bigint;
+  lastAccumulatedRewardsPerToken: bigint;
   unharvestedRewards: bigint;
   padding: bigint;
 };
 
 export type HolderRewardsArgs = {
-  lastRewardsPerToken: number | bigint;
+  lastAccumulatedRewardsPerToken: number | bigint;
   unharvestedRewards: number | bigint;
   padding: number | bigint;
 };
 
 export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
   return getStructEncoder([
-    ['lastRewardsPerToken', getU128Encoder()],
+    ['lastAccumulatedRewardsPerToken', getU128Encoder()],
     ['unharvestedRewards', getU64Encoder()],
     ['padding', getU64Encoder()],
   ]);
@@ -53,7 +53,7 @@ export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
 
 export function getHolderRewardsDecoder(): Decoder<HolderRewards> {
   return getStructDecoder([
-    ['lastRewardsPerToken', getU128Decoder()],
+    ['lastAccumulatedRewardsPerToken', getU128Decoder()],
     ['unharvestedRewards', getU64Decoder()],
     ['padding', getU64Decoder()],
   ]);
