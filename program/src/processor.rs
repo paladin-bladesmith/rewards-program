@@ -35,6 +35,8 @@ use {
     },
 };
 
+const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000; // 1e9
+
 fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
     let mint_data = mint_info.try_borrow_data()?;
     let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
@@ -87,7 +89,7 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
     //
     // Scaled by 1e9 to store 9 decimal places of precision.
     (rewards as u128)
-        .checked_mul(1_000_000_000)
+        .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
         .and_then(|product| product.checked_div(token_supply as u128))
         .ok_or(ProgramError::ArithmeticOverflow)
 }
@@ -106,7 +108,7 @@ fn calculate_eligible_rewards(
     // Scaled by 1e9 to store 9 decimal places of precision.
     marginal_rate
         .checked_mul(token_account_balance as u128)
-        .and_then(|product| product.checked_div(1_000_000_000))
+        .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
         .and_then(|product| product.try_into().ok())
         .ok_or(ProgramError::ArithmeticOverflow)
 }
