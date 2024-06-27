@@ -79,6 +79,19 @@ fn check_pool(
     Ok(())
 }
 
+fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, ProgramError> {
+    if token_supply == 0 {
+        return Ok(0);
+    }
+    // Calculation: rewards / token_supply
+    //
+    // Scaled by 1e9 to store 9 decimal places of precision.
+    (rewards as u128)
+        .checked_mul(1_000_000_000)
+        .and_then(|product| product.checked_div(token_supply as u128))
+        .ok_or(ProgramError::ArithmeticOverflow)
+}
+
 fn calculate_reward_share(
     token_supply: u64,
     token_account_balance: u64,
@@ -246,21 +259,32 @@ fn process_distribute_rewards(
         return Err(ProgramError::MissingRequiredSignature);
     }
 
-    let _token_supply = get_token_supply(mint_info)?;
+    let token_supply = get_token_supply(mint_info)?;
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
 
     // Update the total rewards in the holder rewards pool.
     {
-        let mut holder_rewards_pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
-        let holder_rewards_pool_state =
-            bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut holder_rewards_pool_data)
-                .map_err(|_| ProgramError::InvalidAccountData)?;
+        let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+        let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
 
-        holder_rewards_pool_state.total_rewards = holder_rewards_pool_state
+        let new_total_rewards = pool_state
             .total_rewards
             .checked_add(amount)
             .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        // Calculate the new rewards per token by first calculating the rewards
+        // per token on the provided rewards amount, then adding that rate to
+        // the old rate.
+        let marginal_rate = calculate_rewards_per_token(amount, token_supply)?;
+        let new_rewards_per_token = pool_state
+            .rewards_per_token
+            .checked_add(marginal_rate)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        pool_state.total_rewards = new_total_rewards;
+        pool_state.rewards_per_token = new_rewards_per_token;
     }
 
     // Move the amount from the payer to the holder rewards pool.
