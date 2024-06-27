@@ -311,37 +311,21 @@ fn process_initialize_holder_rewards(
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program = next_account_info(accounts_iter)?;
 
-    let token_supply = get_token_supply(mint_info)?;
+    // Run checks on the token account.
+    {
+        let token_account_data = token_account_info.try_borrow_data()?;
+        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
 
-    let token_account_balance =
-        get_token_account_balance_checked(mint_info.key, token_account_info)?;
+        // Ensure the provided token account is for the mint.
+        if !token_account.base.mint.eq(mint_info.key) {
+            return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+        }
+    }
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let pool_data = holder_rewards_pool_info.try_borrow_data()?;
     let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
-
-    // Calculate unharvested rewards for the token account.
-    //
-    // Since the holder rewards account is being initialized, the
-    // `unharvested_rewards` is calculated from the _available_ rewards in the
-    // pool, ie. `pool.lamports - rent_exempt_minimum`.
-    //
-    // If the program used total rewards for this calculation, new holders
-    // would be able to claim rewards that were already distributed to other
-    // holders.
-    //
-    // If the program used zero rewards for this calculation, new holders
-    // would not be able to claim rewards until the next distribution, which
-    // could result in some lamports left unclaimable in the pool.
-    let unharvested_rewards = {
-        let rent = <Rent as Sysvar>::get()?;
-        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
-        let available_rewards = holder_rewards_pool_info
-            .lamports()
-            .saturating_sub(rent_exempt_lamports);
-        calculate_reward_share(token_supply, token_account_balance, available_rewards)?
-    };
 
     // Initialize the holder rewards account.
     {
@@ -383,7 +367,7 @@ fn process_initialize_holder_rewards(
             HolderRewards {
                 last_rewards_per_token: pool_state.rewards_per_token,
                 last_seen_total_rewards: pool_state.total_rewards,
-                unharvested_rewards,
+                unharvested_rewards: 0,
             };
     }
 
