@@ -120,7 +120,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
 
     // Setup holder rewards pool account with incorrect owner.
@@ -163,8 +163,8 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
 
     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
@@ -249,7 +249,7 @@ async fn fail_holder_rewards_incorrect_owner() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
 
     // Setup holder rewards account with incorrect owner.
@@ -292,8 +292,8 @@ async fn fail_holder_rewards_incorrect_address() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
 
     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
@@ -331,7 +331,7 @@ async fn fail_holder_rewards_invalid_data() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
 
     // Setup holder rewards account with invalid data.
@@ -372,13 +372,11 @@ async fn fail_holder_rewards_invalid_data() {
 struct Pool {
     excess_lamports: u64,
     rewards_per_token: u128,
-    total_rewards: u64,
 }
 
 struct Holder {
     token_account_balance: u64,
     last_rewards_per_token: u128,
-    last_seen_total_rewards: u64,
     unharvested_rewards: u64,
 }
 
@@ -386,12 +384,10 @@ struct Holder {
     Pool {
         excess_lamports: 0,
         rewards_per_token: 0,
-        total_rewards: 0,
     },
     Holder {
         token_account_balance: 100,
         last_rewards_per_token: 0,
-        last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
     0,
@@ -402,12 +398,10 @@ struct Holder {
     Pool {
         excess_lamports: 1_000_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 100,
         last_rewards_per_token: 1_000_000_000, // 1 reward per token.
-        last_seen_total_rewards: 100_000,
         unharvested_rewards: 0,
     },
     0,
@@ -418,12 +412,10 @@ struct Holder {
     Pool {
         excess_lamports: 50_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 100_000,
         last_rewards_per_token: 0,
-        last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
     50_000, // Pool excess.
@@ -434,12 +426,10 @@ struct Holder {
     Pool {
         excess_lamports: 1_000_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 100_000,
         last_rewards_per_token: 0,
-        last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
     100_000,
@@ -450,12 +440,10 @@ struct Holder {
     Pool {
         excess_lamports: 1_000_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 10_000,
         last_rewards_per_token: 0,
-        last_seen_total_rewards: 0,
         unharvested_rewards: 0,
     },
     10_000,
@@ -466,12 +454,10 @@ struct Holder {
     Pool {
         excess_lamports: 10_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 10_000,
         last_rewards_per_token: 500_000_000, // 0.5 rewards per token.
-        last_seen_total_rewards: 50_000,
         unharvested_rewards: 0,
     },
     5_000, // (1 - 0.5) * 10_000
@@ -482,12 +468,10 @@ struct Holder {
     Pool {
         excess_lamports: 10_000,
         rewards_per_token: 1_000_000_000, // 1 reward per token.
-        total_rewards: 100_000,
     },
     Holder {
         token_account_balance: 10_000,
         last_rewards_per_token: 250_000_000, // 0.25 rewards per token.
-        last_seen_total_rewards: 50_000,
         unharvested_rewards: 0,
     },
     7_500, // (1 - 0.25) * 10_000
@@ -504,13 +488,11 @@ async fn success(
     let Pool {
         excess_lamports,
         rewards_per_token,
-        total_rewards,
     } = pool;
 
     let Holder {
         token_account_balance,
         last_rewards_per_token,
-        last_seen_total_rewards,
         unharvested_rewards,
     } = holder;
 
@@ -527,7 +509,6 @@ async fn success(
         &holder_rewards_pool,
         excess_lamports,
         rewards_per_token,
-        total_rewards,
     )
     .await;
     setup_holder_rewards_account(
@@ -535,7 +516,6 @@ async fn success(
         &holder_rewards,
         unharvested_rewards,
         last_rewards_per_token,
-        last_seen_total_rewards,
     )
     .await;
     setup_token_account(
@@ -587,11 +567,7 @@ async fn success(
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards {
-            last_rewards_per_token: rewards_per_token,
-            last_seen_total_rewards: total_rewards,
-            unharvested_rewards: expected_unharvested_rewards,
-        }
+        &HolderRewards::new(rewards_per_token, expected_unharvested_rewards),
     );
 
     // Assert the holder rewards pool's balance was debited.

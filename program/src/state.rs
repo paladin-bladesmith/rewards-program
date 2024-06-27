@@ -19,12 +19,9 @@
 //! Consider the following scenario.
 //!
 //! ```text
-//!
+//! 
 //! -- Legend --
 //!
-//!     `total_rewards`:        The running counter of total rewards accrued by
-//!                             the system, as stored in the pool's account
-//!                             state.
 //!     `rewards_per_share`:    Total rewards / token supply.
 //!     `available_rewards:`    The number of lamports that can be withdrawn
 //!                             from the pool without going below the
@@ -34,9 +31,9 @@
 //! --
 //!
 //! Pool:   token_supply:       100         Alice:  last_seen_rate:     0
-//!         total_rewards:      100                 token_balance:      25
-//!         rewards_per_token:  1                   eligible_for:       25
-//!         available_rewards:  100
+//!         rewards_per_token:  1                   token_balance:      25
+//!         available_rewards:  100                 eligible_for:       25
+//!
 //!                                         Bob:    last_seen_rate:     0
 //!                                                 token_balance:      40
 //!                                                 eligible_for:       40
@@ -52,9 +49,9 @@
 //! are deposited into the pool.
 //!
 //! Pool:   token_supply:       125         Alice:  last_seen_rate:     0
-//!         total_rewards:      100                 token_balance:      25
-//!         rewards_per_token:  1                   eligible_for:       25
-//!         available_rewards:  100
+//!         rewards_per_token:  1                   token_balance:      25
+//!         available_rewards:  100                 eligible_for:       25
+//!
 //!                                         Bob:    last_seen_rate:     0
 //!                                                 token_balance:      40
 //!                                                 eligible_for:       40
@@ -72,9 +69,9 @@
 //! The rewards per token rate is stored in Bob's holder account state.
 //!
 //! Pool:   token_supply:       125         Alice:  last_seen_rate:     0
-//!         total_rewards:      100                 token_balance:      25
-//!         rewards_per_token:  1                   eligible_for:       25
-//!         available_rewards:  60
+//!         rewards_per_token:  1                   token_balance:      25
+//!         available_rewards:  60                  eligible_for:       25
+//!
 //!                                         Bob:    last_seen_rate:     1
 //!                                                 token_balance:      40
 //!                                                 eligible_for:       0
@@ -94,9 +91,9 @@
 //! can still claim rewards at the old rate.
 //!
 //! Pool:   token_supply:       100         Alice:  last_seen_rate:     1
-//!         total_rewards:      100                 token_balance:      0
-//!         rewards_per_token:  1                   eligible_for:       0
-//!         available_rewards:  35
+//!         rewards_per_token:  1                   token_balance:      0
+//!         available_rewards:  35                  eligible_for:       0
+//!
 //!                                         Bob:    last_seen_rate:     1
 //!                                                 token_balance:      40
 //!                                                 eligible_for:       0
@@ -126,9 +123,9 @@
 //! He's eligible for (3 - 1) * 25 = 50 rewards.
 //!
 //! Pool:   token_supply:       100         Alice:  last_seen_rate:     1
-//!         total_rewards:      300                 token_balance:      0
-//!         rewards_per_token:  3                   eligible_for:       0
-//!         available_rewards:  235
+//!         rewards_per_token:  3                   token_balance:      0
+//!         available_rewards:  235                 eligible_for:       0
+//!
 //!                                         Bob:    last_seen_rate:     1
 //!                                                 token_balance:      40
 //!                                                 eligible_for:       80
@@ -143,7 +140,6 @@
 //!
 //! Now the total unharvested claims is 80 + 105 + 50 = 235, which is exactly
 //! what's availabe in the pool.
-//!
 //! ```
 
 use {
@@ -227,12 +223,19 @@ pub struct HolderRewards {
     /// Stored as a `u128`, which includes a scaling factor of `1e9` to
     /// represent the exchange rate with 9 decimal places of precision.
     pub last_rewards_per_token: u128,
-    /// The last seen total rewards amount in the aggregate holder rewards
-    /// account.
-    pub last_seen_total_rewards: u64,
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
     pub unharvested_rewards: u64,
+    _padding: u64,
+}
+impl HolderRewards {
+    pub fn new(last_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
+        Self {
+            last_rewards_per_token,
+            unharvested_rewards,
+            _padding: 0,
+        }
+    }
 }
 
 /// Tracks the rewards accumulated by the system and manages the distribution
@@ -247,16 +250,4 @@ pub struct HolderRewardsPool {
     /// Stored as a `u128`, which includes a scaling factor of `1e9` to
     /// represent the exchange rate with 9 decimal places of precision.
     pub rewards_per_token: u128,
-    /// Total holder rewards available for distribution.
-    pub total_rewards: u64,
-    _padding: u64,
-}
-impl HolderRewardsPool {
-    pub fn new(rewards_per_token: u128, total_rewards: u64) -> Self {
-        Self {
-            rewards_per_token,
-            total_rewards,
-            _padding: 0,
-        }
-    }
 }

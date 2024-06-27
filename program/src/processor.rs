@@ -269,11 +269,6 @@ fn process_distribute_rewards(
         let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
-        let new_total_rewards = pool_state
-            .total_rewards
-            .checked_add(amount)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-
         // Calculate the new rewards per token by first calculating the rewards
         // per token on the provided rewards amount, then adding that rate to
         // the old rate.
@@ -283,7 +278,6 @@ fn process_distribute_rewards(
             .checked_add(marginal_rate)
             .ok_or(ProgramError::ArithmeticOverflow)?;
 
-        pool_state.total_rewards = new_total_rewards;
         pool_state.rewards_per_token = new_rewards_per_token;
     }
 
@@ -364,11 +358,7 @@ fn process_initialize_holder_rewards(
         // Write the data.
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
-            HolderRewards {
-                last_rewards_per_token: pool_state.rewards_per_token,
-                last_seen_total_rewards: pool_state.total_rewards,
-                unharvested_rewards: 0,
-            };
+            HolderRewards::new(pool_state.rewards_per_token, 0);
     }
 
     Ok(())
@@ -449,7 +439,6 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // Update the holder rewards state.
     holder_rewards_state.last_rewards_per_token = pool_state.rewards_per_token;
-    holder_rewards_state.last_seen_total_rewards = pool_state.total_rewards;
     holder_rewards_state.unharvested_rewards = eligible_rewards.saturating_sub(rewards_to_harvest);
 
     Ok(())

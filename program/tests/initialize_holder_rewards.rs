@@ -165,7 +165,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -254,7 +254,7 @@ async fn fail_holder_rewards_incorrect_address() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -294,7 +294,7 @@ async fn fail_holder_rewards_account_initialized() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -339,7 +339,6 @@ async fn success() {
     // Since there's no math involved here, we just need to assert that the
     // new holder account records the current pool values.
     let rewards_per_token = 500_000_000;
-    let total_rewards = 100_000;
 
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
@@ -354,7 +353,6 @@ async fn success() {
         &holder_rewards_pool,
         0, // Excess lamports (not used here).
         rewards_per_token,
-        total_rewards,
     )
     .await;
     setup_token_account(
@@ -410,10 +408,6 @@ async fn success() {
 
     assert_eq!(
         holder_rewards_state,
-        &HolderRewards {
-            last_rewards_per_token: rewards_per_token,
-            last_seen_total_rewards: total_rewards,
-            unharvested_rewards: 0,
-        },
+        &HolderRewards::new(rewards_per_token, /* unharvested_rewards */ 0),
     );
 }
