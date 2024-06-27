@@ -203,11 +203,11 @@
             "type": "u128"
           },
           {
-            "name": "lastSeenTotalRewards",
+            "name": "unharvestedRewards",
             "type": "u64"
           },
           {
-            "name": "unharvestedRewards",
+            "name": "padding",
             "type": "u64"
           }
         ]
@@ -221,14 +221,6 @@
           {
             "name": "rewardsPerToken",
             "type": "u128"
-          },
-          {
-            "name": "totalRewards",
-            "type": "u64"
-          },
-          {
-            "name": "padding",
-            "type": "u64"
           }
         ]
       }

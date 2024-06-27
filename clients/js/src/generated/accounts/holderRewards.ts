@@ -33,29 +33,29 @@ import {
 
 export type HolderRewards = {
   lastRewardsPerToken: bigint;
-  lastSeenTotalRewards: bigint;
   unharvestedRewards: bigint;
+  padding: bigint;
 };
 
 export type HolderRewardsArgs = {
   lastRewardsPerToken: number | bigint;
-  lastSeenTotalRewards: number | bigint;
   unharvestedRewards: number | bigint;
+  padding: number | bigint;
 };
 
 export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
   return getStructEncoder([
     ['lastRewardsPerToken', getU128Encoder()],
-    ['lastSeenTotalRewards', getU64Encoder()],
     ['unharvestedRewards', getU64Encoder()],
+    ['padding', getU64Encoder()],
   ]);
 }
 
 export function getHolderRewardsDecoder(): Decoder<HolderRewards> {
   return getStructDecoder([
     ['lastRewardsPerToken', getU128Decoder()],
-    ['lastSeenTotalRewards', getU64Decoder()],
     ['unharvestedRewards', getU64Decoder()],
+    ['padding', getU64Decoder()],
   ]);
 }
 

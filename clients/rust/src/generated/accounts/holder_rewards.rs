@@ -10,8 +10,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HolderRewards {
     pub last_rewards_per_token: u128,
-    pub last_seen_total_rewards: u64,
     pub unharvested_rewards: u64,
+    pub padding: u64,
 }
 
 impl HolderRewards {
