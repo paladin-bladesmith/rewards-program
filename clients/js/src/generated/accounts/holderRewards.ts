@@ -15,6 +15,8 @@ import {
   fetchEncodedAccounts,
   getStructDecoder,
   getStructEncoder,
+  getU128Decoder,
+  getU128Encoder,
   getU64Decoder,
   getU64Encoder,
   type Account,
@@ -30,17 +32,20 @@ import {
 } from '@solana/web3.js';
 
 export type HolderRewards = {
+  lastRewardsPerToken: bigint;
   lastSeenTotalRewards: bigint;
   unharvestedRewards: bigint;
 };
 
 export type HolderRewardsArgs = {
+  lastRewardsPerToken: number | bigint;
   lastSeenTotalRewards: number | bigint;
   unharvestedRewards: number | bigint;
 };
 
 export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
   return getStructEncoder([
+    ['lastRewardsPerToken', getU128Encoder()],
     ['lastSeenTotalRewards', getU64Encoder()],
     ['unharvestedRewards', getU64Encoder()],
   ]);
@@ -48,6 +53,7 @@ export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
 
 export function getHolderRewardsDecoder(): Decoder<HolderRewards> {
   return getStructDecoder([
+    ['lastRewardsPerToken', getU128Decoder()],
     ['lastSeenTotalRewards', getU64Decoder()],
     ['unharvestedRewards', getU64Decoder()],
   ]);
@@ -118,5 +124,5 @@ export async function fetchAllMaybeHolderRewards(
 }
 
 export function getHolderRewardsSize(): number {
-  return 16;
+  return 32;
 }
