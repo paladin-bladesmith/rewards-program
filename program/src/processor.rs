@@ -238,6 +238,7 @@ fn process_distribute_rewards(
 
     let payer_info = next_account_info(accounts_iter)?;
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Ensure the payer account is a signer.
@@ -245,11 +246,9 @@ fn process_distribute_rewards(
         return Err(ProgramError::MissingRequiredSignature);
     }
 
-    // Ensure the holder rewards pool account is owned by the Paladin Rewards
-    // program.
-    if !holder_rewards_pool_info.owner.eq(program_id) {
-        return Err(ProgramError::InvalidAccountOwner);
-    }
+    let _token_supply = get_token_supply(mint_info)?;
+
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
 
     // Update the total rewards in the holder rewards pool.
     {

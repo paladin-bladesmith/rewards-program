@@ -3,8 +3,12 @@
 mod setup;
 
 use {
-    paladin_rewards_program::{instruction::distribute_rewards, state::HolderRewardsPool},
-    setup::{setup, setup_holder_rewards_pool_account, setup_system_account},
+    paladin_rewards_program::{
+        error::PaladinRewardsError,
+        instruction::distribute_rewards,
+        state::{get_holder_rewards_pool_address, HolderRewardsPool},
+    },
+    setup::{setup, setup_holder_rewards_pool_account, setup_mint, setup_system_account},
     solana_program_test::*,
     solana_sdk::{
         account::AccountSharedData,
@@ -17,14 +21,59 @@ use {
 };
 
 #[tokio::test]
-async fn fail_payer_not_signer() {
-    let holder_rewards_pool = Pubkey::new_unique();
+async fn fail_mint_invalid_data() {
+    let mint = Pubkey::new_unique();
+
+    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
     let mut context = setup().start_with_context().await;
 
-    let mut instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, amount);
+    // Set up a mint with invalid data.
+    {
+        context.set_account(
+            &mint,
+            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
+                .unwrap(),
+        );
+    }
+
+    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &payer],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
+    );
+}
+
+#[tokio::test]
+async fn fail_payer_not_signer() {
+    let mint = Pubkey::new_unique();
+    let token_supply = 100_000;
+
+    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let payer = Keypair::new();
+    let amount = 500_000_000_000;
+
+    let mut context = setup().start_with_context().await;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
+
+    let mut instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
     instruction.accounts[0].is_signer = false; // Not signer.
 
     let transaction = Transaction::new_signed_with_payer(
@@ -49,12 +98,16 @@ async fn fail_payer_not_signer() {
 
 #[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_owner() {
-    let holder_rewards_pool = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
+    let token_supply = 100_000;
+
+    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
     let mut context = setup().start_with_context().await;
     setup_system_account(&mut context, &payer.pubkey(), amount).await;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     // Set up a holder rewards pool account with incorrect owner.
     {
@@ -69,7 +122,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         );
     }
 
-    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, amount);
+    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -92,13 +145,55 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
 }
 
 #[tokio::test]
+async fn fail_holder_rewards_pool_invalid_address() {
+    let mint = Pubkey::new_unique();
+    let token_supply = 100_000;
+
+    let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
+    let payer = Keypair::new();
+    let amount = 500_000_000_000;
+
+    let mut context = setup().start_with_context().await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
+
+    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &payer],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsPoolAddress as u32)
+        )
+    );
+}
+
+#[tokio::test]
 async fn fail_holder_rewards_pool_invalid_data() {
-    let holder_rewards_pool = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
+    let token_supply = 100_000;
+
+    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
     let mut context = setup().start_with_context().await;
     setup_system_account(&mut context, &payer.pubkey(), amount).await;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     // Set up a holder rewards pool account with invalid data.
     {
@@ -113,7 +208,7 @@ async fn fail_holder_rewards_pool_invalid_data() {
         );
     }
 
-    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, amount);
+    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -138,13 +233,17 @@ async fn fail_holder_rewards_pool_invalid_data() {
 #[allow(clippy::arithmetic_side_effects)]
 #[tokio::test]
 async fn success() {
-    let holder_rewards_pool = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
+    let token_supply = 100_000;
+
+    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
     let mut context = setup().start_with_context().await;
     setup_system_account(&mut context, &payer.pubkey(), amount).await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     // For checks later.
     let payer_beginning_lamports = context
@@ -155,7 +254,7 @@ async fn success() {
         .unwrap()
         .lamports;
 
-    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, amount);
+    let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
