@@ -17,9 +17,9 @@
 //!
 //!
 //! Consider the following scenario.
-//! 
-//! ```ignore
 //!
+//! ```text
+//! 
 //! -- Legend --
 //!
 //!     `total_rewards`:        The running counter of total rewards accrued by
@@ -143,7 +143,6 @@
 //!
 //! Now the total unharvested claims is 80 + 105 + 50 = 235, which is exactly
 //! what's availabe in the pool.
-//! 
 //! ```
 
 use {

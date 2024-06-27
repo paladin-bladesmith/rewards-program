@@ -93,21 +93,20 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 }
 
 fn calculate_reward_share(
-    token_supply: u64,
+    current_rewards_per_token: u128,
+    last_rewards_per_token: u128,
     token_account_balance: u64,
-    total_rewards: u64,
 ) -> Result<u64, ProgramError> {
-    if token_supply == 0 {
+    // Calculation: (current_rewards_per_token - last_rewards_per_token) *
+    // token_account_balance
+    let marginal_rate = current_rewards_per_token.saturating_sub(last_rewards_per_token);
+    if marginal_rate == 0 {
         return Ok(0);
     }
-    // Calculation: (token_amount / total_token_supply) * pool_rewards
-    //
-    // However, multiplication is done first to avoid truncation, ie:
-    // (token_amount * pool_rewards) / total_token_supply
-    (token_account_balance as u128)
-        .checked_mul(total_rewards as u128)
-        .and_then(|product| product.checked_div(token_supply as u128))
-        .and_then(|share| u64::try_from(share).ok())
+    marginal_rate
+        .checked_div(1_000_000_000)
+        .and_then(|rate| rate.checked_mul(token_account_balance as u128))
+        .and_then(|product| product.try_into().ok())
         .ok_or(ProgramError::ArithmeticOverflow)
 }
 
@@ -384,16 +383,14 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
 
-    let token_supply = get_token_supply(mint_info)?;
-
-    let token_account_balance =
+    // Run checks on the token account.
+    let token_account_balane =
         get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let pool_data = holder_rewards_pool_info.try_borrow_data()?;
     let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
-    let current_total_rewards = pool_state.total_rewards;
 
     // Ensure the holder rewards account is owned by the Paladin Rewards
     // program.
@@ -415,49 +412,27 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
-    // Update the holder rewards state with the new "last seen" total rewards.
-    let last_seen_total_rewards = std::mem::replace(
-        &mut holder_rewards_state.last_seen_total_rewards,
-        current_total_rewards,
-    );
-
-    // Calculate unharvested rewards for the token account.
-    // Since the holder rewards account may already have unharvested rewards,
-    // calculate the share of rewards that have not been seen by the holder
-    // rewards account.
-    let rewards_to_harvest = {
-        // Rewards accrued by the system that haven't been seen by the holder.
-        let unseen_total_rewards = current_total_rewards
-            .checked_sub(last_seen_total_rewards)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-
-        // The holder's share of the unseen rewards.
-        let unseen_unharvested_rewards =
-            calculate_reward_share(token_supply, token_account_balance, unseen_total_rewards)?;
-
-        // The total unharvested rewards the holder is eligible to claim.
-        let total_eligible_rewards = holder_rewards_state
-            .unharvested_rewards
-            .checked_add(unseen_unharvested_rewards)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-
-        // Temporarily update unharvested rewards to reflect total eligible
-        // rewards. This will be re-adjusted post-harvest.
-        holder_rewards_state.unharvested_rewards = total_eligible_rewards;
-
-        // Make sure the pool can't be overdrawn by harvesting.
+    // Determine the amount the holder can harvest.
+    //
+    // This is done by subtracting the `last_rewards_per_token` rate from the
+    // pool's current rate, then multiplying by the token account balance.
+    //
+    // If the pool doesn't have enough lamports to cover the rewards, only
+    // harvest the available lamports. This should never happen, but the check
+    // is a failsafe.
+    let pool_excess_lamports = {
         let rent = <Rent as Sysvar>::get()?;
         let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
-
-        // If the pool doesn't have enough lamports to cover the rewards, only
-        // harvest the available lamports.
-        total_eligible_rewards.min(
-            holder_rewards_pool_info
-                .lamports()
-                .checked_sub(rent_exempt_lamports)
-                .ok_or(ProgramError::ArithmeticOverflow)?,
-        )
+        holder_rewards_pool_info
+            .lamports()
+            .saturating_sub(rent_exempt_lamports)
     };
+    let rewards_to_harvest = calculate_reward_share(
+        pool_state.rewards_per_token,
+        holder_rewards_state.last_rewards_per_token,
+        token_account_balane,
+    )?
+    .min(pool_excess_lamports);
 
     // Move the amount from the holder rewards pool to the token account.
     let new_holder_rewards_pool_lamports = holder_rewards_pool_info
@@ -471,10 +446,9 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
     **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
 
-    // Update the holder rewards state with the new "unharvested" rewards.
-    holder_rewards_state.unharvested_rewards = holder_rewards_state
-        .unharvested_rewards
-        .saturating_sub(rewards_to_harvest);
+    // Update the holder rewards state.
+    holder_rewards_state.last_rewards_per_token = pool_state.rewards_per_token;
+    holder_rewards_state.last_seen_total_rewards = pool_state.total_rewards;
 
     Ok(())
 }
