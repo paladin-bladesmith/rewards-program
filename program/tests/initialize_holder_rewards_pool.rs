@@ -550,7 +550,7 @@ async fn success() {
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data),
-        &HolderRewardsPool { total_rewards: 0 }
+        &HolderRewardsPool::default(),
     );
 
     // Check the extra metas account.

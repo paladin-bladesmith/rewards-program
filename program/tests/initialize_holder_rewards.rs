@@ -209,7 +209,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -298,7 +298,7 @@ async fn fail_holder_rewards_incorrect_address() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -338,7 +338,7 @@ async fn fail_holder_rewards_account_initialized() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
@@ -406,6 +406,7 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
         &mut context,
         &holder_rewards_pool,
         available_rewards,
+        0, // TODO: Changed in later commit.
         expected_last_seen_total_rewards,
     )
     .await;
@@ -466,6 +467,7 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
     assert_eq!(
         holder_rewards_state,
         &HolderRewards {
+            last_rewards_per_token: 0,
             last_seen_total_rewards: expected_last_seen_total_rewards,
             unharvested_rewards: expected_unharvested_rewards,
         },
