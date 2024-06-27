@@ -357,6 +357,7 @@ fn process_initialize_holder_rewards(
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
+                last_rewards_per_token: pool_state.rewards_per_token,
                 last_seen_total_rewards: pool_state.total_rewards,
                 unharvested_rewards,
             };

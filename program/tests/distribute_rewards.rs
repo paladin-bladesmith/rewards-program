@@ -154,7 +154,7 @@ async fn fail_holder_rewards_pool_invalid_address() {
     let amount = 500_000_000_000;
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     let instruction = distribute_rewards(&payer.pubkey(), &holder_rewards_pool, &mint, amount);
@@ -242,7 +242,7 @@ async fn success() {
 
     let mut context = setup().start_with_context().await;
     setup_system_account(&mut context, &payer.pubkey(), amount).await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     // For checks later.
@@ -278,9 +278,7 @@ async fn success() {
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data),
-        &HolderRewardsPool {
-            total_rewards: amount
-        }
+        &HolderRewardsPool::new(0, amount),
     );
 
     // Assert the pool was debited lamports.
