@@ -23,7 +23,4 @@ pub enum PaladinRewardsError {
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
-    /// Holder has no rewards to harvest.
-    #[error("Holder has no rewards to harvest")]
-    NoRewardsToHarvest,
 }

@@ -101,8 +101,9 @@ fn calculate_eligible_rewards(
 ) -> Result<u64, ProgramError> {
     // Calculation: (current_accumulated_rewards_per_token
     //   - last_accumulated_rewards_per_token) * token_account_balance
-    let marginal_rate =
-        current_accumulated_rewards_per_token.saturating_sub(last_accumulated_rewards_per_token);
+    let marginal_rate = current_accumulated_rewards_per_token
+        .checked_sub(last_accumulated_rewards_per_token)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
     if marginal_rate == 0 {
         return Ok(0);
     }
