@@ -37,8 +37,12 @@ async fn fail_token_account_invalid_data() {
     {
         context.set_account(
             &token_account,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
+            &AccountSharedData::from(Account {
+                lamports: 100_000_000,
+                data: vec![5; 165],
+                owner: spl_token_2022::id(),
+                ..Account::default()
+            }),
         );
     }
 
@@ -212,12 +216,13 @@ async fn fail_holder_rewards_pool_invalid_data() {
     {
         context.set_account(
             &holder_rewards_pool,
-            &AccountSharedData::new_data(
-                100_000_000,
-                &vec![5; 165],
-                &paladin_rewards_program::id(),
-            )
-            .unwrap(),
+            &AccountSharedData::from(Account {
+                lamports: 100_000_000,
+                data: vec![5; 17], /* Since this account is all integers, this will always
+                                    * succeed if size is correct. */
+                owner: paladin_rewards_program::id(),
+                ..Account::default()
+            }),
         );
     }
 

@@ -50,8 +50,12 @@ async fn fail_mint_invalid_data() {
     {
         context.set_account(
             &mint,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
+            &AccountSharedData::from(Account {
+                lamports: 100_000_000,
+                data: vec![5; 165],
+                owner: spl_token_2022::id(),
+                ..Account::default()
+            }),
         );
     }
 
