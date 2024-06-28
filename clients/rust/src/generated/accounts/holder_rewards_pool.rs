@@ -9,11 +9,11 @@ use borsh::{BorshDeserialize, BorshSerialize};
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HolderRewardsPool {
-    pub total_rewards: u64,
+    pub accumulated_rewards_per_token: u128,
 }
 
 impl HolderRewardsPool {
-    pub const LEN: usize = 8;
+    pub const LEN: usize = 16;
 
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {

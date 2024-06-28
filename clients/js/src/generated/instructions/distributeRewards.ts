@@ -36,6 +36,7 @@ export type DistributeRewardsInstruction<
   TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
   TAccountPayer extends string | IAccountMeta<string> = string,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountMint extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
@@ -51,6 +52,9 @@ export type DistributeRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountMint extends string
+        ? ReadonlyAccount<TAccountMint>
+        : TAccountMint,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -95,12 +99,15 @@ export function getDistributeRewardsInstructionDataCodec(): Codec<
 export type DistributeRewardsInput<
   TAccountPayer extends string = string,
   TAccountHolderRewardsPool extends string = string,
+  TAccountMint extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   /** Payer account. */
   payer: TransactionSigner<TAccountPayer>;
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Token mint. */
+  mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
   args: DistributeRewardsInstructionDataArgs['args'];
@@ -109,17 +116,20 @@ export type DistributeRewardsInput<
 export function getDistributeRewardsInstruction<
   TAccountPayer extends string,
   TAccountHolderRewardsPool extends string,
+  TAccountMint extends string,
   TAccountSystemProgram extends string,
 >(
   input: DistributeRewardsInput<
     TAccountPayer,
     TAccountHolderRewardsPool,
+    TAccountMint,
     TAccountSystemProgram
   >
 ): DistributeRewardsInstruction<
   typeof REWARDS_PROGRAM_ADDRESS,
   TAccountPayer,
   TAccountHolderRewardsPool,
+  TAccountMint,
   TAccountSystemProgram
 > {
   // Program address.
@@ -132,6 +142,7 @@ export function getDistributeRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
+    mint: { value: input.mint ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -153,6 +164,7 @@ export function getDistributeRewardsInstruction<
     accounts: [
       getAccountMeta(accounts.payer),
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.mint),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -163,6 +175,7 @@ export function getDistributeRewardsInstruction<
     typeof REWARDS_PROGRAM_ADDRESS,
     TAccountPayer,
     TAccountHolderRewardsPool,
+    TAccountMint,
     TAccountSystemProgram
   >;
 
@@ -179,8 +192,10 @@ export type ParsedDistributeRewardsInstruction<
     payer: TAccountMetas[0];
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[1];
+    /** Token mint. */
+    mint: TAccountMetas[2];
     /** System program. */
-    systemProgram: TAccountMetas[2];
+    systemProgram: TAccountMetas[3];
   };
   data: DistributeRewardsInstructionData;
 };
@@ -193,7 +208,7 @@ export function parseDistributeRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedDistributeRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 4) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -208,6 +223,7 @@ export function parseDistributeRewardsInstruction<
     accounts: {
       payer: getNextAccount(),
       holderRewardsPool: getNextAccount(),
+      mint: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getDistributeRewardsInstructionDataDecoder().decode(instruction.data),

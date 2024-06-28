@@ -12,6 +12,8 @@ pub struct DistributeRewards {
     pub payer: solana_program::pubkey::Pubkey,
     /// Holder rewards pool account.
     pub holder_rewards_pool: solana_program::pubkey::Pubkey,
+    /// Token mint.
+    pub mint: solana_program::pubkey::Pubkey,
     /// System program.
     pub system_program: solana_program::pubkey::Pubkey,
 }
@@ -29,13 +31,16 @@ impl DistributeRewards {
         args: DistributeRewardsInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.payer, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
             false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.mint, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
@@ -85,12 +90,14 @@ pub struct DistributeRewardsInstructionArgs {
 ///
 ///   0. `[writable, signer]` payer
 ///   1. `[writable]` holder_rewards_pool
-///   2. `[optional]` system_program (default to
+///   2. `[]` mint
+///   3. `[optional]` system_program (default to
 ///      `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct DistributeRewardsBuilder {
     payer: Option<solana_program::pubkey::Pubkey>,
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
+    mint: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
     args: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
@@ -113,6 +120,12 @@ impl DistributeRewardsBuilder {
         holder_rewards_pool: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
         self.holder_rewards_pool = Some(holder_rewards_pool);
+        self
+    }
+    /// Token mint.
+    #[inline(always)]
+    pub fn mint(&mut self, mint: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.mint = Some(mint);
         self
     }
     /// `[optional account, default to '11111111111111111111111111111111']`
@@ -152,6 +165,7 @@ impl DistributeRewardsBuilder {
             holder_rewards_pool: self
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
+            mint: self.mint.expect("mint is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
@@ -170,6 +184,8 @@ pub struct DistributeRewardsCpiAccounts<'a, 'b> {
     pub payer: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub mint: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -182,6 +198,8 @@ pub struct DistributeRewardsCpi<'a, 'b> {
     pub payer: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub mint: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
@@ -198,6 +216,7 @@ impl<'a, 'b> DistributeRewardsCpi<'a, 'b> {
             __program: program,
             payer: accounts.payer,
             holder_rewards_pool: accounts.holder_rewards_pool,
+            mint: accounts.mint,
             system_program: accounts.system_program,
             __args: args,
         }
@@ -235,13 +254,17 @@ impl<'a, 'b> DistributeRewardsCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.payer.key,
             true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.mint.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -266,10 +289,11 @@ impl<'a, 'b> DistributeRewardsCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(3 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(4 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.payer.clone());
         account_infos.push(self.holder_rewards_pool.clone());
+        account_infos.push(self.mint.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -289,7 +313,8 @@ impl<'a, 'b> DistributeRewardsCpi<'a, 'b> {
 ///
 ///   0. `[writable, signer]` payer
 ///   1. `[writable]` holder_rewards_pool
-///   2. `[]` system_program
+///   2. `[]` mint
+///   3. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct DistributeRewardsCpiBuilder<'a, 'b> {
     instruction: Box<DistributeRewardsCpiBuilderInstruction<'a, 'b>>,
@@ -301,6 +326,7 @@ impl<'a, 'b> DistributeRewardsCpiBuilder<'a, 'b> {
             __program: program,
             payer: None,
             holder_rewards_pool: None,
+            mint: None,
             system_program: None,
             args: None,
             __remaining_accounts: Vec::new(),
@@ -320,6 +346,12 @@ impl<'a, 'b> DistributeRewardsCpiBuilder<'a, 'b> {
         holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.holder_rewards_pool = Some(holder_rewards_pool);
+        self
+    }
+    /// Token mint.
+    #[inline(always)]
+    pub fn mint(&mut self, mint: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+        self.instruction.mint = Some(mint);
         self
     }
     /// System program.
@@ -391,6 +423,8 @@ impl<'a, 'b> DistributeRewardsCpiBuilder<'a, 'b> {
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
 
+            mint: self.instruction.mint.expect("mint is not set"),
+
             system_program: self
                 .instruction
                 .system_program
@@ -409,6 +443,7 @@ struct DistributeRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     payer: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     args: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.

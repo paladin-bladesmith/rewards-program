@@ -9,8 +9,7 @@ use {
         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
     },
     setup::{
-        setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_mint,
-        setup_token_account,
+        setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_token_account,
     },
     solana_program_test::*,
     solana_sdk::{
@@ -26,48 +25,6 @@ use {
 };
 
 #[tokio::test]
-async fn fail_mint_invalid_data() {
-    let owner = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
-
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
-
-    let mut context = setup().start_with_context().await;
-
-    // Set up a mint with invalid data.
-    {
-        context.set_account(
-            &mint,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
-        );
-    }
-
-    let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-    );
-}
-
-#[tokio::test]
 async fn fail_token_account_invalid_data() {
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
@@ -77,7 +34,6 @@ async fn fail_token_account_invalid_data() {
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     // Setup token account with invalid data.
     {
@@ -128,7 +84,6 @@ async fn fail_token_account_mint_mismatch() {
         0,
     )
     .await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
 
@@ -167,7 +122,6 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     // Setup holder rewards pool account with incorrect owner.
     {
@@ -212,7 +166,6 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
 
@@ -250,7 +203,6 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     // Setup holder rewards pool account with invalid data.
     {
@@ -299,7 +251,6 @@ async fn fail_holder_rewards_incorrect_owner() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     // Setup holder rewards account with incorrect owner.
     {
@@ -344,7 +295,6 @@ async fn fail_holder_rewards_incorrect_address() {
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
 
@@ -383,7 +333,6 @@ async fn fail_holder_rewards_invalid_data() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
     // Setup holder rewards account with invalid data.
     {
@@ -421,211 +370,183 @@ async fn fail_holder_rewards_invalid_data() {
 }
 
 struct Pool {
-    token_supply: u64,
-    total_rewards: u64,
-    pool_excess_lamports: u64,
+    excess_lamports: u64,
+    accumulated_rewards_per_token: u128,
 }
 
 struct Holder {
     token_account_balance: u64,
-    last_seen_total_rewards: u64,
+    last_accumulated_rewards_per_token: u128,
     unharvested_rewards: u64,
 }
 
 #[test_case(
     Pool {
-        token_supply: 0,
-        total_rewards: 0,
-        pool_excess_lamports: 0,
+        excess_lamports: 0,
+        accumulated_rewards_per_token: 0,
     },
     Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 0,
+        token_account_balance: 100,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
     0,
     0;
-    "all zeroes, no rewards"
+    "All zeroes, no rewards"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
+        excess_lamports: 1_000_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 0,
+        token_account_balance: 100,
+        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
     },
     0,
     0;
-    "share of token supply is zero, 0 unharvested, 0 last seen, no rewards"
+    "Last harvested 1.0 rate, rate unchanged, no rewards"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
+        excess_lamports: 1_000_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
+        token_account_balance: 100,
+        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        unharvested_rewards: 500_000,
     },
-    2_500, // Fully harvested unharvested rewards.
-    0; // Token account balance is zero, no new rewards.
-    "share of token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
+    500_000, // Unharvested.
+    0;
+    "Last harvested 1.0 rate, rate unchanged, some unharvested, receive unharvested"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 1_000, // Not enough.
+        excess_lamports: 50_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
-    },
-    1_000, // Only harvested what was in the pool.
-    2_500 - 1_000; // Token account balance is zero, no new rewards, but some was unharvested since pool was underfunded.
-    "share of token supply is zero, some unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
-)]
-#[test_case(
-    Pool {
-        token_supply: 0,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
-    },
-    Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 0,
+        token_account_balance: 100_000,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    0, // Token supply is zero, no new rewards.
-    0; // No unharvested rewards to harvest.
-    "token supply is zero, 0 unharvested, 0 last seen, no rewards"
+    50_000, // Pool excess.
+    50_000; // Remainder.
+    "No last harvested rate, eligible for 1 rate, pool is underfunded, receive pool excess"
 )]
 #[test_case(
     Pool {
-        token_supply: 0,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
+        excess_lamports: 1_000_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
-    },
-    2_500, // Fully harvested unharvested rewards.
-    0; // Token supply is zero, no new rewards.
-    "token supply is zero, some unharvested, half last seen, pool has enough, only unharvested"
-)]
-#[test_case(
-    Pool {
-        token_supply: 0,
-        total_rewards: 10_000,
-        pool_excess_lamports: 1_000, // Not enough.
-    },
-    Holder {
-        token_account_balance: 0,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
-    },
-    1_000, // Only harvested what was in the pool.
-    2_500 - 1_000; // Token supply is zero, no new rewards, but some was unharvested since pool was underfunded.
-    "token supply is zero, some unharvested, half last seen, pool underfunded, pool excess"
-)]
-#[test_case(
-    Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
-    },
-    Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 0,
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    5_000, // 50% of total rewards.
-    0; // No unharvested rewards remain, pool had enough.
-    "50% of token supply, 0 unharvested, 0 last seen, pool has enough, 50% of rewards"
+    10_000,
+    0;
+    "No last harvested rate, eligible for 1 rate, pool has enough, receive share"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 2_000, // Not enough.
+        excess_lamports: 1_000_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 0,
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 0,
+        unharvested_rewards: 10_000,
+    },
+    20_000, // 10_000 share + 10_000 unharvested
+    0;
+    "No last harvested rate, some unharvested, eligible for 1 rate, pool has enough, receive share + unharvested"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
     },
-    2_000, // Pool excess.
-    5_000 - 2_000; // 50% of total rewards, but pool was underfunded.
-    "50% of token supply, 0 unharvested, 0 last seen, pool underfunded, pool excess harvested, rest unharvested"
+    5_000, // (1 - 0.5) * 10_000
+    0;
+    "Last harvested 0.5 rate, eligible for 0.5 rate, pool has enough, receive share"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 0, // Harvested since last seen.
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        unharvested_rewards: 1_000,
     },
-    2_500, // 50% of unseen rewards.
-    0; // No unharvested rewards remain, pool had enough.
-    "50% of token supply, 0 unharvested, half last seen, pool has enough, half of 50% of rewards"
+    6_000, // (1 - 0.5) * 10_000 = 5_000 share + 1_000 unharvested
+    0;
+    "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool has enough, receive share + unharvested"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 1_000, // Not enough.
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 0, // Harvested since last seen.
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        unharvested_rewards: 8_000,
     },
-    1_000, // Pool excess.
-    2_500 - 1_000; // 50% of unseen rewards, but pool was underfunded.
-    "50% of token supply, 0 unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
+    10_000, // Pool excess.
+    3_000; // 10_000 pool excess - [(1 - 0.5) * 10_000 = 5_000 share + 8_000 unharvested]
+    "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool underfunded, receive pool excess"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 20_000,
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        unharvested_rewards: 0,
     },
-    5_000, // 50% of total rewards.
-    0; // No unharvested rewards remain, pool had enough.
-    "50% of token supply, some unharvested, half last seen, pool has enough, 50% of rewards"
+    7_500, // (1 - 0.25) * 10_000
+    0;
+    "Last harvested 0.25 rate, eligible for 0.75 rate, pool has enough, receive share"
 )]
 #[test_case(
     Pool {
-        token_supply: 10_000,
-        total_rewards: 10_000,
-        pool_excess_lamports: 1_000, // Not enough.
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 5_000,
-        last_seen_total_rewards: 5_000, // Last saw half.
-        unharvested_rewards: 2_500, // Not yet harvested.
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        unharvested_rewards: 1_000,
     },
-    1_000, // Pool excess.
-    5_000 - 1_000; // 50% of total rewards, but pool was underfunded.
-    "50% of token supply, some unharvested, half last seen, pool underfunded, pool excess harvested, rest unharvested"
+    8_500, // (1 - 0.25) * 10_000 = 7_500 share + 1_000 unharvested
+    0;
+    "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool has enough, receive share + unharvested"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        unharvested_rewards: 4_000,
+    },
+    10_000, // Pool excess.
+    1_500; // 10_000 pool excess - [(1 - 0.25) * 10_000 = 7_500 share + 4_000 unharvested]
+    "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool underfunded, receive pool excess"
 )]
 #[tokio::test]
 async fn success(
@@ -635,14 +556,13 @@ async fn success(
     expected_unharvested_rewards: u64,
 ) {
     let Pool {
-        token_supply,
-        total_rewards,
-        pool_excess_lamports,
+        excess_lamports,
+        accumulated_rewards_per_token,
     } = pool;
 
     let Holder {
         token_account_balance,
-        last_seen_total_rewards,
+        last_accumulated_rewards_per_token,
         unharvested_rewards,
     } = holder;
 
@@ -657,15 +577,15 @@ async fn success(
     setup_holder_rewards_pool_account(
         &mut context,
         &holder_rewards_pool,
-        pool_excess_lamports,
-        total_rewards,
+        excess_lamports,
+        accumulated_rewards_per_token,
     )
     .await;
     setup_holder_rewards_account(
         &mut context,
         &holder_rewards,
         unharvested_rewards,
-        last_seen_total_rewards,
+        last_accumulated_rewards_per_token,
     )
     .await;
     setup_token_account(
@@ -676,7 +596,6 @@ async fn success(
         token_account_balance,
     )
     .await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
 
     // For checks later.
     let pool_beginning_lamports = context
@@ -709,7 +628,7 @@ async fn success(
         .await
         .unwrap();
 
-    // Assert the holder rewards account's unharvested rewards was updated.
+    // Assert the holder rewards account state was updated.
     let holder_rewards_account = context
         .banks_client
         .get_account(holder_rewards)
@@ -718,10 +637,7 @@ async fn success(
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards {
-            last_seen_total_rewards: total_rewards,
-            unharvested_rewards: expected_unharvested_rewards,
-        }
+        &HolderRewards::new(accumulated_rewards_per_token, expected_unharvested_rewards),
     );
 
     // Assert the holder rewards pool's balance was debited.

@@ -19,51 +19,7 @@ use {
         transaction::{Transaction, TransactionError},
     },
     spl_associated_token_account::get_associated_token_address,
-    test_case::test_case,
 };
-
-#[tokio::test]
-async fn fail_mint_invalid_data() {
-    let owner = Pubkey::new_unique();
-    let mint = Pubkey::new_unique();
-
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
-
-    let mut context = setup().start_with_context().await;
-
-    // Set up a mint with invalid data.
-    {
-        context.set_account(
-            &mint,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
-        );
-    }
-
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-    );
-}
 
 #[tokio::test]
 async fn fail_token_account_invalid_data() {
@@ -378,20 +334,12 @@ async fn fail_holder_rewards_account_initialized() {
     );
 }
 
-#[allow(clippy::arithmetic_side_effects)]
-#[test_case(0, 0, 0)]
-#[test_case(10, 5, 10)]
-#[test_case(500_000, 1_000, 1_000)]
-#[test_case(500_000, 1_000, 50_000_000)]
-#[test_case(500_000, 1_000, 40_000_000_000)]
-#[test_case(100_000_000, 10_000_000, 1_000)]
-#[test_case(100_000_000, 10_000_000, 50_000_000)]
-#[test_case(100_000_000, 10_000_000, 40_000_000_000)]
-#[test_case(20_000_000_000, 50_000_000, 1_000)]
-#[test_case(20_000_000_000, 50_000_000, 50_000_000)]
-#[test_case(20_000_000_000, 50_000_000, 40_000_000_000)]
 #[tokio::test]
-async fn success(token_supply: u64, token_account_balance: u64, available_rewards: u64) {
+async fn success() {
+    // Since there's no math involved here, we just need to assert that the
+    // new holder account records the current pool values.
+    let accumulated_rewards_per_token = 500_000_000;
+
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
 
@@ -399,14 +347,12 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
     let holder_rewards = get_holder_rewards_address(&token_account);
     let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
 
-    let expected_last_seen_total_rewards = available_rewards + 500_000; // Arbitrary.
-
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(
         &mut context,
         &holder_rewards_pool,
-        available_rewards,
-        expected_last_seen_total_rewards,
+        0, // Excess lamports (not used here).
+        accumulated_rewards_per_token,
     )
     .await;
     setup_token_account(
@@ -414,10 +360,16 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
         &token_account,
         &owner,
         &mint,
-        token_account_balance,
+        100, // Token account balance (not used here).
     )
     .await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_supply).await;
+    setup_mint(
+        &mut context,
+        &mint,
+        &Pubkey::new_unique(),
+        100_000, // Token supply (not used here).
+    )
+    .await;
 
     // Fund the holder rewards account.
     {
@@ -445,15 +397,6 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
         .await
         .unwrap();
 
-    let expected_unharvested_rewards = {
-        if token_supply == 0 {
-            0
-        } else {
-            ((token_account_balance as u128) * (available_rewards as u128) / (token_supply as u128))
-                as u64
-        }
-    };
-
     // Check the holder rewards account.
     let holder_rewards_account = context
         .banks_client
@@ -465,15 +408,9 @@ async fn success(token_supply: u64, token_account_balance: u64, available_reward
 
     assert_eq!(
         holder_rewards_state,
-        &HolderRewards {
-            last_seen_total_rewards: expected_last_seen_total_rewards,
-            unharvested_rewards: expected_unharvested_rewards,
-        },
+        &HolderRewards::new(
+            accumulated_rewards_per_token,
+            /* unharvested_rewards */ 0
+        ),
     );
-
-    // If token supply was not zero, ensure the calculated unharvested rewards is
-    // non-zero.
-    if token_supply != 0 {
-        assert_ne!(holder_rewards_state.unharvested_rewards, 0);
-    }
 }

@@ -72,6 +72,14 @@
           ]
         },
         {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
@@ -191,11 +199,15 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "lastSeenTotalRewards",
-            "type": "u64"
+            "name": "lastAccumulatedRewardsPerToken",
+            "type": "u128"
           },
           {
             "name": "unharvestedRewards",
+            "type": "u64"
+          },
+          {
+            "name": "padding",
             "type": "u64"
           }
         ]
@@ -207,8 +219,8 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "totalRewards",
-            "type": "u64"
+            "name": "accumulatedRewardsPerToken",
+            "type": "u128"
           }
         ]
       }

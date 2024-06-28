@@ -64,7 +64,8 @@ pub enum PaladinRewardsInstruction {
     ///
     /// 0. `[w, s]` Payer account.
     /// 1. `[w]` Holder rewards pool account.
-    /// 2. `[ ]` System program.
+    /// 2. `[ ]` Token mint.
+    /// 3. `[ ]` System program.
     #[account(
         0,
         writable,
@@ -80,6 +81,11 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         2,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        3,
         name = "system_program",
         desc = "System program.",
     )]
@@ -222,11 +228,13 @@ pub fn initialize_holder_rewards_pool(
 pub fn distribute_rewards(
     payer_address: &Pubkey,
     holder_rewards_pool_address: &Pubkey,
+    mint: &Pubkey,
     amount: u64,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*payer_address, true),
         AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*mint, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
     let data = PaladinRewardsInstruction::DistributeRewards(amount).pack();

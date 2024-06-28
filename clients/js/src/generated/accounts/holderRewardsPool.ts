@@ -15,8 +15,8 @@ import {
   fetchEncodedAccounts,
   getStructDecoder,
   getStructEncoder,
-  getU64Decoder,
-  getU64Encoder,
+  getU128Decoder,
+  getU128Encoder,
   type Account,
   type Address,
   type Codec,
@@ -29,16 +29,18 @@ import {
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
 
-export type HolderRewardsPool = { totalRewards: bigint };
+export type HolderRewardsPool = { accumulatedRewardsPerToken: bigint };
 
-export type HolderRewardsPoolArgs = { totalRewards: number | bigint };
+export type HolderRewardsPoolArgs = {
+  accumulatedRewardsPerToken: number | bigint;
+};
 
 export function getHolderRewardsPoolEncoder(): Encoder<HolderRewardsPoolArgs> {
-  return getStructEncoder([['totalRewards', getU64Encoder()]]);
+  return getStructEncoder([['accumulatedRewardsPerToken', getU128Encoder()]]);
 }
 
 export function getHolderRewardsPoolDecoder(): Decoder<HolderRewardsPool> {
-  return getStructDecoder([['totalRewards', getU64Decoder()]]);
+  return getStructDecoder([['accumulatedRewardsPerToken', getU128Decoder()]]);
 }
 
 export function getHolderRewardsPoolCodec(): Codec<
@@ -115,5 +117,5 @@ export async function fetchAllMaybeHolderRewardsPool(
 }
 
 export function getHolderRewardsPoolSize(): number {
-  return 8;
+  return 16;
 }
