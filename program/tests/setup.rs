@@ -2,7 +2,10 @@
 #![allow(dead_code)]
 
 use {
-    paladin_rewards_program::state::{HolderRewards, HolderRewardsPool},
+    paladin_rewards_program::{
+        extra_metas::get_extra_account_metas,
+        state::{HolderRewards, HolderRewardsPool},
+    },
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -11,12 +14,16 @@ use {
         system_program,
     },
     spl_pod::primitives::PodBool,
+    spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
             BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
         },
         state::{Account as TokenAccount, AccountState, Mint},
+    },
+    spl_transfer_hook_interface::{
+        get_extra_account_metas_address, instruction::ExecuteInstruction,
     },
 };
 
@@ -190,6 +197,29 @@ pub async fn setup_holder_rewards_account(
 
     context.set_account(
         holder_rewards,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_rewards_program::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+pub async fn setup_extra_metas_account(context: &mut ProgramTestContext, mint: &Pubkey) {
+    let address = get_extra_account_metas_address(mint, &paladin_rewards_program::id());
+
+    let extra_metas = get_extra_account_metas();
+    let data_len = ExtraAccountMetaList::size_of(extra_metas.len()).unwrap();
+
+    let mut data = vec![0; data_len];
+    ExtraAccountMetaList::init::<ExecuteInstruction>(&mut data, &extra_metas).unwrap();
+
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data_len);
+
+    context.set_account(
+        &address,
         &AccountSharedData::from(Account {
             lamports,
             data,
