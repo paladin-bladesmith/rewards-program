@@ -10,6 +10,7 @@ use {
         pubkey::Pubkey,
         system_program,
     },
+    spl_pod::primitives::PodBool,
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
@@ -67,12 +68,13 @@ pub async fn setup_mint(
     );
 }
 
-pub async fn setup_token_account(
+async fn setup_token_account_common(
     context: &mut ProgramTestContext,
     token_account: &Pubkey,
     owner: &Pubkey,
     mint: &Pubkey,
     amount: u64,
+    is_transferring: bool,
 ) {
     let account_size = ExtensionType::try_calculate_account_len::<TokenAccount>(&[
         ExtensionType::TransferHookAccount,
@@ -86,7 +88,10 @@ pub async fn setup_token_account(
     {
         let mut state =
             StateWithExtensionsMut::<TokenAccount>::unpack_uninitialized(&mut data).unwrap();
-        state.init_extension::<TransferHookAccount>(true).unwrap();
+        state
+            .init_extension::<TransferHookAccount>(true)
+            .unwrap()
+            .transferring = PodBool::from(is_transferring);
         state.base = TokenAccount {
             amount,
             mint: *mint,
@@ -107,6 +112,26 @@ pub async fn setup_token_account(
             ..Account::default()
         }),
     );
+}
+
+pub async fn setup_token_account(
+    context: &mut ProgramTestContext,
+    token_account: &Pubkey,
+    owner: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+) {
+    setup_token_account_common(context, token_account, owner, mint, amount, false).await;
+}
+
+pub async fn setup_token_account_transferring(
+    context: &mut ProgramTestContext,
+    token_account: &Pubkey,
+    owner: &Pubkey,
+    mint: &Pubkey,
+    amount: u64,
+) {
+    setup_token_account_common(context, token_account, owner, mint, amount, true).await;
 }
 
 #[allow(clippy::arithmetic_side_effects)]
