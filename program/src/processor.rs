@@ -606,7 +606,11 @@ pub fn process_spl_transfer_hook_execute(
         destination_token_account_info,
         destination_holder_rewards_info,
         current_accumulated_rewards_per_token,
-        |amount| Ok(amount.saturating_sub(transfer_amount)),
+        |amount| {
+            amount
+                .checked_sub(transfer_amount)
+                .ok_or(ProgramError::ArithmeticOverflow)
+        },
     )?;
 
     Ok(())
