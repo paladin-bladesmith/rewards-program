@@ -413,22 +413,41 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     // rate from the pool's current rate, then multiplying by the token account
     // balance.
     //
-    // If the pool doesn't have enough lamports to cover the rewards, only
-    // harvest the available lamports. This should never happen, but the check
-    // is a failsafe.
-    let pool_excess_lamports = {
-        let rent = <Rent as Sysvar>::get()?;
-        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
-        holder_rewards_pool_info
-            .lamports()
-            .saturating_sub(rent_exempt_lamports)
+    // The holder should also be able to harvest any unharvested rewards.
+    let rewards_to_harvest = {
+        // Calculate the eligible rewards from the marginal rate.
+        let eligible_rewards = calculate_eligible_rewards(
+            pool_state.accumulated_rewards_per_token,
+            holder_rewards_state.last_accumulated_rewards_per_token,
+            token_account_balance,
+        )?;
+
+        // Update the holder rewards state.
+        //
+        // Temporarily update `unharvested_rewards` with the eligible rewards.
+        holder_rewards_state.last_accumulated_rewards_per_token =
+            pool_state.accumulated_rewards_per_token;
+        holder_rewards_state.unharvested_rewards = holder_rewards_state
+            .unharvested_rewards
+            .checked_add(eligible_rewards)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
+
+        // If the pool doesn't have enough lamports to cover the rewards, only
+        // harvest the available lamports. This should never happen, but the check
+        // is a failsafe.
+        let pool_excess_lamports = {
+            let rent = <Rent as Sysvar>::get()?;
+            let rent_exempt_lamports =
+                rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+            holder_rewards_pool_info
+                .lamports()
+                .saturating_sub(rent_exempt_lamports)
+        };
+
+        holder_rewards_state
+            .unharvested_rewards
+            .min(pool_excess_lamports)
     };
-    let eligible_rewards = calculate_eligible_rewards(
-        pool_state.accumulated_rewards_per_token,
-        holder_rewards_state.last_accumulated_rewards_per_token,
-        token_account_balance,
-    )?;
-    let rewards_to_harvest = eligible_rewards.min(pool_excess_lamports);
 
     if rewards_to_harvest != 0 {
         // Move the amount from the holder rewards pool to the token account.
@@ -443,11 +462,11 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
         **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
 
-        // Update the holder rewards state.
-        holder_rewards_state.last_accumulated_rewards_per_token =
-            pool_state.accumulated_rewards_per_token;
-        holder_rewards_state.unharvested_rewards =
-            eligible_rewards.saturating_sub(rewards_to_harvest);
+        // Update the holder's unharvested rewards.
+        holder_rewards_state.unharvested_rewards = holder_rewards_state
+            .unharvested_rewards
+            .checked_sub(rewards_to_harvest)
+            .ok_or(ProgramError::ArithmeticOverflow)?;
     }
 
     Ok(())

@@ -410,6 +410,20 @@ struct Holder {
 )]
 #[test_case(
     Pool {
+        excess_lamports: 1_000_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 100,
+        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        unharvested_rewards: 500_000,
+    },
+    500_000, // Unharvested.
+    0;
+    "Last harvested 1.0 rate, rate unchanged, some unharvested, receive unharvested"
+)]
+#[test_case(
+    Pool {
         excess_lamports: 50_000,
         accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
@@ -428,13 +442,13 @@ struct Holder {
         accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
     },
     Holder {
-        token_account_balance: 100_000,
+        token_account_balance: 10_000,
         last_accumulated_rewards_per_token: 0,
         unharvested_rewards: 0,
     },
-    100_000,
+    10_000,
     0;
-    "No last harvested rate, eligible for 1 rate, pool has enough, receive 100% of rewards"
+    "No last harvested rate, eligible for 1 rate, pool has enough, receive share"
 )]
 #[test_case(
     Pool {
@@ -444,11 +458,11 @@ struct Holder {
     Holder {
         token_account_balance: 10_000,
         last_accumulated_rewards_per_token: 0,
-        unharvested_rewards: 0,
+        unharvested_rewards: 10_000,
     },
-    10_000,
+    20_000, // 10_000 share + 10_000 unharvested
     0;
-    "No last harvested rate, eligible for 1 rate, pool has enough, receive share"
+    "No last harvested rate, some unharvested, eligible for 1 rate, pool has enough, receive share + unharvested"
 )]
 #[test_case(
     Pool {
@@ -471,12 +485,68 @@ struct Holder {
     },
     Holder {
         token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        unharvested_rewards: 1_000,
+    },
+    6_000, // (1 - 0.5) * 10_000 = 5_000 share + 1_000 unharvested
+    0;
+    "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool has enough, receive share + unharvested"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        unharvested_rewards: 8_000,
+    },
+    10_000, // Pool excess.
+    3_000; // 10_000 pool excess - [(1 - 0.5) * 10_000 = 5_000 share + 8_000 unharvested]
+    "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool underfunded, receive pool excess"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
         last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
     },
     7_500, // (1 - 0.25) * 10_000
     0;
     "Last harvested 0.25 rate, eligible for 0.75 rate, pool has enough, receive share"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        unharvested_rewards: 1_000,
+    },
+    8_500, // (1 - 0.25) * 10_000 = 7_500 share + 1_000 unharvested
+    0;
+    "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool has enough, receive share + unharvested"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        unharvested_rewards: 4_000,
+    },
+    10_000, // Pool excess.
+    1_500; // 10_000 pool excess - [(1 - 0.25) * 10_000 = 7_500 share + 4_000 unharvested]
+    "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool underfunded, receive pool excess"
 )]
 #[tokio::test]
 async fn success(
