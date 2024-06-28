@@ -26,11 +26,16 @@ use {
     },
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
-        extension::{transfer_hook::TransferHook, BaseStateWithExtensions, StateWithExtensions},
+        extension::{
+            transfer_hook::{TransferHook, TransferHookAccount},
+            BaseStateWithExtensions, StateWithExtensions,
+        },
         state::{Account, Mint},
     },
     spl_transfer_hook_interface::{
-        collect_extra_account_metas_signer_seeds, get_extra_account_metas_address_and_bump_seed,
+        collect_extra_account_metas_signer_seeds,
+        error::TransferHookError,
+        get_extra_account_metas_address_and_bump_seed,
         instruction::{ExecuteInstruction, TransferHookInstruction},
     },
 };
@@ -46,6 +51,7 @@ fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
 fn get_token_account_balance_checked(
     mint: &Pubkey,
     token_account_info: &AccountInfo,
+    check_is_transferring: bool,
 ) -> Result<u64, ProgramError> {
     let token_account_data = token_account_info.try_borrow_data()?;
     let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
@@ -53,6 +59,14 @@ fn get_token_account_balance_checked(
     // Ensure the provided token account is for the mint.
     if !token_account.base.mint.eq(mint) {
         return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+    }
+
+    if check_is_transferring {
+        // Ensure the provided token account is transferring.
+        let extension = token_account.get_extension::<TransferHookAccount>()?;
+        if !bool::from(extension.transferring) {
+            return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
+        }
     }
 
     Ok(token_account.base.amount)
@@ -76,6 +90,29 @@ fn check_pool(
         .eq(&get_holder_rewards_pool_address(mint))
     {
         return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+    }
+
+    Ok(())
+}
+
+fn check_holder_rewards(
+    program_id: &Pubkey,
+    token_account_key: &Pubkey,
+    holder_rewards_info: &AccountInfo,
+) -> ProgramResult {
+    // Ensure the holder rewards account is owned by the Paladin Rewards
+    // program.
+    if !holder_rewards_info.owner.eq(program_id) {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    // Ensure the provided holder rewards address is the correct address
+    // derived from the token account.
+    if !holder_rewards_info
+        .key
+        .eq(&get_holder_rewards_address(token_account_key))
+    {
+        return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
     }
 
     Ok(())
@@ -113,6 +150,62 @@ fn calculate_eligible_rewards(
         .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
         .and_then(|product| product.try_into().ok())
         .ok_or(ProgramError::ArithmeticOverflow)
+}
+
+fn update_holder_rewards_for_transfer_hook(
+    program_id: &Pubkey,
+    mint: &Pubkey,
+    token_account_info: &AccountInfo,
+    holder_rewards_info: &AccountInfo,
+    current_accumulated_rewards_per_token: u128,
+    adjust_token_balance_fn: impl FnOnce(u64) -> Result<u64, ProgramError>,
+) -> ProgramResult {
+    // Calculate the token account's updated share of the pool rewards.
+    //
+    // Since the holder rewards account may already have unharvested
+    // rewards, calculate the share of rewards that have not been seen
+    // by the holder rewards account.
+    //
+    // Then, adjust the unharvested rewards with the additional share.
+    //
+    // Token account balances are updated before transfer hooks are called,
+    // so this token account balance is the balance _after_ the transfer.
+    // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+    let holder_rewards_state =
+        bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    let token_account_balance = {
+        // At this point, the token account balance is the balance _after_ the
+        // transfer.
+        //
+        // For the source - since it was just debited - the transfer amount
+        // will be added back to calculate the rewards share before the
+        // transfer.
+        //
+        // For the destination - since it was just credited - the transfer
+        // amount will be subtracted to calculate the rewards share before
+        // the transfer.
+        let current_balance = get_token_account_balance_checked(mint, token_account_info, true)?;
+        adjust_token_balance_fn(current_balance)?
+    };
+
+    let eligible_rewards = calculate_eligible_rewards(
+        current_accumulated_rewards_per_token,
+        holder_rewards_state.last_accumulated_rewards_per_token,
+        token_account_balance,
+    )?;
+
+    // Update the holder rewards state.
+    holder_rewards_state.last_accumulated_rewards_per_token = current_accumulated_rewards_per_token;
+    holder_rewards_state.unharvested_rewards = holder_rewards_state
+        .unharvested_rewards
+        .checked_add(eligible_rewards)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    Ok(())
 }
 
 /// Processes an
@@ -380,28 +473,14 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // Run checks on the token account.
     let token_account_balance =
-        get_token_account_balance_checked(mint_info.key, token_account_info)?;
+        get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let pool_data = holder_rewards_pool_info.try_borrow_data()?;
     let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
-    // Ensure the holder rewards account is owned by the Paladin Rewards
-    // program.
-    if !holder_rewards_info.owner.eq(program_id) {
-        return Err(ProgramError::InvalidAccountOwner);
-    }
-
-    // Ensure the provided holder rewards address is the correct address
-    // derived from the token account.
-    if !holder_rewards_info
-        .key
-        .eq(&get_holder_rewards_address(token_account_info.key))
-    {
-        return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
-    }
-
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
@@ -475,10 +554,65 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 /// Processes an SPL Transfer Hook Interface
 /// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
 pub fn process_spl_transfer_hook_execute(
-    _program_id: &Pubkey,
-    _accounts: &[AccountInfo],
-    _amount: u64,
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    transfer_amount: u64,
 ) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let source_token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let destination_token_account_info = next_account_info(accounts_iter)?;
+    let _source_owner_info = next_account_info(accounts_iter)?;
+    let _extra_metas_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let source_holder_rewards_info = next_account_info(accounts_iter)?;
+    let destination_holder_rewards_info = next_account_info(accounts_iter)?;
+
+    let current_accumulated_rewards_per_token = {
+        check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+        let pool_data = holder_rewards_pool_info.try_borrow_data()?;
+        let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+        pool_state.accumulated_rewards_per_token
+    };
+
+    // Update the source holder rewards account.
+    //
+    // For the source - since it was just debited - the transfer amount
+    // will be added back to calculate the rewards share before the
+    // transfer.
+    update_holder_rewards_for_transfer_hook(
+        program_id,
+        mint_info.key,
+        source_token_account_info,
+        source_holder_rewards_info,
+        current_accumulated_rewards_per_token,
+        |amount| {
+            amount
+                .checked_add(transfer_amount)
+                .ok_or(ProgramError::ArithmeticOverflow)
+        },
+    )?;
+
+    // Update the destination holder rewards account.
+    //
+    // For the destination - since it was just credited - the transfer
+    // amount will be subtracted to calculate the rewards share before
+    // the transfer.
+    update_holder_rewards_for_transfer_hook(
+        program_id,
+        mint_info.key,
+        destination_token_account_info,
+        destination_holder_rewards_info,
+        current_accumulated_rewards_per_token,
+        |amount| {
+            amount
+                .checked_sub(transfer_amount)
+                .ok_or(ProgramError::ArithmeticOverflow)
+        },
+    )?;
+
     Ok(())
 }
 
