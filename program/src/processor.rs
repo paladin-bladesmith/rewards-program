@@ -26,11 +26,16 @@ use {
     },
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
-        extension::{transfer_hook::TransferHook, BaseStateWithExtensions, StateWithExtensions},
+        extension::{
+            transfer_hook::{TransferHook, TransferHookAccount},
+            BaseStateWithExtensions, StateWithExtensions,
+        },
         state::{Account, Mint},
     },
     spl_transfer_hook_interface::{
-        collect_extra_account_metas_signer_seeds, get_extra_account_metas_address_and_bump_seed,
+        collect_extra_account_metas_signer_seeds,
+        error::TransferHookError,
+        get_extra_account_metas_address_and_bump_seed,
         instruction::{ExecuteInstruction, TransferHookInstruction},
     },
 };
@@ -46,6 +51,7 @@ fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
 fn get_token_account_balance_checked(
     mint: &Pubkey,
     token_account_info: &AccountInfo,
+    check_is_transferring: bool,
 ) -> Result<u64, ProgramError> {
     let token_account_data = token_account_info.try_borrow_data()?;
     let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
@@ -53,6 +59,14 @@ fn get_token_account_balance_checked(
     // Ensure the provided token account is for the mint.
     if !token_account.base.mint.eq(mint) {
         return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
+    }
+
+    if check_is_transferring {
+        // Ensure the provided token account is transferring.
+        let extension = token_account.get_extension::<TransferHookAccount>()?;
+        if !bool::from(extension.transferring) {
+            return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
+        }
     }
 
     Ok(token_account.base.amount)
@@ -76,6 +90,29 @@ fn check_pool(
         .eq(&get_holder_rewards_pool_address(mint))
     {
         return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
+    }
+
+    Ok(())
+}
+
+fn check_holder_rewards(
+    program_id: &Pubkey,
+    token_account_key: &Pubkey,
+    holder_rewards_info: &AccountInfo,
+) -> ProgramResult {
+    // Ensure the holder rewards account is owned by the Paladin Rewards
+    // program.
+    if !holder_rewards_info.owner.eq(program_id) {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    // Ensure the provided holder rewards address is the correct address
+    // derived from the token account.
+    if !holder_rewards_info
+        .key
+        .eq(&get_holder_rewards_address(token_account_key))
+    {
+        return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
     }
 
     Ok(())
@@ -380,28 +417,14 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // Run checks on the token account.
     let token_account_balance =
-        get_token_account_balance_checked(mint_info.key, token_account_info)?;
+        get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let pool_data = holder_rewards_pool_info.try_borrow_data()?;
     let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
-    // Ensure the holder rewards account is owned by the Paladin Rewards
-    // program.
-    if !holder_rewards_info.owner.eq(program_id) {
-        return Err(ProgramError::InvalidAccountOwner);
-    }
-
-    // Ensure the provided holder rewards address is the correct address
-    // derived from the token account.
-    if !holder_rewards_info
-        .key
-        .eq(&get_holder_rewards_address(token_account_info.key))
-    {
-        return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
-    }
-
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
