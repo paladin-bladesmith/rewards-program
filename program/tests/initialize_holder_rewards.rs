@@ -27,8 +27,9 @@ async fn fail_token_account_invalid_data() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
@@ -71,8 +72,9 @@ async fn fail_token_account_mint_mismatch() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_token_account(
@@ -117,8 +119,9 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
@@ -161,7 +164,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
     let mut context = setup().start_with_context().await;
@@ -201,8 +204,9 @@ async fn fail_holder_rewards_pool_invalid_data() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
@@ -251,7 +255,8 @@ async fn fail_holder_rewards_incorrect_address() {
 
     let token_account = get_associated_token_address(&owner, &mint);
     let holder_rewards = Pubkey::new_unique(); // Incorrect holder reward address.
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -290,8 +295,9 @@ async fn fail_holder_rewards_account_initialized() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -344,8 +350,9 @@ async fn success() {
     let mint = Pubkey::new_unique();
 
     let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account);
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(

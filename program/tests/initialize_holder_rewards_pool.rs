@@ -41,7 +41,8 @@ async fn fail_mint_invalid_data() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -87,7 +88,8 @@ async fn fail_mint_missing_transfer_hook_extension() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -153,7 +155,8 @@ async fn fail_mint_incorrect_transfer_hook_program_id() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -226,7 +229,8 @@ async fn fail_incorrect_mint_authority() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -277,7 +281,8 @@ async fn fail_mint_authority_not_signer() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -357,7 +362,8 @@ async fn fail_holder_rewards_pool_account_initialized() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -408,7 +414,8 @@ async fn fail_extra_metas_incorrect_address() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = Pubkey::new_unique(); // Incorrect extra metas address.
 
     let mut context = setup().start_with_context().await;
@@ -449,7 +456,8 @@ async fn fail_extra_metas_account_initialized() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
@@ -500,7 +508,8 @@ async fn success() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;

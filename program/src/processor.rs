@@ -87,7 +87,7 @@ fn check_pool(
     // address derived from the mint.
     if !holder_rewards_pool_info
         .key
-        .eq(&get_holder_rewards_pool_address(mint))
+        .eq(&get_holder_rewards_pool_address(mint, program_id))
     {
         return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
     }
@@ -110,7 +110,7 @@ fn check_holder_rewards(
     // derived from the token account.
     if !holder_rewards_info
         .key
-        .eq(&get_holder_rewards_address(token_account_key))
+        .eq(&get_holder_rewards_address(token_account_key, program_id))
     {
         return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
     }
@@ -254,7 +254,7 @@ fn process_initialize_holder_rewards_pool(
     // Initialize the holder rewards pool account.
     {
         let (holder_rewards_pool_address, bump_seed) =
-            get_holder_rewards_pool_address_and_bump_seed(mint_info.key);
+            get_holder_rewards_pool_address_and_bump_seed(mint_info.key, program_id);
         let bump_seed = [bump_seed];
         let holder_rewards_pool_signer_seeds =
             collect_holder_rewards_pool_signer_seeds(mint_info.key, &bump_seed);
@@ -421,7 +421,7 @@ fn process_initialize_holder_rewards(
     // Initialize the holder rewards account.
     {
         let (holder_rewards_address, bump_seed) =
-            get_holder_rewards_address_and_bump_seed(token_account_info.key);
+            get_holder_rewards_address_and_bump_seed(token_account_info.key, program_id);
         let bump_seed = [bump_seed];
         let holder_rewards_signer_seeds =
             collect_holder_rewards_signer_seeds(token_account_info.key, &bump_seed);
