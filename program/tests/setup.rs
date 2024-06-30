@@ -1,4 +1,4 @@
-#![cfg(feature = "test-sbf")]
+// #![cfg(feature = "test-sbf")]
 #![allow(dead_code)]
 
 use {
@@ -9,18 +9,18 @@ use {
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
-        program_option::COption,
         pubkey::Pubkey,
         system_program,
     },
-    spl_pod::primitives::PodBool,
+    spl_pod::primitives::{PodBool, PodU64},
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut,
+            BaseStateWithExtensionsMut, ExtensionType, PodStateWithExtensionsMut,
         },
-        state::{Account as TokenAccount, AccountState, Mint},
+        pod::{PodAccount, PodCOption, PodMint},
+        state::AccountState,
     },
     spl_transfer_hook_interface::{
         get_extra_account_metas_address, instruction::ExecuteInstruction,
@@ -42,25 +42,26 @@ pub async fn setup_mint(
     supply: u64,
 ) {
     let account_size =
-        ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook]).unwrap();
+        ExtensionType::try_calculate_account_len::<PodMint>(&[ExtensionType::TransferHook])
+            .unwrap();
 
     let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(account_size);
 
     let mut data = vec![0; account_size];
     {
-        let mut state = StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut data).unwrap();
+        let mut state =
+            PodStateWithExtensionsMut::<PodMint>::unpack_uninitialized(&mut data).unwrap();
         state
             .init_extension::<TransferHook>(true)
             .unwrap()
             .program_id = Some(paladin_rewards_program::id()).try_into().unwrap();
-        state.base = Mint {
-            mint_authority: COption::Some(*mint_authority),
-            is_initialized: true,
-            supply,
-            ..Mint::default()
+        *state.base = PodMint {
+            mint_authority: PodCOption::some(*mint_authority),
+            is_initialized: PodBool::from(true),
+            supply: PodU64::from(supply),
+            ..PodMint::default()
         };
-        state.pack_base();
         state.init_account_type().unwrap();
     }
 
@@ -83,7 +84,7 @@ async fn setup_token_account_common(
     amount: u64,
     is_transferring: bool,
 ) {
-    let account_size = ExtensionType::try_calculate_account_len::<TokenAccount>(&[
+    let account_size = ExtensionType::try_calculate_account_len::<PodAccount>(&[
         ExtensionType::TransferHookAccount,
     ])
     .unwrap();
@@ -94,19 +95,18 @@ async fn setup_token_account_common(
     let mut data = vec![0; account_size];
     {
         let mut state =
-            StateWithExtensionsMut::<TokenAccount>::unpack_uninitialized(&mut data).unwrap();
+            PodStateWithExtensionsMut::<PodAccount>::unpack_uninitialized(&mut data).unwrap();
         state
             .init_extension::<TransferHookAccount>(true)
             .unwrap()
             .transferring = PodBool::from(is_transferring);
-        state.base = TokenAccount {
-            amount,
+        *state.base = PodAccount {
+            amount: PodU64::from(amount),
             mint: *mint,
             owner: *owner,
-            state: AccountState::Initialized,
-            ..TokenAccount::default()
+            state: AccountState::Initialized.into(),
+            ..PodAccount::default()
         };
-        state.pack_base();
         state.init_account_type().unwrap();
     }
 

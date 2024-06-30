@@ -18,7 +18,6 @@ use {
         msg,
         program::{invoke, invoke_signed},
         program_error::ProgramError,
-        program_option::COption,
         pubkey::Pubkey,
         rent::Rent,
         system_instruction,
@@ -28,9 +27,9 @@ use {
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensions, StateWithExtensions,
+            BaseStateWithExtensions, PodStateWithExtensions,
         },
-        state::{Account, Mint},
+        pod::{PodAccount, PodCOption, PodMint},
     },
     spl_transfer_hook_interface::{
         collect_extra_account_metas_signer_seeds,
@@ -44,8 +43,8 @@ const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000; // 1e9
 
 fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
     let mint_data = mint_info.try_borrow_data()?;
-    let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
-    Ok(mint.base.supply)
+    let mint = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
+    Ok(mint.base.supply.into())
 }
 
 fn get_token_account_balance_checked(
@@ -54,7 +53,7 @@ fn get_token_account_balance_checked(
     check_is_transferring: bool,
 ) -> Result<u64, ProgramError> {
     let token_account_data = token_account_info.try_borrow_data()?;
-    let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+    let token_account = PodStateWithExtensions::<PodAccount>::unpack(&token_account_data)?;
 
     // Ensure the provided token account is for the mint.
     if !token_account.base.mint.eq(mint) {
@@ -69,7 +68,7 @@ fn get_token_account_balance_checked(
         }
     }
 
-    Ok(token_account.base.amount)
+    Ok(token_account.base.amount.into())
 }
 
 fn check_pool(
@@ -226,7 +225,7 @@ fn process_initialize_holder_rewards_pool(
     // Run checks on the mint.
     {
         let mint_data = mint_info.try_borrow_data()?;
-        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+        let mint = PodStateWithExtensions::<PodMint>::unpack(&mint_data)?;
 
         // Ensure the mint is configured with the `TransferHook` extension,
         // and the program ID is the Paladin Rewards program.
@@ -240,7 +239,7 @@ fn process_initialize_holder_rewards_pool(
         if !mint
             .base
             .mint_authority
-            .eq(&COption::Some(*mint_authority_info.key))
+            .eq(&PodCOption::some(*mint_authority_info.key))
         {
             return Err(PaladinRewardsError::IncorrectMintAuthority.into());
         }
@@ -405,7 +404,7 @@ fn process_initialize_holder_rewards(
     // Run checks on the token account.
     {
         let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+        let token_account = PodStateWithExtensions::<PodAccount>::unpack(&token_account_data)?;
 
         // Ensure the provided token account is for the mint.
         if !token_account.base.mint.eq(mint_info.key) {
