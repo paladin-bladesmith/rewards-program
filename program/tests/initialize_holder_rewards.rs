@@ -39,7 +39,7 @@ async fn fail_token_account_invalid_data() {
             &token_account,
             &AccountSharedData::from(Account {
                 lamports: 100_000_000,
-                data: vec![5; 165],
+                data: vec![5; 168], // Use wrong size intentionally. See https://github.com/solana-labs/solana-program-library/pull/6953.
                 owner: spl_token_2022::id(),
                 ..Account::default()
             }),
