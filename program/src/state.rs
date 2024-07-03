@@ -158,15 +158,18 @@ pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 pub const SEED_PREFIX_HOLDER_REWARDS_POOL: &[u8] = b"holder_pool";
 
 /// Derive the address of a holder rewards account.
-pub fn get_holder_rewards_address(token_account_address: &Pubkey) -> Pubkey {
-    get_holder_rewards_address_and_bump_seed(token_account_address).0
+pub fn get_holder_rewards_address(token_account_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
+    get_holder_rewards_address_and_bump_seed(token_account_address, program_id).0
 }
 
 /// Derive the address of a holder rewards account, with bump seed.
-pub fn get_holder_rewards_address_and_bump_seed(token_account_address: &Pubkey) -> (Pubkey, u8) {
+pub fn get_holder_rewards_address_and_bump_seed(
+    token_account_address: &Pubkey,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &collect_holder_rewards_seeds(token_account_address),
-        &crate::id(),
+        program_id,
     )
 }
 
@@ -186,16 +189,16 @@ pub(crate) fn collect_holder_rewards_signer_seeds<'a>(
 }
 
 /// Derive the address of a holder rewards pool account.
-pub fn get_holder_rewards_pool_address(mint_address: &Pubkey) -> Pubkey {
-    get_holder_rewards_pool_address_and_bump_seed(mint_address).0
+pub fn get_holder_rewards_pool_address(mint_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
+    get_holder_rewards_pool_address_and_bump_seed(mint_address, program_id).0
 }
 
 /// Derive the address of a holder rewards pool account, with bump seed.
-pub fn get_holder_rewards_pool_address_and_bump_seed(mint_address: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &collect_holder_rewards_pool_seeds(mint_address),
-        &crate::id(),
-    )
+pub fn get_holder_rewards_pool_address_and_bump_seed(
+    mint_address: &Pubkey,
+    program_id: &Pubkey,
+) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&collect_holder_rewards_pool_seeds(mint_address), program_id)
 }
 
 pub(crate) fn collect_holder_rewards_pool_seeds(mint_address: &Pubkey) -> [&[u8]; 2] {

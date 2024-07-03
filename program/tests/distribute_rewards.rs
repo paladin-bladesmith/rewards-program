@@ -25,7 +25,8 @@ use {
 async fn fail_mint_invalid_data() {
     let mint = Pubkey::new_unique();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
@@ -67,7 +68,8 @@ async fn fail_payer_not_signer() {
     let mint = Pubkey::new_unique();
     let token_supply = 100_000;
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
@@ -102,7 +104,8 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
     let mint = Pubkey::new_unique();
     let token_supply = 100_000;
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
@@ -188,7 +191,8 @@ async fn fail_holder_rewards_pool_invalid_data() {
     let mint = Pubkey::new_unique();
     let token_supply = 100_000;
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let payer = Keypair::new();
     let amount = 500_000_000_000;
 
@@ -341,7 +345,8 @@ async fn success(initial: InitialPool, expected: ExpectedPool, reward_amount: u6
 
     let mint = Pubkey::new_unique();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let payer = Keypair::new();
 
     let mut context = setup().start_with_context().await;

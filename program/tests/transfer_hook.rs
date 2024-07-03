@@ -118,15 +118,18 @@ async fn transfer_with_extra_metas_instruction(
 #[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_owner() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
 
@@ -176,11 +179,13 @@ async fn fail_holder_rewards_pool_incorrect_address() {
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -222,15 +227,18 @@ async fn fail_holder_rewards_pool_incorrect_address() {
 #[tokio::test]
 async fn fail_holder_rewards_pool_invalid_data() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
 
@@ -277,7 +285,8 @@ async fn fail_holder_rewards_pool_invalid_data() {
 #[tokio::test]
 async fn fail_source_holder_rewards_incorrect_address() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
@@ -285,7 +294,8 @@ async fn fail_source_holder_rewards_incorrect_address() {
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -328,15 +338,18 @@ async fn fail_source_holder_rewards_incorrect_address() {
 #[tokio::test]
 async fn fail_source_holder_rewards_invalid_data() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -385,15 +398,18 @@ async fn fail_source_holder_rewards_invalid_data() {
 #[tokio::test]
 async fn fail_source_token_account_invalid_data() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -442,15 +458,18 @@ async fn fail_source_token_account_invalid_data() {
 #[tokio::test]
 async fn fail_source_token_account_mint_mismatch() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -501,15 +520,18 @@ async fn fail_source_token_account_mint_mismatch() {
 #[tokio::test]
 async fn fail_source_token_account_not_transferring() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -561,11 +583,13 @@ async fn fail_source_token_account_not_transferring() {
 #[tokio::test]
 async fn fail_destination_holder_rewards_incorrect_address() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
@@ -621,15 +645,18 @@ async fn fail_destination_holder_rewards_incorrect_address() {
 #[tokio::test]
 async fn fail_destination_holder_rewards_invalid_data() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -686,15 +713,18 @@ async fn fail_destination_holder_rewards_invalid_data() {
 #[tokio::test]
 async fn fail_destination_token_account_invalid_data() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -752,15 +782,18 @@ async fn fail_destination_token_account_invalid_data() {
 #[tokio::test]
 async fn fail_destination_token_account_mint_mismatch() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -820,15 +853,18 @@ async fn fail_destination_token_account_mint_mismatch() {
 #[tokio::test]
 async fn fail_destination_token_account_not_transferring() {
     let mint = Pubkey::new_unique();
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let source_owner = Keypair::new();
     let source_token_account = get_associated_token_address(&source_owner.pubkey(), &mint);
-    let source_holder_rewards = get_holder_rewards_address(&source_token_account);
+    let source_holder_rewards =
+        get_holder_rewards_address(&source_token_account, &paladin_rewards_program::id());
 
     let destination_owner = Pubkey::new_unique();
     let destination_token_account = get_associated_token_address(&destination_owner, &mint);
-    let destination_holder_rewards = get_holder_rewards_address(&destination_token_account);
+    let destination_holder_rewards =
+        get_holder_rewards_address(&destination_token_account, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
@@ -898,7 +934,8 @@ struct PoolAddresses {
 impl PoolAddresses {
     fn new() -> Self {
         let mint = Pubkey::new_unique();
-        let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+        let holder_rewards_pool =
+            get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
         Self {
             mint,
             holder_rewards_pool,
@@ -922,7 +959,8 @@ struct HolderAddresses {
 impl HolderAddresses {
     fn new(owner: &Pubkey, mint: &Pubkey) -> Self {
         let token_account = get_associated_token_address(owner, mint);
-        let holder_rewards = get_holder_rewards_address(&token_account);
+        let holder_rewards =
+            get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
         Self {
             owner: *owner,
             token_account,
