@@ -169,7 +169,7 @@ async fn validate_state(
         let mint_state = StateWithExtensions::<Mint>::unpack(&mint_data).unwrap();
         assert_eq!(mint_state.base.supply, pool.token_supply);
 
-        let pool_address = get_holder_rewards_pool_address(mint);
+        let pool_address = get_holder_rewards_pool_address(mint, &paladin_rewards_program::id());
         let pool_account = get_account(context, &pool_address).await;
 
         let pool_excess_lamports = pool_account.lamports - pool_rent_exempt_lamports(context).await;
@@ -193,7 +193,8 @@ async fn validate_state(
             checks.token_account_balance
         );
 
-        let holder_rewards_address = get_holder_rewards_address(token_account_address);
+        let holder_rewards_address =
+            get_holder_rewards_address(token_account_address, &paladin_rewards_program::id());
         let holder_rewards_account = get_account(context, &holder_rewards_address).await;
         let holder_rewards_state =
             bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
@@ -212,7 +213,8 @@ async fn test_e2e() {
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
-    let holder_rewards_pool = get_holder_rewards_pool_address(&mint);
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let alice = Keypair::new();
     let alice_token_account = get_associated_token_address(&alice.pubkey(), &mint);
@@ -315,9 +317,12 @@ async fn test_e2e() {
 
         // Create the holders.
         {
-            let alice_holder_rewards = get_holder_rewards_address(&alice_token_account);
-            let bob_holder_rewards = get_holder_rewards_address(&bob_token_account);
-            let carol_holder_rewards = get_holder_rewards_address(&carol_token_account);
+            let alice_holder_rewards =
+                get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+            let bob_holder_rewards =
+                get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
+            let carol_holder_rewards =
+                get_holder_rewards_address(&carol_token_account, &paladin_rewards_program::id());
 
             let rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
 
@@ -453,7 +458,8 @@ async fn test_e2e() {
         // Set up Dave's token account.
         setup_token_account(&mut context, &dave_token_account, &dave.pubkey(), &mint, 0).await;
 
-        let dave_holder_rewards = get_holder_rewards_address(&dave_token_account);
+        let dave_holder_rewards =
+            get_holder_rewards_address(&dave_token_account, &paladin_rewards_program::id());
         let rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
 
         send_transaction(
@@ -550,7 +556,8 @@ async fn test_e2e() {
     //                                                 token_balance:      25
     //                                                 eligible_for:       0
     {
-        let bob_holder_rewards = get_holder_rewards_address(&bob_token_account);
+        let bob_holder_rewards =
+            get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
 
         send_transaction(
             &mut context,
@@ -632,7 +639,8 @@ async fn test_e2e() {
     //                                                 token_balance:      25
     //                                                 eligible_for:       0
     {
-        let alice_holder_rewards = get_holder_rewards_address(&alice_token_account);
+        let alice_holder_rewards =
+            get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
 
         let alice_starting_lamports = get_account(&mut context, &alice_token_account)
             .await
@@ -1008,9 +1016,12 @@ async fn test_e2e() {
     //                                                 eligible_for:       0
     //                                                 unharvested:        0
     {
-        let bob_holder_rewards = get_holder_rewards_address(&bob_token_account);
-        let carol_holder_rewards = get_holder_rewards_address(&carol_token_account);
-        let dave_holder_rewards = get_holder_rewards_address(&dave_token_account);
+        let bob_holder_rewards =
+            get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
+        let carol_holder_rewards =
+            get_holder_rewards_address(&carol_token_account, &paladin_rewards_program::id());
+        let dave_holder_rewards =
+            get_holder_rewards_address(&dave_token_account, &paladin_rewards_program::id());
 
         let bob_starting_lamports = get_account(&mut context, &bob_token_account).await.lamports;
         let carol_starting_lamports = get_account(&mut context, &carol_token_account)
