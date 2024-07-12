@@ -4,7 +4,10 @@
 //!
 //! <https://github.com/kinobi-so/kinobi>
 
-use borsh::{BorshDeserialize, BorshSerialize};
+use {
+    borsh::{BorshDeserialize, BorshSerialize},
+    solana_program::pubkey::Pubkey,
+};
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,6 +19,31 @@ pub struct HolderRewards {
 
 impl HolderRewards {
     pub const LEN: usize = 32;
+
+    /// Prefix values used to generate a PDA for this account.
+    ///
+    /// Values are positional and appear in the following order:
+    ///
+    ///   0. `HolderRewards::PREFIX`
+    ///   1. token_account (`Pubkey`)
+    pub const PREFIX: &'static [u8] = "holder".as_bytes();
+
+    pub fn create_pda(
+        token_account: Pubkey,
+        bump: u8,
+    ) -> Result<solana_program::pubkey::Pubkey, solana_program::pubkey::PubkeyError> {
+        solana_program::pubkey::Pubkey::create_program_address(
+            &["holder".as_bytes(), token_account.as_ref(), &[bump]],
+            &crate::REWARDS_ID,
+        )
+    }
+
+    pub fn find_pda(token_account: &Pubkey) -> (solana_program::pubkey::Pubkey, u8) {
+        solana_program::pubkey::Pubkey::find_program_address(
+            &["holder".as_bytes(), token_account.as_ref()],
+            &crate::REWARDS_ID,
+        )
+    }
 
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
