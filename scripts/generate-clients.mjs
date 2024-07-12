@@ -19,6 +19,22 @@ kinobi.update(
   })
 );
 
+// Update accounts.
+kinobi.update(
+  k.updateAccountsVisitor({
+    holderRewards: {
+      seeds: [
+        k.constantPdaSeedNodeFromString("utf8", "holder"),
+        k.variablePdaSeedNode(
+          "tokenAccount",
+          k.publicKeyTypeNode(),
+          "Token account"
+        ),
+      ],
+    },
+  })
+);
+
 // Render JavaScript.
 const jsClient = path.join(__dirname, "..", "clients", "js");
 kinobi.accept(
