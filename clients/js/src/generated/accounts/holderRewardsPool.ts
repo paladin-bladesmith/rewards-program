@@ -28,6 +28,7 @@ import {
   type MaybeAccount,
   type MaybeEncodedAccount,
 } from '@solana/web3.js';
+import { HolderRewardsPoolSeeds, findHolderRewardsPoolPda } from '../pdas';
 
 export type HolderRewardsPool = { accumulatedRewardsPerToken: bigint };
 
@@ -118,4 +119,28 @@ export async function fetchAllMaybeHolderRewardsPool(
 
 export function getHolderRewardsPoolSize(): number {
   return 16;
+}
+
+export async function fetchHolderRewardsPoolFromSeeds(
+  rpc: Parameters<typeof fetchEncodedAccount>[0],
+  seeds: HolderRewardsPoolSeeds,
+  config: FetchAccountConfig & { programAddress?: Address } = {}
+): Promise<Account<HolderRewardsPool>> {
+  const maybeAccount = await fetchMaybeHolderRewardsPoolFromSeeds(
+    rpc,
+    seeds,
+    config
+  );
+  assertAccountExists(maybeAccount);
+  return maybeAccount;
+}
+
+export async function fetchMaybeHolderRewardsPoolFromSeeds(
+  rpc: Parameters<typeof fetchEncodedAccount>[0],
+  seeds: HolderRewardsPoolSeeds,
+  config: FetchAccountConfig & { programAddress?: Address } = {}
+): Promise<MaybeAccount<HolderRewardsPool>> {
+  const { programAddress, ...fetchConfig } = config;
+  const [address] = await findHolderRewardsPoolPda(seeds, { programAddress });
+  return await fetchMaybeHolderRewardsPool(rpc, address, fetchConfig);
 }

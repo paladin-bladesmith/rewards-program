@@ -7,3 +7,4 @@
  */
 
 export * from './holderRewards';
+export * from './holderRewardsPool';
