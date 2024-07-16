@@ -32,6 +32,16 @@ kinobi.update(
         ),
       ],
     },
+    holderRewardsPool: {
+      seeds: [
+        k.constantPdaSeedNodeFromString("utf8", "holder_pool"),
+        k.variablePdaSeedNode(
+          "mint",
+          k.publicKeyTypeNode(),
+          "Token mint"
+        ),
+      ],
+    },
   })
 );
 
