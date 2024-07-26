@@ -644,3 +644,117 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use {super::*, proptest::prelude::*};
+
+    proptest! {
+        #[test]
+        fn test_calculate_rewards_per_token(
+            rewards in 0u64..,
+            token_supply in 0u64..,
+        ) {
+            // Calculate.
+            let result = calculate_rewards_per_token(rewards, token_supply);
+            // Evaluate.
+            if token_supply == 0 {
+                prop_assert_eq!(result, Ok(0));
+            } else {
+                // For all possible values of rewards and token_supply, the
+                // calculation should never return an error, hence the
+                // `unwrap` here.
+                //
+                // The scaling to `u128` prevents multiplication from breaking
+                // the `u64::MAX` ceiling, and the `token_supply == 0` check
+                // prevents `checked_div` returning `None` from a zero
+                // denominator.
+                let expected = (rewards as u128)
+                    .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
+                    .and_then(|product| product.checked_div(token_supply as u128))
+                    .unwrap();
+                prop_assert_eq!(result, Ok(expected));
+            }
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_calculate_eligible_rewards(
+            current_accumulated_rewards_per_token in 0u128..,
+            last_accumulated_rewards_per_token in 0u128..,
+            token_account_balance in 0u64..,
+        ) {
+            // Calculate.
+            let result = calculate_eligible_rewards(
+                current_accumulated_rewards_per_token,
+                last_accumulated_rewards_per_token,
+                token_account_balance,
+            );
+            // Evaluate.
+            let marginal_rate = current_accumulated_rewards_per_token
+                .checked_sub(last_accumulated_rewards_per_token);
+            match marginal_rate {
+                Some(marginal_rate) => {
+                    if marginal_rate == 0 {
+                        // If the marginal rate resolves to zero, the
+                        // calculation should short-circuit and return zero.
+                        prop_assert_eq!(result, Ok(0));
+                    } else {
+                        // The rest of the calculation consists of three steps,
+                        // so evaluate each step one at a time.
+                        //
+                        // 1. marginal rate x token account balance
+                        // 2. product / REWARDS_PER_TOKEN_SCALING_FACTOR
+                        // 3. product.try_into (u64)
+
+                        // Step 1.
+                        let marginal_rewards = marginal_rate
+                            .checked_mul(token_account_balance as u128);
+                        if marginal_rewards.is_none() {
+                            // If the product of the marginal rate and the token
+                            // account balance overflows, the calculation should
+                            // return an arithmetic error.
+                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
+                            return Ok(());
+                        }
+
+                        // Step 2.
+                        let descaled_marginal_rewards = marginal_rewards
+                            .unwrap()
+                            .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR);
+                        if descaled_marginal_rewards.is_none() {
+                            // If the descaling division fails, the
+                            // calculation should return an arithmetic error.
+                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
+                            return Ok(());
+                        }
+
+                        // Step 3.
+                        let expected_result = descaled_marginal_rewards
+                            .unwrap()
+                            .try_into()
+                            .ok();
+                        if let Some(expected_value) = expected_result {
+                            // If the conversion to `u64` succeeds, the
+                            // calculation should return the expected
+                            // value.
+                            prop_assert_eq!(result, Ok(expected_value));
+                        } else {
+                            // If the conversion to `u64` fails, the
+                            // calculation should return an arithmetic
+                            // error.
+                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
+                        }
+                    }
+                },
+                None => {
+                    // Anytime the last reward rate is greater than the current
+                    // reward rate, the calculation will underflow.
+                    // This should never happen in our system.
+                    prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
+                }
+            }
+        }
+    }
+}
