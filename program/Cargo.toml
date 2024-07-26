@@ -21,6 +21,7 @@ spl-transfer-hook-interface = "0.7.0"
 thiserror = "1.0"
 
 [dev-dependencies]
+proptest = "1.5.0"
 solana-program-test = "2.0.2"
 solana-sdk = "2.0.2"
 spl-pod = "0.3.0"
