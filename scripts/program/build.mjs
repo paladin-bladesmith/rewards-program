@@ -1,14 +1,27 @@
 #!/usr/bin/env zx
 import 'zx/globals';
-import { workingDirectory, getProgramFolders } from '../utils.mjs';
+import {
+  cliArguments,
+  getProgramFolders,
+  workingDirectory,
+} from '../utils.mjs';
 
 // Save external programs binaries to the output directory.
 import './dump.mjs';
 
+// Configure additional arguments here, e.g.:
+// ['--arg1', '--arg2', ...cliArguments()]
+const buildArgs = [
+  '--features',
+  'bpf-entrypoint',
+  ...cliArguments(),
+];
+
 // Build the programs.
 await Promise.all(
   getProgramFolders().map(async (folder) => {
-    await $`cd ${path.join(workingDirectory, folder)}`.quiet();
-    await $`cargo-build-sbf ${process.argv.slice(3)}`;
+    const manifestPath = path.join(workingDirectory, folder, 'Cargo.toml');
+
+    await $`cargo-build-sbf --manifest-path ${manifestPath} ${buildArgs}`;
   })
 );
