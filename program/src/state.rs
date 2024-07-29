@@ -19,7 +19,7 @@
 //! Consider the following scenario.
 //!
 //! ```text
-//!
+//! 
 //! -- Legend --
 //!
 //!     `rewards_per_share`:    Total rewards / token supply.
