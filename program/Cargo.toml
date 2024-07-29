@@ -1,8 +1,8 @@
 [package]
 name = "paladin-rewards-program"
-version = "0.1.0"
+version = "0.0.1"
 description = "Paladin Rewards Program"
-readme = "./README.md"
+readme = "../README.md"
 edition = "2021"
 
 [lib]
@@ -30,4 +30,4 @@ bpf-entrypoint = []
 test-sbf = []
 
 [package.metadata.solana]
-program-id = "6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q"
+program-id = "JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ"

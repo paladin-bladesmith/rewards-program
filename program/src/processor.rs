@@ -553,7 +553,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
 /// Processes an SPL Transfer Hook Interface
 /// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
-pub fn process_spl_transfer_hook_execute(
+fn process_spl_transfer_hook_execute(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     transfer_amount: u64,

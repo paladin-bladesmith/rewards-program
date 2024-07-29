@@ -2398,7 +2398,7 @@ checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
 
 [[package]]
 name = "paladin-rewards-program"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "bytemuck",
  "shank",
@@ -2417,7 +2417,7 @@ dependencies = [
 
 [[package]]
 name = "paladin-rewards-program-client"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "assert_matches",
  "borsh 0.10.3",

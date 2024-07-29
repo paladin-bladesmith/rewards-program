@@ -1,1 +1,0 @@
-# Paladin Rewards Program

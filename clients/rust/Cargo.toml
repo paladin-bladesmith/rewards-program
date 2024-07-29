@@ -1,9 +1,9 @@
 [package]
 name = "paladin-rewards-program-client"
-version = "0.0.0"
+version = "0.0.1"
+description = "Paladin Rewards Program Client"
+readme = "../../README.md"
 edition = "2021"
-readme = "README.md"
-license-file = "../../LICENSE"
 
 [features]
 test-sbf = []
