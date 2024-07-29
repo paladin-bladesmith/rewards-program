@@ -3,8 +3,10 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
+//!
 
 pub(crate) mod r#holder_rewards;
 pub(crate) mod r#holder_rewards_pool;
 
-pub use self::{r#holder_rewards::*, r#holder_rewards_pool::*};
+pub use self::r#holder_rewards::*;
+pub use self::r#holder_rewards_pool::*;

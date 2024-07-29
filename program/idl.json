@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.0.1",
   "name": "paladin_rewards_program",
   "instructions": [
     {
@@ -228,7 +228,7 @@
   ],
   "metadata": {
     "origin": "shank",
-    "address": "6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q",
+    "address": "JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ",
     "binaryVersion": "0.4.2",
     "libVersion": "0.4.2"
   }

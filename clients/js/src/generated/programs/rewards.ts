@@ -6,7 +6,12 @@
  * @see https://github.com/kinobi-so/kinobi
  */
 
-import { containsBytes, getU8Encoder, type Address } from '@solana/web3.js';
+import {
+  containsBytes,
+  getU8Encoder,
+  type Address,
+  type ReadonlyUint8Array,
+} from '@solana/web3.js';
 import {
   type ParsedDistributeRewardsInstruction,
   type ParsedHarvestRewardsInstruction,
@@ -15,7 +20,7 @@ import {
 } from '../instructions';
 
 export const REWARDS_PROGRAM_ADDRESS =
-  '6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q' as Address<'6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q'>;
+  'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ' as Address<'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ'>;
 
 export enum RewardsAccount {
   HolderRewards,
@@ -30,10 +35,9 @@ export enum RewardsInstruction {
 }
 
 export function identifyRewardsInstruction(
-  instruction: { data: Uint8Array } | Uint8Array
+  instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
 ): RewardsInstruction {
-  const data =
-    instruction instanceof Uint8Array ? instruction : instruction.data;
+  const data = 'data' in instruction ? instruction.data : instruction;
   if (containsBytes(data, getU8Encoder().encode(0), 0)) {
     return RewardsInstruction.InitializeHolderRewardsPool;
   }
@@ -52,7 +56,7 @@ export function identifyRewardsInstruction(
 }
 
 export type ParsedRewardsInstruction<
-  TProgram extends string = '6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q',
+  TProgram extends string = 'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ',
 > =
   | ({
       instructionType: RewardsInstruction.InitializeHolderRewardsPool;

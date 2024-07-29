@@ -3,8 +3,10 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
+//!
 
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 /// Accounts.
 pub struct DistributeRewards {
@@ -91,8 +93,7 @@ pub struct DistributeRewardsInstructionArgs {
 ///   0. `[writable, signer]` payer
 ///   1. `[writable]` holder_rewards_pool
 ///   2. `[]` mint
-///   3. `[optional]` system_program (default to
-///      `11111111111111111111111111111111`)
+///   3. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct DistributeRewardsBuilder {
     payer: Option<solana_program::pubkey::Pubkey>,
@@ -383,9 +384,8 @@ impl<'a, 'b> DistributeRewardsCpiBuilder<'a, 'b> {
     }
     /// Add additional accounts to the instruction.
     ///
-    /// Each account is represented by a tuple of the `AccountInfo`, a `bool`
-    /// indicating whether the account is writable or not, and a `bool`
-    /// indicating whether the account is a signer or not.
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
     #[inline(always)]
     pub fn add_remaining_accounts(
         &mut self,

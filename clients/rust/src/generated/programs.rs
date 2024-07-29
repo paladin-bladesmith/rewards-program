@@ -3,8 +3,9 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
+//!
 
 use solana_program::{pubkey, pubkey::Pubkey};
 
 /// `rewards` program ID.
-pub const REWARDS_ID: Pubkey = pubkey!("6wsKX77nJ8CzjR2CUfbosKd1C42HfkQu9AwtoZtaLx9q");
+pub const REWARDS_ID: Pubkey = pubkey!("JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ");
