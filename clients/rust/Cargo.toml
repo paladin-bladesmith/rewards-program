@@ -1,11 +1,10 @@
 [package]
 name = "paladin-rewards-program-client"
-version = "0.0.0"
+version = "0.0.1"
 description = "A generated Rust library for the Rewards program"
-repository = "https://github.com/solana-program/rewards"
+repository = "https://github.com/paladin-bladesmith/rewards-program"
 edition = "2021"
 readme = "README.md"
-license-file = "../../LICENSE"
 
 [features]
 test-sbf = []

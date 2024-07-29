@@ -1,6 +1,6 @@
 {
-  "name": "@paladin-bladesmith/paladin-rewards",
-  "version": "0.0.0",
+  "name": "@paladin-bladesmith/rewards",
+  "version": "0.0.1",
   "description": "JavaScript client for the Rewards program",
   "sideEffects": false,
   "module": "./dist/src/index.mjs",
@@ -32,7 +32,6 @@
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
-  "license": "MIT",
   "peerDependencies": {
     "@solana/web3.js": "2.0.0-preview.4"
   },
