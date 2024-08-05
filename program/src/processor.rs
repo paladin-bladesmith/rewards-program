@@ -656,24 +656,25 @@ mod tests {
             token_supply in 0u64..,
         ) {
             // Calculate.
-            let result = calculate_rewards_per_token(rewards, token_supply);
+            //
+            // For all possible values of rewards and token_supply, the
+            // calculation should never return an error, hence the
+            // `unwrap` here.
+            //
+            // The scaling to `u128` prevents multiplication from breaking
+            // the `u64::MAX` ceiling, and the `token_supply == 0` check
+            // prevents `checked_div` returning `None` from a zero
+            // denominator.
+            let result = calculate_rewards_per_token(rewards, token_supply).unwrap();
             // Evaluate.
             if token_supply == 0 {
-                prop_assert_eq!(result, Ok(0));
+                prop_assert_eq!(result, 0);
             } else {
-                // For all possible values of rewards and token_supply, the
-                // calculation should never return an error, hence the
-                // `unwrap` here.
-                //
-                // The scaling to `u128` prevents multiplication from breaking
-                // the `u64::MAX` ceiling, and the `token_supply == 0` check
-                // prevents `checked_div` returning `None` from a zero
-                // denominator.
                 let expected = (rewards as u128)
                     .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
                     .and_then(|product| product.checked_div(token_supply as u128))
                     .unwrap();
-                prop_assert_eq!(result, Ok(expected));
+                prop_assert_eq!(result, expected);
             }
         }
     }
@@ -720,19 +721,17 @@ mod tests {
                         }
 
                         // Step 2.
+                        //
+                        // Since we're always dividing by a non-zero constant,
+                        // the division should never return `None`, so we can
+                        // unwrap here.
                         let descaled_marginal_rewards = marginal_rewards
                             .unwrap()
-                            .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR);
-                        if descaled_marginal_rewards.is_none() {
-                            // If the descaling division fails, the
-                            // calculation should return an arithmetic error.
-                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
-                            return Ok(());
-                        }
+                            .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR)
+                            .unwrap();
 
                         // Step 3.
                         let expected_result = descaled_marginal_rewards
-                            .unwrap()
                             .try_into()
                             .ok();
                         if let Some(expected_value) = expected_result {
