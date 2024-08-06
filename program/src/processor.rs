@@ -679,11 +679,23 @@ mod tests {
         }
     }
 
+    // Configures values for current and last accumulated rewards per token,
+    // ensuring the last value never exceeds the current value.
+    prop_compose! {
+        fn current_and_last(max_value: u128)(current in 0..=max_value)
+                        (last in 0..=current, current in Just(current))
+                        -> (u128, u128) {
+           (current, last)
+       }
+    }
+
     proptest! {
         #[test]
         fn test_calculate_eligible_rewards(
-            current_accumulated_rewards_per_token in 0u128..,
-            last_accumulated_rewards_per_token in 0u128..,
+            (
+                current_accumulated_rewards_per_token,
+                last_accumulated_rewards_per_token,
+            ) in current_and_last(u128::MAX),
             token_account_balance in 0u64..,
         ) {
             // Calculate.
@@ -693,64 +705,59 @@ mod tests {
                 token_account_balance,
             );
             // Evaluate.
+            //
+            // Since we've configured the inputs so that last never exceeds
+            // current, this subtraction never overflows, so it's safe to
+            // unwrap here.
             let marginal_rate = current_accumulated_rewards_per_token
-                .checked_sub(last_accumulated_rewards_per_token);
-            match marginal_rate {
-                Some(marginal_rate) => {
-                    if marginal_rate == 0 {
-                        // If the marginal rate resolves to zero, the
-                        // calculation should short-circuit and return zero.
-                        prop_assert_eq!(result, Ok(0));
-                    } else {
-                        // The rest of the calculation consists of three steps,
-                        // so evaluate each step one at a time.
-                        //
-                        // 1. marginal rate x token account balance
-                        // 2. product / REWARDS_PER_TOKEN_SCALING_FACTOR
-                        // 3. product.try_into (u64)
+                .checked_sub(last_accumulated_rewards_per_token)
+                .unwrap();
+            if marginal_rate == 0 {
+                // If the marginal rate resolves to zero, the
+                // calculation should short-circuit and return zero.
+                prop_assert_eq!(result, Ok(0));
+            } else {
+                // The rest of the calculation consists of three steps,
+                // so evaluate each step one at a time.
+                //
+                // 1. marginal rate x token account balance
+                // 2. product / REWARDS_PER_TOKEN_SCALING_FACTOR
+                // 3. product.try_into (u64)
 
-                        // Step 1.
-                        let marginal_rewards = marginal_rate
-                            .checked_mul(token_account_balance as u128);
-                        if marginal_rewards.is_none() {
-                            // If the product of the marginal rate and the token
-                            // account balance overflows, the calculation should
-                            // return an arithmetic error.
-                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
-                            return Ok(());
-                        }
+                // Step 1.
+                let marginal_rewards = marginal_rate
+                    .checked_mul(token_account_balance as u128);
+                if marginal_rewards.is_none() {
+                    // If the product of the marginal rate and the token
+                    // account balance overflows, the calculation should
+                    // return an arithmetic error.
+                    prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
+                    return Ok(());
+                }
 
-                        // Step 2.
-                        //
-                        // Since we're always dividing by a non-zero constant,
-                        // the division should never return `None`, so we can
-                        // unwrap here.
-                        let descaled_marginal_rewards = marginal_rewards
-                            .unwrap()
-                            .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR)
-                            .unwrap();
+                // Step 2.
+                //
+                // Since we're always dividing by a non-zero constant,
+                // the division should never return `None`, so we can
+                // unwrap here.
+                let descaled_marginal_rewards = marginal_rewards
+                    .unwrap()
+                    .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR)
+                    .unwrap();
 
-                        // Step 3.
-                        let expected_result = descaled_marginal_rewards
-                            .try_into()
-                            .ok();
-                        if let Some(expected_value) = expected_result {
-                            // If the conversion to `u64` succeeds, the
-                            // calculation should return the expected
-                            // value.
-                            prop_assert_eq!(result, Ok(expected_value));
-                        } else {
-                            // If the conversion to `u64` fails, the
-                            // calculation should return an arithmetic
-                            // error.
-                            prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
-                        }
-                    }
-                },
-                None => {
-                    // Anytime the last reward rate is greater than the current
-                    // reward rate, the calculation will underflow.
-                    // This should never happen in our system.
+                // Step 3.
+                let expected_result = descaled_marginal_rewards
+                    .try_into()
+                    .ok();
+                if let Some(expected_value) = expected_result {
+                    // If the conversion to `u64` succeeds, the
+                    // calculation should return the expected
+                    // value.
+                    prop_assert_eq!(result, Ok(expected_value));
+                } else {
+                    // If the conversion to `u64` fails, the
+                    // calculation should return an arithmetic
+                    // error.
                     prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
                 }
             }

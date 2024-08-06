@@ -1,8 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc dbe8aa527a2c47a03052931394e13ab4471049b28c043522f1ce2ff7a1a5337d # shrinks to current_accumulated_rewards_per_token = 0, last_accumulated_rewards_per_token = 1, token_account_balance = 0
-cc 05aa29e9ea9b6770294bd3bbb3b83df99fca59e49bea311c8da2a34c35ac1632 # shrinks to current_accumulated_rewards_per_token = 0, last_accumulated_rewards_per_token = 1, token_account_balance = 0
