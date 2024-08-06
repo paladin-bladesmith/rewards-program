@@ -118,33 +118,60 @@ fn check_holder_rewards(
     Ok(())
 }
 
+// Calculate the rewards per token.
+//
+// Calculation: rewards / token_supply
+// Scaled by 1e9 to store 9 decimal places of precision.
+//
+// This calculation is valid for all possible values of rewards and token
+// supply, since the scaling to `u128` prevents multiplication from breaking
+// the `u64::MAX` ceiling, and the `token_supply == 0` check prevents
+// `checked_div` returning `None` from a zero denominator.
 fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, ProgramError> {
     if token_supply == 0 {
         return Ok(0);
     }
-    // Calculation: rewards / token_supply
-    //
-    // Scaled by 1e9 to store 9 decimal places of precision.
     (rewards as u128)
         .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
         .and_then(|product| product.checked_div(token_supply as u128))
         .ok_or(ProgramError::ArithmeticOverflow)
 }
 
+// Calculate the eligible rewards for a token account.
+//
+// Calculation: (current - last) * balance
+// The result is descaled by a factor of 1e9 since both rewards per token
+// values are scaled by 1e9 for precision.
+//
+// This calculation is valid under the following conditions:
+// * The current accumulated rewards per token is always greater than or equal
+//   to the last accumulated rewards per token.
+// * The marginal rate multiplied by the token account balance does not exceed
+//   `u128::MAX`.
+//
+// The first condition is guaranteed by the program logic.
+// The second condition is guaranteed under the following constraints:
+// * The current supply of SOL is 500,000,000 * 1e9.
+// * The mint supply is less than or equal to 1e9.
+//
+// In the most extreme case, where the current rate is the supply of SOL and
+// the last rate is 0:
+//
+// * With a fixed SOL supply of 500,000,000 * 1e9, the maximum supported mint
+//   supply is approximately 4.5 * 1e9.
+// * With a fixed mint supply of 1e9, the maximum supported SOL supply is
+//   approximately 1.87 * 1e13 * 1e9.
 fn calculate_eligible_rewards(
     current_accumulated_rewards_per_token: u128,
     last_accumulated_rewards_per_token: u128,
     token_account_balance: u64,
 ) -> Result<u64, ProgramError> {
-    // Calculation: (current_accumulated_rewards_per_token
-    //   - last_accumulated_rewards_per_token) * token_account_balance
     let marginal_rate = current_accumulated_rewards_per_token
         .checked_sub(last_accumulated_rewards_per_token)
         .ok_or(ProgramError::ArithmeticOverflow)?;
     if marginal_rate == 0 {
         return Ok(0);
     }
-    // Scaled by 1e9 to store 9 decimal places of precision.
     marginal_rate
         .checked_mul(token_account_balance as u128)
         .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
@@ -695,15 +722,18 @@ mod tests {
             (
                 current_accumulated_rewards_per_token,
                 last_accumulated_rewards_per_token,
-            ) in current_and_last(u128::MAX),
-            token_account_balance in 0u64..,
+            ) in current_and_last(
+                500_000_000 * 1_000_000_000, // SOL supply
+            ),
+            token_account_balance in 0u64..1_000_000_000, // Mint supply
         ) {
             // Calculate.
             let result = calculate_eligible_rewards(
                 current_accumulated_rewards_per_token,
                 last_accumulated_rewards_per_token,
                 token_account_balance,
-            );
+            )
+            .unwrap();
             // Evaluate.
             //
             // Since we've configured the inputs so that last never exceeds
@@ -715,7 +745,7 @@ mod tests {
             if marginal_rate == 0 {
                 // If the marginal rate resolves to zero, the
                 // calculation should short-circuit and return zero.
-                prop_assert_eq!(result, Ok(0));
+                prop_assert_eq!(result, 0);
             } else {
                 // The rest of the calculation consists of three steps,
                 // so evaluate each step one at a time.
@@ -725,15 +755,13 @@ mod tests {
                 // 3. product.try_into (u64)
 
                 // Step 1.
+                //
+                // Since we've restricted the inputs within the bounds
+                // of the system, the multiplication should never exceed
+                // `u128::MAX`.
                 let marginal_rewards = marginal_rate
-                    .checked_mul(token_account_balance as u128);
-                if marginal_rewards.is_none() {
-                    // If the product of the marginal rate and the token
-                    // account balance overflows, the calculation should
-                    // return an arithmetic error.
-                    prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
-                    return Ok(());
-                }
+                    .checked_mul(token_account_balance as u128)
+                    .unwrap();
 
                 // Step 2.
                 //
@@ -741,25 +769,21 @@ mod tests {
                 // the division should never return `None`, so we can
                 // unwrap here.
                 let descaled_marginal_rewards = marginal_rewards
-                    .unwrap()
                     .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR)
                     .unwrap();
 
                 // Step 3.
-                let expected_result = descaled_marginal_rewards
+                //
+                // Since we've restricted the inputs within the bounds
+                // of the system, the conversion to `u64` should always
+                // succeed.
+                let expected_result: u64 = descaled_marginal_rewards
                     .try_into()
-                    .ok();
-                if let Some(expected_value) = expected_result {
-                    // If the conversion to `u64` succeeds, the
-                    // calculation should return the expected
-                    // value.
-                    prop_assert_eq!(result, Ok(expected_value));
-                } else {
-                    // If the conversion to `u64` fails, the
-                    // calculation should return an arithmetic
-                    // error.
-                    prop_assert_eq!(result, Err(ProgramError::ArithmeticOverflow));
-                }
+                    .ok()
+                    .unwrap();
+
+                // The calculation should return the expected value.
+                prop_assert_eq!(result, expected_result);
             }
         }
     }
