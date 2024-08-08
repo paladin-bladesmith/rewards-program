@@ -147,20 +147,31 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 // * The current accumulated rewards per token is always greater than or equal
 //   to the last accumulated rewards per token.
 // * The marginal rate multiplied by the token account balance does not exceed
-//   `u128::MAX`.
+//   `u64::MAX * 1e9` (scaling factor).
 //
 // The first condition is guaranteed by the program logic.
-// The second condition is guaranteed under the following constraints:
-// * The current supply of SOL is 500,000,000 * 1e9.
-// * The mint supply is less than or equal to 1e9.
 //
-// In the most extreme case, where the current rate is the supply of SOL and
-// the last rate is 0:
+// The second condition requires careful consideration of token distribution as
+// well as total rewards accrued by the system.
 //
-// * With a fixed SOL supply of 500,000,000 * 1e9, the maximum supported mint
-//   supply is approximately 4.5 * 1e9.
-// * With a fixed mint supply of 1e9, the maximum supported SOL supply is
-//   approximately 1.87 * 1e13 * 1e9.
+// Consider the current (at the time of this writing) circulating SOL supply of
+// 466,000,000 * 1e9 and a total token supply of 1e18.
+//
+// Some general benchmarks:
+//
+// * Given a marginal rate that is equal to 10% of the circulating supply of SOL
+//   (0.1 * 466,000,000 * 1e9), the maximum supported token account balance is
+//   approximately 395 * 1e9, or 0.0000395% of the token supply.
+// * Given a token account balance that is 10% of the token supply (0.1 * 1e18),
+//   the maximum supported marginal rate is approximately 184 SOL (184 * 1e9).
+//
+// In the most extreme cases:
+//
+// * Given a marginal rate that is equal to 100% of the circulating supply of
+//   SOL (466,000,000 * 1e9), the maximum supported token account balance is
+//   approximately 39.5 * 1e9, or 0.00000395% of the token supply.
+// * Given a token account balance that is 100% of the token supply (1e18), the
+//   maximum supported marginal rate is approximately 18.4 SOL (18.4 * 1e9).
 fn calculate_eligible_rewards(
     current_accumulated_rewards_per_token: u128,
     last_accumulated_rewards_per_token: u128,
@@ -707,13 +718,19 @@ mod tests {
     }
 
     // Configures values for current and last accumulated rewards per token,
-    // ensuring the last value never exceeds the current value.
+    // as well as token account balance, ensuring the last value is always zero
+    // and the current value is of the range [0, max_value]. Additionally,
+    // ensures the product of the marginal rate (current - last) and the token
+    // account balance does not exceed `u64::MAX * 1e9` (scaling factor).
     prop_compose! {
-        fn current_and_last(max_value: u128)(current in 0..=max_value)
-                        (last in 0..=current, current in Just(current))
-                        -> (u128, u128) {
-           (current, last)
-       }
+        fn current_and_last_zero_with_token_account_balance(max_value: u128)(
+            current in 1..=max_value // Start from 1 to avoid division by zero.
+        )(
+            token_account_balance in 0..=(((u64::MAX as u128) * REWARDS_PER_TOKEN_SCALING_FACTOR / current) as u64),
+            current in Just(current),
+        ) -> (u128, u128, u64) {
+            (current, 0, token_account_balance)
+        }
     }
 
     proptest! {
@@ -722,10 +739,10 @@ mod tests {
             (
                 current_accumulated_rewards_per_token,
                 last_accumulated_rewards_per_token,
-            ) in current_and_last(
-                500_000_000 * 1_000_000_000, // SOL supply
+                token_account_balance,
+            ) in current_and_last_zero_with_token_account_balance(
+                466_000_000 * 1_000_000_000, // Circulating supply of SOL (466,000,000 * 1e9)
             ),
-            token_account_balance in 0u64..1_000_000_000, // Mint supply
         ) {
             // Calculate.
             let result = calculate_eligible_rewards(
@@ -779,7 +796,6 @@ mod tests {
                 // succeed.
                 let expected_result: u64 = descaled_marginal_rewards
                     .try_into()
-                    .ok()
                     .unwrap();
 
                 // The calculation should return the expected value.
