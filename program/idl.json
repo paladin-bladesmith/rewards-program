@@ -226,6 +226,38 @@
       }
     }
   ],
+  "errors": [
+    {
+      "code": 0,
+      "name": "IncorrectMintAuthority",
+      "msg": "Incorrect mint authority"
+    },
+    {
+      "code": 1,
+      "name": "IncorrectTransferHookProgramId",
+      "msg": "Incorrect transfer hook program ID"
+    },
+    {
+      "code": 2,
+      "name": "IncorrectHolderRewardsPoolAddress",
+      "msg": "Incorrect holder rewards pool address"
+    },
+    {
+      "code": 3,
+      "name": "IncorrectExtraMetasAddress",
+      "msg": "Incorrect extra metas address"
+    },
+    {
+      "code": 4,
+      "name": "IncorrectHolderRewardsAddress",
+      "msg": "Incorrect holder rewards address"
+    },
+    {
+      "code": 5,
+      "name": "TokenAccountMintMismatch",
+      "msg": "Token account mint mismatch"
+    }
+  ],
   "metadata": {
     "origin": "shank",
     "address": "JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ",

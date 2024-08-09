@@ -2401,18 +2401,20 @@ name = "paladin-rewards-program"
 version = "0.0.1"
 dependencies = [
  "bytemuck",
+ "num-derive 0.3.3",
+ "num-traits",
  "shank",
  "solana-program",
  "solana-program-test",
  "solana-sdk",
  "spl-associated-token-account",
  "spl-pod",
- "spl-program-error",
  "spl-tlv-account-resolution",
  "spl-token-2022",
  "spl-transfer-hook-interface",
  "spl-type-length-value",
  "test-case",
+ "thiserror",
 ]
 
 [[package]]
