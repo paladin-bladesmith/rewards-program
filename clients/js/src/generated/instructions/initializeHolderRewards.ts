@@ -24,11 +24,11 @@ import {
   type ReadonlyAccount,
   type WritableAccount,
 } from '@solana/web3.js';
-import { REWARDS_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type InitializeHolderRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
@@ -119,7 +119,7 @@ export function getInitializeHolderRewardsInstruction<
     TAccountSystemProgram
   >
 ): InitializeHolderRewardsInstruction<
-  typeof REWARDS_PROGRAM_ADDRESS,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
@@ -127,7 +127,7 @@ export function getInitializeHolderRewardsInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -163,7 +163,7 @@ export function getInitializeHolderRewardsInstruction<
     programAddress,
     data: getInitializeHolderRewardsInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsInstruction<
-    typeof REWARDS_PROGRAM_ADDRESS,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
@@ -175,7 +175,7 @@ export function getInitializeHolderRewardsInstruction<
 }
 
 export type ParsedInitializeHolderRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

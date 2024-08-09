@@ -27,11 +27,11 @@ import {
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
-import { REWARDS_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type InitializeHolderRewardsPoolInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountExtraAccountMetas extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
@@ -125,7 +125,7 @@ export function getInitializeHolderRewardsPoolInstruction<
     TAccountSystemProgram
   >
 ): InitializeHolderRewardsPoolInstruction<
-  typeof REWARDS_PROGRAM_ADDRESS,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountExtraAccountMetas,
   TAccountMint,
@@ -133,7 +133,7 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -172,7 +172,7 @@ export function getInitializeHolderRewardsPoolInstruction<
     programAddress,
     data: getInitializeHolderRewardsPoolInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsPoolInstruction<
-    typeof REWARDS_PROGRAM_ADDRESS,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountExtraAccountMetas,
     TAccountMint,
@@ -184,7 +184,7 @@ export function getInitializeHolderRewardsPoolInstruction<
 }
 
 export type ParsedInitializeHolderRewardsPoolInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

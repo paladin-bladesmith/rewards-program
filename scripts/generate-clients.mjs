@@ -15,7 +15,7 @@ const ciDir = path.join(__dirname, "..", "ci");
 // Update programs.
 kinobi.update(
   k.updateProgramsVisitor({
-    "paladinRewardsProgram": { name: "rewards" },
+    "paladinRewardsProgram": { name: "paladinRewards" },
   })
 );
 

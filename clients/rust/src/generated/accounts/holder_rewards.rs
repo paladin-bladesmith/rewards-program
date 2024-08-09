@@ -34,14 +34,14 @@ impl HolderRewards {
     ) -> Result<solana_program::pubkey::Pubkey, solana_program::pubkey::PubkeyError> {
         solana_program::pubkey::Pubkey::create_program_address(
             &["holder".as_bytes(), token_account.as_ref(), &[bump]],
-            &crate::REWARDS_ID,
+            &crate::PALADIN_REWARDS_ID,
         )
     }
 
     pub fn find_pda(token_account: &Pubkey) -> (solana_program::pubkey::Pubkey, u8) {
         solana_program::pubkey::Pubkey::find_program_address(
             &["holder".as_bytes(), token_account.as_ref()],
-            &crate::REWARDS_ID,
+            &crate::PALADIN_REWARDS_ID,
         )
     }
 
@@ -76,7 +76,7 @@ impl anchor_lang::AccountSerialize for HolderRewards {}
 #[cfg(feature = "anchor")]
 impl anchor_lang::Owner for HolderRewards {
     fn owner() -> Pubkey {
-        crate::REWARDS_ID
+        crate::PALADIN_REWARDS_ID
     }
 }
 
