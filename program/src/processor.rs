@@ -151,27 +151,11 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 //
 // The first condition is guaranteed by the program logic.
 //
-// The second condition requires careful consideration of token distribution as
-// well as total rewards accrued by the system.
+// The second condition is guaranteed under the constraint that total
+// system-level accumulated rewards does not exceed `u64::MAX`, which is
+// approximately 386_266 % of the current circulating supply of SOL.
 //
-// Consider the current (at the time of this writing) circulating SOL supply of
-// 466,000,000 * 1e9 and a total token supply of 1e18.
-//
-// Some general benchmarks:
-//
-// * Given a marginal rate that is equal to 10% of the circulating supply of SOL
-//   (0.1 * 466,000,000 * 1e9), the maximum supported token account balance is
-//   approximately 395 * 1e9, or 0.0000395% of the token supply.
-// * Given a token account balance that is 10% of the token supply (0.1 * 1e18),
-//   the maximum supported marginal rate is approximately 184 SOL (184 * 1e9).
-//
-// In the most extreme cases:
-//
-// * Given a marginal rate that is equal to 100% of the circulating supply of
-//   SOL (466,000,000 * 1e9), the maximum supported token account balance is
-//   approximately 39.5 * 1e9, or 0.00000395% of the token supply.
-// * Given a token account balance that is 100% of the token supply (1e18), the
-//   maximum supported marginal rate is approximately 18.4 SOL (18.4 * 1e9).
+// For more information, see this function's prop tests.
 fn calculate_eligible_rewards(
     current_accumulated_rewards_per_token: u128,
     last_accumulated_rewards_per_token: u128,
@@ -717,22 +701,75 @@ mod tests {
         }
     }
 
-    // Configures values for current and last accumulated rewards per token,
-    // as well as token account balance, ensuring the last value is always zero
-    // and the current value is of the range [0, max_value]. Additionally,
-    // ensures the product of the marginal rate (current - last) and the token
-    // account balance does not exceed `u64::MAX * 1e9` (scaling factor).
+    // Since the marginal rate (current - last) within this function is describing
+    // rewards _per token_, which is calculated by `calculate_rewards_per_token`,
+    // the maximum permitted true reward difference on the system that can be
+    // tolerated by a maximum token account balance (100% of token supply) depends
+    // on the token supply of the mint.
+    //
+    // Consider the calculations for both functions:
+    //
+    //     rewards_per_token = (reward * 1e9) / mint_supply
+    //     eligible_rewards = (marginal_rewards_per_token * balance) / 1e9
+    //
+    // By rearranging the first formula (for `calculate_rewards_per_token`), we
+    // can calculate the total accumulated system-level reward based on the
+    // given rewards per token and mint supply.
+    //
+    //     accumulated_rewards =
+    //              (accumulated_rewards_per_token * mint_supply) / e9
+    //
+    // By rearranging the second formula (which is for this function
+    // `calculate_eligible_rewards`), and plugging in `u64::MAX * 1e9` for
+    // `eligible_rewards` (function upper bound), we can obtain a formula for
+    // the maximum marginal rate (current - last) supported.
+    //
+    //     max_marginal_rewards_per_token = (u64::MAX * 1e9) / balance
+    //
+    // The largest token account balance possible is 100% of the mint supply,
+    // so we can rewrite the rearranged second formula as follows.
+    //
+    //     max_marginal_rewards_per_token = (u64::MAX * 1e9) / mint_supply
+    //
+    // Now, plugging the formula for `max_marginal_rewards_per_token` into the
+    // `accumulated_rewards_per_token` of the rearranged first formula, we get
+    // the following.
+    //
+    //     max_accumulated_rewards = (
+    //                          ((u64::MAX * 1e9) / mint_supply) * mint_supply
+    //                        ) / 1e9
+    //
+    // As you can see, the mint supply can be factored out, and the max
+    // accumulated system-level reward can now be computed directly.
+    //
+    //     max_accumulated_rewards = u64::MAX
+    //
+    // Therefore, the maximum system-level accumulated reward cannot exceed
+    // `u64::MAX` without breaking `calculate_eligible_rewards`. Since
+    // accumulated rewards as stored as _per token_ values in a `u128`, it's
+    // mathematically possible to exceed `u64::MAX` in accumulated true
+    // rewards. However, note that `u64::MAX` exceeds the current circulating
+    // supply of SOL (`4.66e15`) by 386_266 %.
+    //
+    // As a beyond-reasonable proptest upper bound, we'll use `u64::MAX` for
+    // total system-level accumulated rewards, and mint supply plays no role.
     prop_compose! {
-        fn current_and_last_zero_with_token_account_balance(max_value: u128)(
-            current in 1..=max_value // Start from 1 to avoid division by zero.
-        )(
-            token_account_balance in 0..=(((u64::MAX as u128) * REWARDS_PER_TOKEN_SCALING_FACTOR / current) as u64),
-            current in Just(current),
+        fn current_last_and_balance(max_accumulated_rewards: u64)
+        (mint_supply in 0..u64::MAX)
+        (
+            current in 0..=calculate_rewards_per_token(
+                max_accumulated_rewards,
+                mint_supply,
+            ).unwrap(),
+            balance in 0..=mint_supply,
         ) -> (u128, u128, u64) {
-            (current, 0, token_account_balance)
+            (
+                current, // Current accumulated rewards per token.
+                0,       // Last accumulated rewards per token (always 0 here for maximum margin).
+                balance, // Token account balance (up to 100% of mint supply).
+            )
         }
     }
-
     proptest! {
         #[test]
         fn test_calculate_eligible_rewards(
@@ -740,9 +777,7 @@ mod tests {
                 current_accumulated_rewards_per_token,
                 last_accumulated_rewards_per_token,
                 token_account_balance,
-            ) in current_and_last_zero_with_token_account_balance(
-                466_000_000 * 1_000_000_000, // Circulating supply of SOL (466,000,000 * 1e9)
-            ),
+            ) in current_last_and_balance(u64::MAX),
         ) {
             // Calculate.
             let result = calculate_eligible_rewards(
