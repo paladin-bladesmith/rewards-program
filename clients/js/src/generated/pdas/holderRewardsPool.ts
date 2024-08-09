@@ -24,7 +24,7 @@ export async function findHolderRewardsPoolPda(
   config: { programAddress?: Address | undefined } = {}
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = 'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ' as Address<'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ'>,
+    programAddress = 'PRewards11111111111111111111111111111111111' as Address<'PRewards11111111111111111111111111111111111'>,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,

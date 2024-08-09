@@ -32,4 +32,4 @@ bpf-entrypoint = []
 test-sbf = []
 
 [package.metadata.solana]
-program-id = "JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ"
+program-id = "PRewards11111111111111111111111111111111111"
