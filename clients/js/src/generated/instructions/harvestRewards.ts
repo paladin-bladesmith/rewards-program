@@ -24,11 +24,11 @@ import {
   type ReadonlyAccount,
   type WritableAccount,
 } from '@solana/web3.js';
-import { REWARDS_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type HarvestRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
@@ -108,14 +108,14 @@ export function getHarvestRewardsInstruction<
     TAccountMint
   >
 ): HarvestRewardsInstruction<
-  typeof REWARDS_PROGRAM_ADDRESS,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint
 > {
   // Program address.
-  const programAddress = REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -143,7 +143,7 @@ export function getHarvestRewardsInstruction<
     programAddress,
     data: getHarvestRewardsInstructionDataEncoder().encode({}),
   } as HarvestRewardsInstruction<
-    typeof REWARDS_PROGRAM_ADDRESS,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
@@ -154,7 +154,7 @@ export function getHarvestRewardsInstruction<
 }
 
 export type ParsedHarvestRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

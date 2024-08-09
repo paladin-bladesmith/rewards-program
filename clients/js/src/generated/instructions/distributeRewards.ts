@@ -29,11 +29,11 @@ import {
   type WritableAccount,
   type WritableSignerAccount,
 } from '@solana/web3.js';
-import { REWARDS_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type DistributeRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountPayer extends string | IAccountMeta<string> = string,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
@@ -126,14 +126,14 @@ export function getDistributeRewardsInstruction<
     TAccountSystemProgram
   >
 ): DistributeRewardsInstruction<
-  typeof REWARDS_PROGRAM_ADDRESS,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountPayer,
   TAccountHolderRewardsPool,
   TAccountMint,
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -172,7 +172,7 @@ export function getDistributeRewardsInstruction<
       args as DistributeRewardsInstructionDataArgs
     ),
   } as DistributeRewardsInstruction<
-    typeof REWARDS_PROGRAM_ADDRESS,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountPayer,
     TAccountHolderRewardsPool,
     TAccountMint,
@@ -183,7 +183,7 @@ export function getDistributeRewardsInstruction<
 }
 
 export type ParsedDistributeRewardsInstruction<
-  TProgram extends string = typeof REWARDS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

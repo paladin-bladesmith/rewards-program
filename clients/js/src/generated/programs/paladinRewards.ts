@@ -19,54 +19,54 @@ import {
   type ParsedInitializeHolderRewardsPoolInstruction,
 } from '../instructions';
 
-export const REWARDS_PROGRAM_ADDRESS =
+export const PALADIN_REWARDS_PROGRAM_ADDRESS =
   'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ' as Address<'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ'>;
 
-export enum RewardsAccount {
+export enum PaladinRewardsAccount {
   HolderRewards,
   HolderRewardsPool,
 }
 
-export enum RewardsInstruction {
+export enum PaladinRewardsInstruction {
   InitializeHolderRewardsPool,
   DistributeRewards,
   InitializeHolderRewards,
   HarvestRewards,
 }
 
-export function identifyRewardsInstruction(
+export function identifyPaladinRewardsInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
-): RewardsInstruction {
+): PaladinRewardsInstruction {
   const data = 'data' in instruction ? instruction.data : instruction;
   if (containsBytes(data, getU8Encoder().encode(0), 0)) {
-    return RewardsInstruction.InitializeHolderRewardsPool;
+    return PaladinRewardsInstruction.InitializeHolderRewardsPool;
   }
   if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return RewardsInstruction.DistributeRewards;
+    return PaladinRewardsInstruction.DistributeRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(2), 0)) {
-    return RewardsInstruction.InitializeHolderRewards;
+    return PaladinRewardsInstruction.InitializeHolderRewards;
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
-    return RewardsInstruction.HarvestRewards;
+    return PaladinRewardsInstruction.HarvestRewards;
   }
   throw new Error(
-    'The provided instruction could not be identified as a rewards instruction.'
+    'The provided instruction could not be identified as a paladinRewards instruction.'
   );
 }
 
-export type ParsedRewardsInstruction<
+export type ParsedPaladinRewardsInstruction<
   TProgram extends string = 'JCnD24HEFP4uHdciqHWrD5LKeTBWCENQb6H3GJxqNSEZ',
 > =
   | ({
-      instructionType: RewardsInstruction.InitializeHolderRewardsPool;
+      instructionType: PaladinRewardsInstruction.InitializeHolderRewardsPool;
     } & ParsedInitializeHolderRewardsPoolInstruction<TProgram>)
   | ({
-      instructionType: RewardsInstruction.DistributeRewards;
+      instructionType: PaladinRewardsInstruction.DistributeRewards;
     } & ParsedDistributeRewardsInstruction<TProgram>)
   | ({
-      instructionType: RewardsInstruction.InitializeHolderRewards;
+      instructionType: PaladinRewardsInstruction.InitializeHolderRewards;
     } & ParsedInitializeHolderRewardsInstruction<TProgram>)
   | ({
-      instructionType: RewardsInstruction.HarvestRewards;
+      instructionType: PaladinRewardsInstruction.HarvestRewards;
     } & ParsedHarvestRewardsInstruction<TProgram>);

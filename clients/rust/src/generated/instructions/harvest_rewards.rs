@@ -47,7 +47,7 @@ impl HarvestRewards {
         let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
 
         solana_program::instruction::Instruction {
-            program_id: crate::REWARDS_ID,
+            program_id: crate::PALADIN_REWARDS_ID,
             accounts,
             data,
         }
@@ -251,7 +251,7 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
         let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
 
         let instruction = solana_program::instruction::Instruction {
-            program_id: crate::REWARDS_ID,
+            program_id: crate::PALADIN_REWARDS_ID,
             accounts,
             data,
         };
