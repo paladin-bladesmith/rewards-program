@@ -671,6 +671,19 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
 mod tests {
     use {super::*, proptest::prelude::*};
 
+    #[test]
+    fn maximum_eligible_rewards() {
+        // 1 lamport per token (not actually possible, but shows that we're ok)
+        let maximum_marginal_rewards_per_token = REWARDS_PER_TOKEN_SCALING_FACTOR;
+        let maximum_token_balance = 1_000_000_000 * 1_000_000_000; // 1 billion with 9 decimals
+        let _ = calculate_eligible_rewards(
+            maximum_marginal_rewards_per_token,
+            0,
+            maximum_token_balance,
+        )
+        .unwrap();
+    }
+
     proptest! {
         #[test]
         fn test_calculate_rewards_per_token(
