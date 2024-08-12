@@ -118,33 +118,53 @@ fn check_holder_rewards(
     Ok(())
 }
 
+// Calculate the rewards per token.
+//
+// Calculation: rewards / token_supply
+// Scaled by 1e9 to store 9 decimal places of precision.
+//
+// This calculation is valid for all possible values of rewards and token
+// supply, since the scaling to `u128` prevents multiplication from breaking
+// the `u64::MAX` ceiling, and the `token_supply == 0` check prevents
+// `checked_div` returning `None` from a zero denominator.
 fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, ProgramError> {
     if token_supply == 0 {
         return Ok(0);
     }
-    // Calculation: rewards / token_supply
-    //
-    // Scaled by 1e9 to store 9 decimal places of precision.
     (rewards as u128)
         .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
         .and_then(|product| product.checked_div(token_supply as u128))
         .ok_or(ProgramError::ArithmeticOverflow)
 }
 
+// Calculate the eligible rewards for a token account.
+//
+// Calculation: (current - last) * balance
+// The result is descaled by a factor of 1e9 since both rewards per token
+// values are scaled by 1e9 for precision.
+//
+// This calculation is valid under the following conditions:
+// * The current accumulated rewards per token is always greater than or equal
+//   to the last accumulated rewards per token.
+// * The total rewards accumulated by the system does not exceed `u64::MAX`.
+//
+// The first condition is guaranteed by the program logic.
+//
+// The second condition is a reasonable upper bound, considering `u64::MAX` is
+// approximately 386_266 % of the current circulating supply of SOL.
+//
+// For more information, see this function's prop tests.
 fn calculate_eligible_rewards(
     current_accumulated_rewards_per_token: u128,
     last_accumulated_rewards_per_token: u128,
     token_account_balance: u64,
 ) -> Result<u64, ProgramError> {
-    // Calculation: (current_accumulated_rewards_per_token
-    //   - last_accumulated_rewards_per_token) * token_account_balance
     let marginal_rate = current_accumulated_rewards_per_token
         .checked_sub(last_accumulated_rewards_per_token)
         .ok_or(ProgramError::ArithmeticOverflow)?;
     if marginal_rate == 0 {
         return Ok(0);
     }
-    // Scaled by 1e9 to store 9 decimal places of precision.
     marginal_rate
         .checked_mul(token_account_balance as u128)
         .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
@@ -640,6 +660,217 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");
                 process_harvest_rewards(program_id, accounts)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {super::*, proptest::prelude::*};
+
+    #[test]
+    fn maximum_eligible_rewards() {
+        // 1 lamport per token (not actually possible, but shows that we're ok)
+        let maximum_marginal_rewards_per_token = REWARDS_PER_TOKEN_SCALING_FACTOR;
+        let maximum_token_balance = 1_000_000_000 * 1_000_000_000; // 1 billion with 9 decimals
+        let _ = calculate_eligible_rewards(
+            maximum_marginal_rewards_per_token,
+            0,
+            maximum_token_balance,
+        )
+        .unwrap();
+    }
+
+    proptest! {
+        #[test]
+        fn test_calculate_rewards_per_token(
+            rewards in 0u64..,
+            token_supply in 0u64..,
+        ) {
+            // Calculate.
+            //
+            // For all possible values of rewards and token_supply, the
+            // calculation should never return an error, hence the
+            // `unwrap` here.
+            //
+            // The scaling to `u128` prevents multiplication from breaking
+            // the `u64::MAX` ceiling, and the `token_supply == 0` check
+            // prevents `checked_div` returning `None` from a zero
+            // denominator.
+            let result = calculate_rewards_per_token(rewards, token_supply).unwrap();
+            // Evaluate.
+            if token_supply == 0 {
+                prop_assert_eq!(result, 0);
+            } else {
+                let expected = (rewards as u128)
+                    .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
+                    .and_then(|product| product.checked_div(token_supply as u128))
+                    .unwrap();
+                prop_assert_eq!(result, expected);
+            }
+        }
+    }
+
+    // The marginal reward per token (current - last) within the
+    // `calculate_eligible_rewards` function (tested below) is expressed in
+    // terms of rewards _per token_, which is stored as a `u128` and calculated
+    // by the `calculate_rewards_per_token` function (tested above).
+    //
+    // The return type of `calculate_eligible_rewards` is limited to
+    // `u64::MAX`, but in order to determine the function's upper bounds for
+    // each input parameter, we must consider the maximum marginal reward per token
+    // (`current_accumulated_rewards_per_token`
+    //             - `last_accumulated_rewards_per_token`)
+    // and token account balance that this function can support.
+    //
+    // Since the marginal reward per token is at its maximum anytime a holder
+    // has a "last seen rate" (`last_accumulated_rewards_per_token`) of zero,
+    // we can evaluate in terms of `current_accumulated_rewards_per_token`,
+    // assuming the "last seen rate" to be zero. We will stick to this
+    // assumption in all references to `marginal_rewards_per_token` below.
+    //
+    // On its face, the maximum marginal reward per token is bound by
+    // `u128::MAX` - since both `current_accumulated_rewards_per_token` and
+    // `last_accumulated_rewards_per_token` are represented as `u128` integers.
+    // However, since the return value is capped at `u64::MAX`, we can perform
+    // the following arithmetic.
+    //
+    // Consider the original function:
+    //
+    //     eligible_rewards = (marginal_rewards_per_token * balance) / 1e9
+    //
+    // We can plug in `u64::MAX` for both `eligible_rewards` and `balance`
+    // to calculate the input `marginal_rewards_per_token` upper bound.
+    //
+    //     u64::MAX = (marginal_rewards_per_token * u64::MAX) / 1e9
+    //
+    // And evaluate to:
+    //
+    //     marginal_rewards_per_token = 1e9
+    //
+    // This means `calculate_eligible_rewards` can handle a maximum marginal
+    // reward per token of 1e9, or 1 lamport per token.
+    //
+    // But what does this mean as a constraint on the system as a whole? In
+    // other words, if a holder had 100% of the token supply and their last
+    // seen rate was zero, what's the maximum number of rewards the entire
+    // system can accumulate (in lamports) before this function would break?
+    //
+    // We can compute this value from the formula for
+    // `calculate_rewards_per_token`, which is represented below.
+    //
+    //     rewards_per_token = (reward * 1e9) / mint_supply
+    //
+    // Plugging in the values for maximum marginal reward per token and
+    // `u64::MAX` for token supply...
+    //
+    //     1e9 = (reward * 1e9) / u64::MAX
+    //
+    // ... we get:
+    //
+    //     reward = u64::MAX
+    //
+    // This means that the maximum lamports that can be paid into the system
+    // when a holder has 100% of the token supply and has never claimed is
+    // u64::MAX.
+    //
+    // This also means that the two functions - `calculate_rewards_per_token`
+    // and `calculate_eligible_rewards` share the same upper bound, since
+    // `calculate_rewards_per_token` expects a `u64` for rewards.
+    //
+    // However, since rewards can be paid into the system incrementally, and
+    // are stored as _rewards per token_ in a `u128`, it's mathematically
+    // possible for the system to receive more than `u64::MAX` over time.
+    //
+    // It's worth noting that `u64::MAX` exceeds the current circulating supply
+    // of SOL (`4.66e15`) by 386_266 %.
+    //
+    // That being said, we can pipe `u64::MAX` into `calculate_rewards_per_token`
+    // as the function's upper bound for proptesting. This will also max-out at
+    // 1e9.
+    prop_compose! {
+        fn current_last_and_balance(max_accumulated_rewards: u64)
+        (mint_supply in 0..u64::MAX)
+        (
+            current in 0..=calculate_rewards_per_token(
+                max_accumulated_rewards,
+                mint_supply,
+            ).unwrap(),
+            balance in 0..=mint_supply,
+        ) -> (u128, u128, u64) {
+            (
+                current, // Current accumulated rewards per token.
+                0,       // Last accumulated rewards per token (always 0 here for maximum margin).
+                balance, // Token account balance (up to 100% of mint supply).
+            )
+        }
+    }
+    proptest! {
+        #[test]
+        fn test_calculate_eligible_rewards(
+            (
+                current_accumulated_rewards_per_token,
+                last_accumulated_rewards_per_token,
+                token_account_balance,
+            ) in current_last_and_balance(u64::MAX),
+        ) {
+            // Calculate.
+            let result = calculate_eligible_rewards(
+                current_accumulated_rewards_per_token,
+                last_accumulated_rewards_per_token,
+                token_account_balance,
+            )
+            .unwrap();
+            // Evaluate.
+            //
+            // Since we've configured the inputs so that last never exceeds
+            // current, this subtraction never overflows, so it's safe to
+            // unwrap here.
+            let marginal_rate = current_accumulated_rewards_per_token
+                .checked_sub(last_accumulated_rewards_per_token)
+                .unwrap();
+            if marginal_rate == 0 {
+                // If the marginal rate resolves to zero, the
+                // calculation should short-circuit and return zero.
+                prop_assert_eq!(result, 0);
+            } else {
+                // The rest of the calculation consists of three steps,
+                // so evaluate each step one at a time.
+                //
+                // 1. marginal rate x token account balance
+                // 2. product / REWARDS_PER_TOKEN_SCALING_FACTOR
+                // 3. product.try_into (u64)
+
+                // Step 1.
+                //
+                // Since we've restricted the inputs within the bounds
+                // of the system, the multiplication should never exceed
+                // `u128::MAX`.
+                let marginal_rewards = marginal_rate
+                    .checked_mul(token_account_balance as u128)
+                    .unwrap();
+
+                // Step 2.
+                //
+                // Since we're always dividing by a non-zero constant,
+                // the division should never return `None`, so we can
+                // unwrap here.
+                let descaled_marginal_rewards = marginal_rewards
+                    .checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR)
+                    .unwrap();
+
+                // Step 3.
+                //
+                // Since we've restricted the inputs within the bounds
+                // of the system, the conversion to `u64` should always
+                // succeed.
+                let expected_result: u64 = descaled_marginal_rewards
+                    .try_into()
+                    .unwrap();
+
+                // The calculation should return the expected value.
+                prop_assert_eq!(result, expected_result);
             }
         }
     }
