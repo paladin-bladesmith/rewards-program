@@ -146,13 +146,11 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 // This calculation is valid under the following conditions:
 // * The current accumulated rewards per token is always greater than or equal
 //   to the last accumulated rewards per token.
-// * The marginal rate multiplied by the token account balance does not exceed
-//   `u64::MAX * 1e9` (scaling factor).
+// * The total rewards accumulated by the system does not exceed `u64::MAX`.
 //
 // The first condition is guaranteed by the program logic.
 //
-// The second condition is guaranteed under the constraint that total
-// system-level accumulated rewards does not exceed `u64::MAX`, which is
+// The second condition is a reasonable upper bound, considering `u64::MAX` is
 // approximately 386_266 % of the current circulating supply of SOL.
 //
 // For more information, see this function's prop tests.
@@ -714,58 +712,83 @@ mod tests {
         }
     }
 
-    // Since the marginal rate (current - last) within this function is describing
-    // rewards _per token_, which is calculated by `calculate_rewards_per_token`,
-    // the maximum permitted true reward difference on the system that can be
-    // tolerated by a maximum token account balance (100% of token supply) depends
-    // on the token supply of the mint.
+    // The marginal reward per token (current - last) within the
+    // `calculate_eligible_rewards` function (tested below) is expressed in
+    // terms of rewards _per token_, which is stored as a `u128` and calculated
+    // by the `calculate_rewards_per_token` function (tested above).
     //
-    // Consider the calculations for both functions:
+    // The return type of `calculate_eligible_rewards` is limited to
+    // `u64::MAX`, but in order to determine the function's upper bounds for
+    // each input parameter, we must consider the maximum marginal reward per token
+    // (`current_accumulated_rewards_per_token`
+    //             - `last_accumulated_rewards_per_token`)
+    // and token account balance that this function can support.
     //
-    //     rewards_per_token = (reward * 1e9) / mint_supply
+    // Since the marginal reward per token is at its maximum anytime a holder
+    // has a "last seen rate" (`last_accumulated_rewards_per_token`) of zero,
+    // we can evaluate in terms of `current_accumulated_rewards_per_token`,
+    // assuming the "last seen rate" to be zero. We will stick to this
+    // assumption in all references to `marginal_rewards_per_token` below.
+    //
+    // On its face, the maximum marginal reward per token is bound by
+    // `u128::MAX` - since both `current_accumulated_rewards_per_token` and
+    // `last_accumulated_rewards_per_token` are represented as `u128` integers.
+    // However, since the return value is capped at `u64::MAX`, we can perform
+    // the following arithmetic.
+    //
+    // Consider the original function:
+    //
     //     eligible_rewards = (marginal_rewards_per_token * balance) / 1e9
     //
-    // By rearranging the first formula (for `calculate_rewards_per_token`), we
-    // can calculate the total accumulated system-level reward based on the
-    // given rewards per token and mint supply.
+    // We can plug in `u64::MAX` for both `eligible_rewards` and `balance`
+    // to calculate the input `marginal_rewards_per_token` upper bound.
     //
-    //     accumulated_rewards =
-    //              (accumulated_rewards_per_token * mint_supply) / e9
+    //     u64::MAX = (marginal_rewards_per_token * u64::MAX) / 1e9
     //
-    // By rearranging the second formula (which is for this function
-    // `calculate_eligible_rewards`), and plugging in `u64::MAX * 1e9` for
-    // `eligible_rewards` (function upper bound), we can obtain a formula for
-    // the maximum marginal rate (current - last) supported.
+    // And evaluate to:
     //
-    //     max_marginal_rewards_per_token = (u64::MAX * 1e9) / balance
+    //     marginal_rewards_per_token = 1e9
     //
-    // The largest token account balance possible is 100% of the mint supply,
-    // so we can rewrite the rearranged second formula as follows.
+    // This means `calculate_eligible_rewards` can handle a maximum marginal
+    // reward per token of 1e9, or 1 lamport per token.
     //
-    //     max_marginal_rewards_per_token = (u64::MAX * 1e9) / mint_supply
+    // But what does this mean as a constraint on the system as a whole? In
+    // other words, if a holder had 100% of the token supply and their last
+    // seen rate was zero, what's the maximum number of rewards the entire
+    // system can accumulate (in lamports) before this function would break?
     //
-    // Now, plugging the formula for `max_marginal_rewards_per_token` into the
-    // `accumulated_rewards_per_token` of the rearranged first formula, we get
-    // the following.
+    // We can compute this value from the formula for
+    // `calculate_rewards_per_token`, which is represented below.
     //
-    //     max_accumulated_rewards = (
-    //                          ((u64::MAX * 1e9) / mint_supply) * mint_supply
-    //                        ) / 1e9
+    //     rewards_per_token = (reward * 1e9) / mint_supply
     //
-    // As you can see, the mint supply can be factored out, and the max
-    // accumulated system-level reward can now be computed directly.
+    // Plugging in the values for maximum marginal reward per token and
+    // `u64::MAX` for token supply...
     //
-    //     max_accumulated_rewards = u64::MAX
+    //     1e9 = (reward * 1e9) / u64::MAX
     //
-    // Therefore, the maximum system-level accumulated reward cannot exceed
-    // `u64::MAX` without breaking `calculate_eligible_rewards`. Since
-    // accumulated rewards as stored as _per token_ values in a `u128`, it's
-    // mathematically possible to exceed `u64::MAX` in accumulated true
-    // rewards. However, note that `u64::MAX` exceeds the current circulating
-    // supply of SOL (`4.66e15`) by 386_266 %.
+    // ... we get:
     //
-    // As a beyond-reasonable proptest upper bound, we'll use `u64::MAX` for
-    // total system-level accumulated rewards, and mint supply plays no role.
+    //     reward = u64::MAX
+    //
+    // This means that the maximum lamports that can be paid into the system
+    // when a holder has 100% of the token supply and has never claimed is
+    // u64::MAX.
+    //
+    // This also means that the two functions - `calculate_rewards_per_token`
+    // and `calculate_eligible_rewards` share the same upper bound, since
+    // `calculate_rewards_per_token` expects a `u64` for rewards.
+    //
+    // However, since rewards can be paid into the system incrementally, and
+    // are stored as _rewards per token_ in a `u128`, it's mathematically
+    // possible for the system to receive more than `u64::MAX` over time.
+    //
+    // It's worth noting that `u64::MAX` exceeds the current circulating supply
+    // of SOL (`4.66e15`) by 386_266 %.
+    //
+    // That being said, we can pipe `u64::MAX` into `calculate_rewards_per_token`
+    // as the function's upper bound for proptesting. This will also max-out at
+    // 1e9.
     prop_compose! {
         fn current_last_and_balance(max_accumulated_rewards: u64)
         (mint_supply in 0..u64::MAX)
