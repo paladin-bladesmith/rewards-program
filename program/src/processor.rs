@@ -669,15 +669,57 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
 mod tests {
     use {super::*, proptest::prelude::*};
 
+    const BENCH_TOKEN_SUPPLY: u64 = 1_000_000_000 * 1_000_000_000; // 1 billion with 9 decimals
+
+    #[test]
+    fn minimum_rewards_per_token() {
+        // 1 SOL (arithmetic minimum)
+        let minimum_reward = 1_000_000_000;
+        let result = calculate_rewards_per_token(minimum_reward, BENCH_TOKEN_SUPPLY).unwrap();
+        assert_ne!(result, 0);
+
+        // Anything below the minimum should return zero.
+        let result = calculate_rewards_per_token(minimum_reward - 1, BENCH_TOKEN_SUPPLY).unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn maximum_rewards_per_token() {
+        // u64::MAX (not really practical, but shows that we're ok)
+        let maximum_reward = u64::MAX;
+        let _ = calculate_rewards_per_token(maximum_reward, BENCH_TOKEN_SUPPLY).unwrap();
+    }
+
+    #[test]
+    fn minimum_eligible_rewards() {
+        // 1 / 1e9 lamports per token
+        let minimum_marginal_rewards_per_token = 1;
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token,
+            0,
+            BENCH_TOKEN_SUPPLY, // 100% of the supply.
+        )
+        .unwrap();
+        assert_ne!(result, 0);
+
+        // Anything below the minimum should return zero.
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token - 1,
+            0,
+            BENCH_TOKEN_SUPPLY, // 100% of the supply.
+        )
+        .unwrap();
+        assert_eq!(result, 0);
+    }
+
     #[test]
     fn maximum_eligible_rewards() {
-        // 1 lamport per token (not actually possible, but shows that we're ok)
+        // 1 lamport per token (not really practical, but shows that we're ok)
         let maximum_marginal_rewards_per_token = REWARDS_PER_TOKEN_SCALING_FACTOR;
-        let maximum_token_balance = 1_000_000_000 * 1_000_000_000; // 1 billion with 9 decimals
         let _ = calculate_eligible_rewards(
             maximum_marginal_rewards_per_token,
             0,
-            maximum_token_balance,
+            BENCH_TOKEN_SUPPLY, // 100% of the supply.
         )
         .unwrap();
     }
