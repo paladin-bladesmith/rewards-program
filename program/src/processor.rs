@@ -40,7 +40,7 @@ use {
     },
 };
 
-const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000; // 1e9
+const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
 
 fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
     let mint_data = mint_info.try_borrow_data()?;
@@ -121,7 +121,7 @@ fn check_holder_rewards(
 // Calculate the rewards per token.
 //
 // Calculation: rewards / token_supply
-// Scaled by 1e9 to store 9 decimal places of precision.
+// Scaled by 1e18 to store 18 decimal places of precision.
 //
 // This calculation is valid for all possible values of rewards and token
 // supply, since the scaling to `u128` prevents multiplication from breaking
@@ -140,8 +140,8 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 // Calculate the eligible rewards for a token account.
 //
 // Calculation: (current - last) * balance
-// The result is descaled by a factor of 1e9 since both rewards per token
-// values are scaled by 1e9 for precision.
+// The result is descaled by a factor of 1e18 since both rewards per token
+// values are scaled by 1e18 for precision.
 //
 // This calculation is valid under the following conditions:
 // * The current accumulated rewards per token is always greater than or equal
@@ -673,8 +673,8 @@ mod tests {
 
     #[test]
     fn minimum_rewards_per_token() {
-        // 1 SOL (arithmetic minimum)
-        let minimum_reward = 1_000_000_000;
+        // 1 lamport (arithmetic minimum)
+        let minimum_reward = 1;
         let result = calculate_rewards_per_token(minimum_reward, BENCH_TOKEN_SUPPLY).unwrap();
         assert_ne!(result, 0);
 
@@ -692,7 +692,7 @@ mod tests {
 
     #[test]
     fn minimum_eligible_rewards() {
-        // 1 / 1e9 lamports per token
+        // 1 / 1e18 lamports per token
         let minimum_marginal_rewards_per_token = 1;
         let result = calculate_eligible_rewards(
             minimum_marginal_rewards_per_token,
@@ -780,19 +780,19 @@ mod tests {
     //
     // Consider the original function:
     //
-    //     eligible_rewards = (marginal_rewards_per_token * balance) / 1e9
+    //     eligible_rewards = (marginal_rewards_per_token * balance) / 1e18
     //
     // We can plug in `u64::MAX` for both `eligible_rewards` and `balance`
     // to calculate the input `marginal_rewards_per_token` upper bound.
     //
-    //     u64::MAX = (marginal_rewards_per_token * u64::MAX) / 1e9
+    //     u64::MAX = (marginal_rewards_per_token * u64::MAX) / 1e18
     //
     // And evaluate to:
     //
-    //     marginal_rewards_per_token = 1e9
+    //     marginal_rewards_per_token = 1e18
     //
     // This means `calculate_eligible_rewards` can handle a maximum marginal
-    // reward per token of 1e9, or 1 lamport per token.
+    // reward per token of 1e18, or 1 lamport per token.
     //
     // But what does this mean as a constraint on the system as a whole? In
     // other words, if a holder had 100% of the token supply and their last
@@ -802,12 +802,12 @@ mod tests {
     // We can compute this value from the formula for
     // `calculate_rewards_per_token`, which is represented below.
     //
-    //     rewards_per_token = (reward * 1e9) / mint_supply
+    //     rewards_per_token = (reward * 1e18) / mint_supply
     //
     // Plugging in the values for maximum marginal reward per token and
     // `u64::MAX` for token supply...
     //
-    //     1e9 = (reward * 1e9) / u64::MAX
+    //     1e18 = (reward * 1e18) / u64::MAX
     //
     // ... we get:
     //
@@ -830,7 +830,7 @@ mod tests {
     //
     // That being said, we can pipe `u64::MAX` into `calculate_rewards_per_token`
     // as the function's upper bound for proptesting. This will also max-out at
-    // 1e9.
+    // 1e18.
     prop_compose! {
         fn current_last_and_balance(max_accumulated_rewards: u64)
         (mint_supply in 0..u64::MAX)

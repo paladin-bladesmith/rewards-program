@@ -223,8 +223,8 @@ pub(crate) fn collect_holder_rewards_pool_signer_seeds<'a>(
 pub struct HolderRewards {
     /// The rewards per token exchange rate when this holder last harvested.
     ///
-    /// Stored as a `u128`, which includes a scaling factor of `1e9` to
-    /// represent the exchange rate with 9 decimal places of precision.
+    /// Stored as a `u128`, which includes a scaling factor of `1e18` to
+    /// represent the exchange rate with 18 decimal places of precision.
     pub last_accumulated_rewards_per_token: u128,
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
@@ -250,7 +250,7 @@ impl HolderRewards {
 pub struct HolderRewardsPool {
     /// The current rewards per token exchange rate.
     ///
-    /// Stored as a `u128`, which includes a scaling factor of `1e9` to
-    /// represent the exchange rate with 9 decimal places of precision.
+    /// Stored as a `u128`, which includes a scaling factor of `1e18` to
+    /// represent the exchange rate with 18 decimal places of precision.
     pub accumulated_rewards_per_token: u128,
 }

@@ -424,7 +424,7 @@ async fn test_e2e() {
                 &mint,
                 Pool {
                     token_supply: 100,
-                    accumulated_rewards_per_token: 1_000_000_000,
+                    accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                     pool_excess_lamports: 100,
                 },
                 &[],
@@ -495,7 +495,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 125,
-                accumulated_rewards_per_token: 1_000_000_000,
+                accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 100,
             },
             &[
@@ -527,7 +527,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 25,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -576,7 +576,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 125,
-                accumulated_rewards_per_token: 1_000_000_000,
+                accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 60,
             },
             &[
@@ -592,7 +592,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -608,7 +608,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 25,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -674,7 +674,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 100,
-                accumulated_rewards_per_token: 1_000_000_000,
+                accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 35,
             },
             &[
@@ -682,7 +682,7 @@ async fn test_e2e() {
                     &alice_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -690,7 +690,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -706,7 +706,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 25,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -771,7 +771,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 100,
-                accumulated_rewards_per_token: 3_000_000_000,
+                accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                 pool_excess_lamports: 235,
             },
             &[
@@ -779,7 +779,7 @@ async fn test_e2e() {
                     &alice_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -787,7 +787,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -803,7 +803,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 25,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -863,7 +863,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 100,
-                accumulated_rewards_per_token: 3_000_000_000,
+                accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                 pool_excess_lamports: 235,
             },
             &[
@@ -871,7 +871,7 @@ async fn test_e2e() {
                     &alice_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -879,7 +879,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -887,7 +887,7 @@ async fn test_e2e() {
                     &carol_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 3_000_000_000,
+                        last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 105,
                     },
                 ),
@@ -895,7 +895,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 60,
-                        last_accumulated_rewards_per_token: 3_000_000_000,
+                        last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 50,
                     },
                 ),
@@ -953,7 +953,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 100,
-                accumulated_rewards_per_token: 6_000_000_000,
+                accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                 pool_excess_lamports: 535,
             },
             &[
@@ -961,7 +961,7 @@ async fn test_e2e() {
                     &alice_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -969,7 +969,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -977,7 +977,7 @@ async fn test_e2e() {
                     &carol_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 3_000_000_000,
+                        last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 105,
                     },
                 ),
@@ -985,7 +985,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 60,
-                        last_accumulated_rewards_per_token: 3_000_000_000,
+                        last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 50,
                     },
                 ),
@@ -1062,7 +1062,7 @@ async fn test_e2e() {
             &mint,
             Pool {
                 token_supply: 100,
-                accumulated_rewards_per_token: 6_000_000_000,
+                accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                 pool_excess_lamports: 0,
             },
             &[
@@ -1070,7 +1070,7 @@ async fn test_e2e() {
                     &alice_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 1_000_000_000,
+                        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -1078,7 +1078,7 @@ async fn test_e2e() {
                     &bob_token_account,
                     Holder {
                         token_account_balance: 40,
-                        last_accumulated_rewards_per_token: 6_000_000_000,
+                        last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -1086,7 +1086,7 @@ async fn test_e2e() {
                     &carol_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 6_000_000_000,
+                        last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
@@ -1094,7 +1094,7 @@ async fn test_e2e() {
                     &dave_token_account,
                     Holder {
                         token_account_balance: 60,
-                        last_accumulated_rewards_per_token: 6_000_000_000,
+                        last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),

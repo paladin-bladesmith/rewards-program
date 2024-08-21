@@ -1183,17 +1183,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 0,
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 0,
     };
@@ -1201,17 +1201,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 50, // (1 - 0.5) * 100 = 50
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 50, // (1 - 0.5) * 100 = 50
     };
@@ -1219,17 +1219,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 75, // (1 - 0.25) * 100 = 75
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 750_000_000, // 0.75 rewards per token.
+        last_accumulated_rewards_per_token: 750_000_000_000_000_000, // 0.75 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 25, // (1 - 0.75) * 100 = 25
     };
@@ -1237,17 +1237,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 100,
         expected_unharvested_rewards: 175, // (1 - 0.25) * 100 + 100 = 175
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 750_000_000, // 0.75 rewards per token.
+        last_accumulated_rewards_per_token: 750_000_000_000_000_000, // 0.75 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 25, // (1 - 0.75) * 100 = 25
     };
@@ -1255,17 +1255,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
         expected_unharvested_rewards: 75, // (1 - 0.25) * 100 = 75
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 750_000_000, // 0.75 rewards per token.
+        last_accumulated_rewards_per_token: 750_000_000_000_000_000, // 0.75 rewards per token.
         unharvested_rewards: 200,
         expected_unharvested_rewards: 225, // (1 - 0.75) * 100 + 200 = 225
     };
@@ -1273,17 +1273,17 @@ async fn check_holder_rewards(
 )]
 #[test_case(
     Pool {
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 100,
         expected_unharvested_rewards: 175, // (1 - 0.25) * 100 + 100 = 175
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 750_000_000, // 0.75 rewards per token.
+        last_accumulated_rewards_per_token: 750_000_000_000_000_000, // 0.75 rewards per token.
         unharvested_rewards: 200,
         expected_unharvested_rewards: 225, // (1 - 0.75) * 100 + 200 = 225
     };

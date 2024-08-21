@@ -404,11 +404,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
         unharvested_rewards: 0,
     },
     0,
@@ -418,11 +418,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100,
-        last_accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
         unharvested_rewards: 500_000,
     },
     500_000, // Unharvested.
@@ -432,7 +432,7 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 50_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 100_000,
@@ -446,7 +446,7 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
@@ -460,7 +460,7 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 1_000_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
@@ -474,11 +474,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
         unharvested_rewards: 0,
     },
     5_000, // (1 - 0.5) * 10_000
@@ -488,11 +488,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
         unharvested_rewards: 1_000,
     },
     6_000, // (1 - 0.5) * 10_000 = 5_000 share + 1_000 unharvested
@@ -502,11 +502,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 500_000_000, // 0.5 rewards per token.
+        last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
         unharvested_rewards: 8_000,
     },
     10_000, // Pool excess.
@@ -516,11 +516,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 0,
     },
     7_500, // (1 - 0.25) * 10_000
@@ -530,11 +530,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 1_000,
     },
     8_500, // (1 - 0.25) * 10_000 = 7_500 share + 1_000 unharvested
@@ -544,11 +544,11 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
-        accumulated_rewards_per_token: 1_000_000_000, // 1 reward per token.
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
         token_account_balance: 10_000,
-        last_accumulated_rewards_per_token: 250_000_000, // 0.25 rewards per token.
+        last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
         unharvested_rewards: 4_000,
     },
     10_000, // Pool excess.
