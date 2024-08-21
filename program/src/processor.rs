@@ -713,6 +713,50 @@ mod tests {
     }
 
     #[test]
+    fn minimum_eligible_rewards_with_one_token() {
+        // 1 / 1e9 lamports per token
+        let minimum_marginal_rewards_per_token = 1_000_000_000;
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token,
+            0,
+            BENCH_TOKEN_SUPPLY / 1_000_000_000, // 1 with 9 decimals.
+        )
+        .unwrap();
+        assert_ne!(result, 0);
+
+        // Anything below the minimum should return zero.
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token - 1,
+            0,
+            BENCH_TOKEN_SUPPLY / 1_000_000_000, // 1 with 9 decimals.
+        )
+        .unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
+    fn minimum_eligible_rewards_with_smallest_fractional_token() {
+        // 1 lamport per token
+        let minimum_marginal_rewards_per_token = 1_000_000_000_000_000_000;
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token,
+            0,
+            BENCH_TOKEN_SUPPLY / 1_000_000_000_000_000_000, // .000_000_001 with 9 decimals.
+        )
+        .unwrap();
+        assert_ne!(result, 0);
+
+        // Anything below the minimum should return zero.
+        let result = calculate_eligible_rewards(
+            minimum_marginal_rewards_per_token - 1,
+            0,
+            BENCH_TOKEN_SUPPLY / 1_000_000_000_000_000_000, // .000_000_001 with 9 decimals.
+        )
+        .unwrap();
+        assert_eq!(result, 0);
+    }
+
+    #[test]
     fn maximum_eligible_rewards() {
         // 1 lamport per token (not really practical, but shows that we're ok)
         let maximum_marginal_rewards_per_token = REWARDS_PER_TOKEN_SCALING_FACTOR;
