@@ -333,6 +333,17 @@ struct ExpectedPool {
     125_000;
     "50% initial rate, rewards increase by 250%, resulting rate 175%"
 )]
+#[test_case(
+    InitialPool {
+        token_supply: 100_000,
+        accumulated_rewards_per_token: u128::MAX,
+    },
+    ExpectedPool {
+        accumulated_rewards_per_token: 1_250_000_000_000_000_000 - 1, // Wrapped.
+    },
+    125_000;
+    "maximum initial rate, rewards increase, resulting rate should be wrapped"
+)]
 #[tokio::test]
 async fn success(initial: InitialPool, expected: ExpectedPool, reward_amount: u64) {
     let InitialPool {

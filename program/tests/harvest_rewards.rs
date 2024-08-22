@@ -488,6 +488,20 @@ struct Holder {
 #[test_case(
     Pool {
         excess_lamports: 10_000,
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just below 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: u128::MAX, // Maximum rate.
+        unharvested_rewards: 0,
+    },
+    10_000, // 1 * 10_000
+    0;
+    "Last harvested maximum rate, eligible for 1 rate, pool has enough, receive share"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 10_000,
         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
     },
     Holder {
@@ -554,6 +568,20 @@ struct Holder {
     10_000, // Pool excess.
     1_500; // 10_000 pool excess - [(1 - 0.25) * 10_000 = 7_500 share + 4_000 unharvested]
     "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool underfunded, receive pool excess"
+)]
+#[test_case(
+    Pool {
+        excess_lamports: 11_000,
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just below 1 reward per token.
+    },
+    Holder {
+        token_account_balance: 10_000,
+        last_accumulated_rewards_per_token: u128::MAX, // Maximum rate.
+        unharvested_rewards: 1_000,
+    },
+    11_000, // 1 * 10_000 = 10_000 share + 1_000 unharvested
+    0;
+    "Last harvested maximum rate, some unharvested, eligible for 1 rate, pool has enough, receive share + unharvested"
 )]
 #[tokio::test]
 async fn success(
