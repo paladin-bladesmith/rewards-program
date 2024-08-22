@@ -69,6 +69,13 @@ and her token balance has not changed, she is now eligible for 3 rewards per
 token - the difference between the current accumulated rate, and the rate she
 last harvested at.
 
+Note: Rewards per token are scaled by `1e18` to account for 18 decimals of
+precision. This means the values for accumulated rewards per token will be
+quite large. The calculation of eligible rewards based on the "last seen"
+rewards per token and the _current_ rewards per token, as well as the
+incrementing of this rate in the processor, use **wrapping math**, so overflow
+is handled gracefully. For more information, see `processor.rs`.
+
 ## Transfer Hook
 
 The Paladin Rewards program also implements the SPL Transfer Hook interface,
