@@ -262,7 +262,7 @@ struct ExpectedPool {
         accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 2_500_000_000, // 0% + 250_000 / 100_000 = 250%
+        accumulated_rewards_per_token: 2_500_000_000_000_000_000, // 0% + 250_000 / 100_000 = 250%
     },
     250_000;
     "Zero initial rate and rewards, resulting rate 250%"
@@ -273,7 +273,7 @@ struct ExpectedPool {
         accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 100_000_000, // 0% + 100_000 / 1_000_000 = 10%
+        accumulated_rewards_per_token: 100_000_000_000_000_000, // 0% + 100_000 / 1_000_000 = 10%
     },
     100_000;
     "Zero initial rate and rewards, resulting rate 10%"
@@ -284,7 +284,7 @@ struct ExpectedPool {
         accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 1_000_000, // 0% + 1_000 / 1_000_000 = 0.1%
+        accumulated_rewards_per_token: 1_000_000_000_000_000, // 0% + 1_000 / 1_000_000 = 0.1%
     },
     1_000;
     "Zero initial rate and rewards, resulting rate 0.1%"
@@ -295,7 +295,7 @@ struct ExpectedPool {
         accumulated_rewards_per_token: 0,
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 1_000, // 0 + 1 / 1_000_000 = 0.0001%
+        accumulated_rewards_per_token: 1_000_000_000_000, // 0 + 1 / 1_000_000 = 0.0001%
     },
     1;
     "Zero initial rate and rewards, resulting rate 0.0001%"
@@ -303,10 +303,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        accumulated_rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000_000_000_000, // 50%
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 525_000_000, // 50% + 2_500 / 100_000 = 52.5%
+        accumulated_rewards_per_token: 525_000_000_000_000_000, // 50% + 2_500 / 100_000 = 52.5%
     },
     2_500;
     "50% initial rate, rewards increase by 5%, resulting rate 52.5%"
@@ -314,10 +314,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        accumulated_rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000_000_000_000, // 50%
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 1_000_000_000, // 50% + 50_000 / 100_000 = 100%
+        accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 50% + 50_000 / 100_000 = 100%
     },
     50_000;
     "50% initial rate, rewards increase by 100%, resulting rate 100%"
@@ -325,10 +325,10 @@ struct ExpectedPool {
 #[test_case(
     InitialPool {
         token_supply: 100_000,
-        accumulated_rewards_per_token: 500_000_000, // 50%
+        accumulated_rewards_per_token: 500_000_000_000_000_000, // 50%
     },
     ExpectedPool {
-        accumulated_rewards_per_token: 1_750_000_000, // 50% + 125_000 / 100_000 = 175%
+        accumulated_rewards_per_token: 1_750_000_000_000_000_000, // 50% + 125_000 / 100_000 = 175%
     },
     125_000;
     "50% initial rate, rewards increase by 250%, resulting rate 175%"
