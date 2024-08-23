@@ -766,7 +766,7 @@ mod tests {
     fn wrapping_eligible_rewards() {
         // Set up current to be less than rate, simulating a scenario where the
         // current reward has wrapped around `u128::MAX`.
-        let current_accumulated_rewards_per_token = 1_000_000_000_000_000_000;
+        let current_accumulated_rewards_per_token = 0;
         let last_accumulated_rewards_per_token = u128::MAX - 1_000_000_000_000_000_000;
         let result = calculate_eligible_rewards(
             current_accumulated_rewards_per_token,
@@ -774,7 +774,7 @@ mod tests {
             BENCH_TOKEN_SUPPLY,
         )
         .unwrap();
-        assert_ne!(result, 1_000_000_000_000_000_000);
+        assert_eq!(result, 1_000_000_000_000_000_001);
 
         // Try it again at the very edge. Result should be one.
         let current_accumulated_rewards_per_token = 0;
