@@ -515,15 +515,17 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             token_account_balance,
         )?;
 
-        // Update the holder rewards state.
-        //
-        // Temporarily update `unharvested_rewards` with the eligible rewards.
-        holder_rewards_state.last_accumulated_rewards_per_token =
-            pool_state.accumulated_rewards_per_token;
-        holder_rewards_state.unharvested_rewards = holder_rewards_state
-            .unharvested_rewards
-            .checked_add(eligible_rewards)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
+        if eligible_rewards != 0 {
+            // Update the holder rewards state.
+            //
+            // Temporarily update `unharvested_rewards` with the eligible rewards.
+            holder_rewards_state.last_accumulated_rewards_per_token =
+                pool_state.accumulated_rewards_per_token;
+            holder_rewards_state.unharvested_rewards = holder_rewards_state
+                .unharvested_rewards
+                .checked_add(eligible_rewards)
+                .ok_or(ProgramError::ArithmeticOverflow)?;
+        }
 
         // If the pool doesn't have enough lamports to cover the rewards, only
         // harvest the available lamports. This should never happen, but the check
