@@ -1086,7 +1086,7 @@ async fn test_e2e() {
                     &carol_token_account,
                     Holder {
                         token_account_balance: 0,
-                        last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
+                        last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 0,
                     },
                 ),
