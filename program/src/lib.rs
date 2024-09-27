@@ -12,4 +12,4 @@ pub mod instruction;
 pub mod processor;
 pub mod state;
 
-solana_program::declare_id!("PRewards11111111111111111111111111111111111");
+solana_program::declare_id!("2XNqZeXtemZ1FjrkVsssPPE9AVAVjTSoaqb53EnNQ1fe");

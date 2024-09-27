@@ -20,7 +20,7 @@ import {
 } from '../instructions';
 
 export const PALADIN_REWARDS_PROGRAM_ADDRESS =
-  'PRewards11111111111111111111111111111111111' as Address<'PRewards11111111111111111111111111111111111'>;
+  '2XNqZeXtemZ1FjrkVsssPPE9AVAVjTSoaqb53EnNQ1fe' as Address<'2XNqZeXtemZ1FjrkVsssPPE9AVAVjTSoaqb53EnNQ1fe'>;
 
 export enum PaladinRewardsAccount {
   HolderRewards,
@@ -56,7 +56,7 @@ export function identifyPaladinRewardsInstruction(
 }
 
 export type ParsedPaladinRewardsInstruction<
-  TProgram extends string = 'PRewards11111111111111111111111111111111111',
+  TProgram extends string = '2XNqZeXtemZ1FjrkVsssPPE9AVAVjTSoaqb53EnNQ1fe',
 > =
   | ({
       instructionType: PaladinRewardsInstruction.InitializeHolderRewardsPool;

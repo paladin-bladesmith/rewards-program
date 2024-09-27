@@ -7,4 +7,4 @@
 use solana_program::{pubkey, pubkey::Pubkey};
 
 /// `paladin_rewards` program ID.
-pub const PALADIN_REWARDS_ID: Pubkey = pubkey!("PRewards11111111111111111111111111111111111");
+pub const PALADIN_REWARDS_ID: Pubkey = pubkey!("2XNqZeXtemZ1FjrkVsssPPE9AVAVjTSoaqb53EnNQ1fe");
