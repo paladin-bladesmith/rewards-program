@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 //! The Paladin Rewards program.
 //!
 //! Manages the distribution of rewards to token holders based on their share
