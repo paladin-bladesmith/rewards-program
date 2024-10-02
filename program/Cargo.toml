@@ -13,19 +13,19 @@ bytemuck = "1.16.0"
 num-derive = "0.3"
 num-traits = "0.2"
 shank = "0.4.2"
-solana-program = "2.0.2"
-spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
-spl-tlv-account-resolution = "0.7.0"
-spl-token-2022 = { version = "4.0.0", features = ["no-entrypoint"] }
-spl-transfer-hook-interface = "0.7.0"
+solana-program = "1.18.23"
+spl-associated-token-account = { version = "2.0.0", features = ["no-entrypoint"] }
+spl-tlv-account-resolution = "0.6.3"
+spl-token-2022 = { version = "3.0.0", features = ["no-entrypoint"] }
+spl-transfer-hook-interface = "0.6.0"
 thiserror = "1.0"
 
 [dev-dependencies]
 proptest = "1.5.0"
-solana-program-test = "2.0.2"
-solana-sdk = "2.0.2"
-spl-pod = "0.3.0"
-spl-type-length-value = "0.5.0"
+solana-program-test = "1.18.23"
+solana-sdk = "1.18.23"
+spl-pod = "0.2.0"
+spl-type-length-value = "0.4.0"
 test-case = "3.3.1"
 
 [features]
