@@ -485,7 +485,10 @@ fn process_initialize_holder_rewards(
                     // account.
                     false => Rent::get()?.minimum_balance(HolderRewards::LEN) * 11 / 10,
                 },
-                initial_balance,
+                minimum_balance: match rent_sponsor == Pubkey::default() {
+                    true => 0,
+                    false => initial_balance,
+                },
                 rent_sponsor,
                 _padding: 0,
             };

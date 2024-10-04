@@ -231,13 +231,14 @@ pub struct HolderRewards {
     pub unharvested_rewards: u64,
     /// The amount of rent owed back to the patron.
     pub rent_debt: u64,
-    /// The token balance when the patron sponsored the rent.
+    /// If the account has a rent sponsor then this was the balance at time of
+    /// sponsoring.
     ///
     /// If the balance falls below this level then the patron can close the
     /// account to recover their rent. This is done to mitigate baiting &
     /// griefing patrons (who expect to receive their sponsored rent back within
     /// some predictable time frame).
-    pub initial_balance: u64,
+    pub minimum_balance: u64,
     /// The account that sponsored the rent for this rewards pool.
     pub rent_sponsor: Pubkey,
     /// Aligns to 80 bytes (multiple of 16).

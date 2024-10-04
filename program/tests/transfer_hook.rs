@@ -1161,7 +1161,7 @@ async fn check_holder_rewards(
             unharvested_rewards: holder.expected_unharvested_rewards,
             rent_debt: 0,
             rent_sponsor: Pubkey::default(),
-            initial_balance: 0,
+            minimum_balance: 0,
             _padding: 0,
         }
     );
