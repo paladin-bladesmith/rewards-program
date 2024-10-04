@@ -411,6 +411,7 @@ fn process_distribute_rewards(
 fn process_initialize_holder_rewards(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
+    rent_sponsor: Pubkey,
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
@@ -421,7 +422,7 @@ fn process_initialize_holder_rewards(
     let _system_program = next_account_info(accounts_iter)?;
 
     // Run checks on the token account.
-    {
+    let initial_balance = {
         let token_account_data = token_account_info.try_borrow_data()?;
         let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
 
@@ -429,7 +430,9 @@ fn process_initialize_holder_rewards(
         if !token_account.base.mint.eq(mint_info.key) {
             return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
         }
-    }
+
+        token_account.base.amount
+    };
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let pool_data = holder_rewards_pool_info.try_borrow_data()?;
@@ -473,7 +476,17 @@ fn process_initialize_holder_rewards(
         // Write the data.
         let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
-            HolderRewards::new(pool_state.accumulated_rewards_per_token, 0);
+            HolderRewards {
+                last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
+                unharvested_rewards: 0,
+                rent_debt: match rent_sponsor == Pubkey::default() {
+                    true => holder_rewards_info.lamports(),
+                    false => 0,
+                },
+                initial_balance,
+                rent_sponsor,
+                _padding: 0,
+            };
     }
 
     Ok(())
@@ -653,9 +666,9 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
                 msg!("Instruction: DistributeRewards");
                 process_distribute_rewards(program_id, accounts, amount)
             }
-            PaladinRewardsInstruction::InitializeHolderRewards => {
+            PaladinRewardsInstruction::InitializeHolderRewards(sponsor) => {
                 msg!("Instruction: InitializeHolderRewards");
-                process_initialize_holder_rewards(program_id, accounts)
+                process_initialize_holder_rewards(program_id, accounts, sponsor)
             }
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");

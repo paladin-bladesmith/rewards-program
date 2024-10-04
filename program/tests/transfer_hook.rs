@@ -1156,10 +1156,14 @@ async fn check_holder_rewards(
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards::new(
-            pool.accumulated_rewards_per_token,
-            holder.expected_unharvested_rewards,
-        ),
+        &HolderRewards {
+            last_accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
+            unharvested_rewards: holder.expected_unharvested_rewards,
+            rent_debt: 0,
+            rent_sponsor: Pubkey::default(),
+            initial_balance: 0,
+            _padding: 0,
+        }
     );
 }
 

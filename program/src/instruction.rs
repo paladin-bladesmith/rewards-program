@@ -129,7 +129,7 @@ pub enum PaladinRewardsInstruction {
         name = "system_program",
         desc = "System program.",
     )]
-    InitializeHolderRewards,
+    InitializeHolderRewards(Pubkey),
     /// Moves accrued SOL rewards into the provided token account based on the
     /// share of the total rewards pool represented in the holder rewards
     /// account.
@@ -179,7 +179,12 @@ impl PaladinRewardsInstruction {
                 data.extend_from_slice(&amount.to_le_bytes());
                 data
             }
-            PaladinRewardsInstruction::InitializeHolderRewards => vec![2],
+            PaladinRewardsInstruction::InitializeHolderRewards(sponsor) => {
+                let mut data = Vec::with_capacity(33);
+                data.push(2);
+                data.extend_from_slice(bytemuck::bytes_of(sponsor));
+                data
+            }
             PaladinRewardsInstruction::HarvestRewards => vec![3],
         }
     }
@@ -196,7 +201,14 @@ impl PaladinRewardsInstruction {
                     .ok_or(ProgramError::InvalidInstructionData)?;
                 Ok(PaladinRewardsInstruction::DistributeRewards(amount))
             }
-            Some((&2, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
+            Some((&2, rest)) => {
+                let sponsor = rest
+                    .get(..32)
+                    .map(bytemuck::from_bytes)
+                    .ok_or(ProgramError::InvalidInstructionData)?;
+
+                Ok(PaladinRewardsInstruction::InitializeHolderRewards(*sponsor))
+            }
             Some((&3, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
             _ => Err(ProgramError::InvalidInstructionData),
         }
@@ -248,6 +260,7 @@ pub fn initialize_holder_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
+    sponsor: Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new_readonly(*holder_rewards_pool_address, false),
@@ -256,7 +269,7 @@ pub fn initialize_holder_rewards(
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
-    let data = PaladinRewardsInstruction::InitializeHolderRewards.pack();
+    let data = PaladinRewardsInstruction::InitializeHolderRewards(sponsor).pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -298,8 +311,17 @@ mod tests {
     }
 
     #[test]
-    fn test_pack_unpack_initialize_holder_rewards() {
-        let original = PaladinRewardsInstruction::InitializeHolderRewards;
+    fn test_pack_unpack_initialize_holder_rewards_unsponsored() {
+        let original = PaladinRewardsInstruction::InitializeHolderRewards(Pubkey::default());
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
+
+    #[test]
+    fn test_pack_unpack_initialize_holder_rewards_sponsored() {
+        let original =
+            PaladinRewardsInstruction::InitializeHolderRewards(Pubkey::new_from_array([1; 32]));
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

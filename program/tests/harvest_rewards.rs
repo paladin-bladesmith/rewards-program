@@ -673,7 +673,14 @@ async fn success(
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards::new(accumulated_rewards_per_token, expected_unharvested_rewards),
+        &HolderRewards {
+            last_accumulated_rewards_per_token: accumulated_rewards_per_token,
+            unharvested_rewards: expected_unharvested_rewards,
+            rent_debt: 0,
+            rent_sponsor: Pubkey::default(),
+            initial_balance: 0,
+            _padding: 0,
+        }
     );
 
     // Assert the holder rewards pool's balance was debited.

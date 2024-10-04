@@ -189,7 +189,14 @@ pub async fn setup_holder_rewards_account(
     unharvested_rewards: u64,
     last_accumulated_rewards_per_token: u128,
 ) {
-    let state = HolderRewards::new(last_accumulated_rewards_per_token, unharvested_rewards);
+    let state = HolderRewards {
+        last_accumulated_rewards_per_token,
+        unharvested_rewards,
+        rent_debt: 0,
+        rent_sponsor: Pubkey::default(),
+        initial_balance: 0,
+        _padding: 0,
+    };
     let data = bytemuck::bytes_of(&state).to_vec();
 
     let rent = context.banks_client.get_rent().await.unwrap();

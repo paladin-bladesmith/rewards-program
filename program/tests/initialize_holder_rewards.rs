@@ -43,8 +43,13 @@ async fn fail_token_account_invalid_data() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -87,8 +92,13 @@ async fn fail_token_account_mint_mismatch() {
     .await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -135,8 +145,13 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -172,8 +187,13 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -225,8 +245,13 @@ async fn fail_holder_rewards_pool_invalid_data() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -263,8 +288,13 @@ async fn fail_holder_rewards_incorrect_address() {
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -317,8 +347,13 @@ async fn fail_holder_rewards_account_initialized() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -388,8 +423,13 @@ async fn success() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &holder_rewards,
+        &token_account,
+        &mint,
+        Pubkey::default(),
+    );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -415,9 +455,13 @@ async fn success() {
 
     assert_eq!(
         holder_rewards_state,
-        &HolderRewards::new(
-            accumulated_rewards_per_token,
-            /* unharvested_rewards */ 0
-        ),
+        &HolderRewards {
+            last_accumulated_rewards_per_token: accumulated_rewards_per_token,
+            unharvested_rewards: 0,
+            rent_debt: 0,
+            rent_sponsor: Pubkey::default(),
+            initial_balance: 0,
+            _padding: 0,
+        }
     );
 }

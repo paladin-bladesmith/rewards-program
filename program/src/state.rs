@@ -229,16 +229,19 @@ pub struct HolderRewards {
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
     pub unharvested_rewards: u64,
-    _padding: u64,
-}
-impl HolderRewards {
-    pub fn new(last_accumulated_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
-        Self {
-            last_accumulated_rewards_per_token,
-            unharvested_rewards,
-            _padding: 0,
-        }
-    }
+    /// The amount of rent owed back to the patron.
+    pub rent_debt: u64,
+    /// The token balance when the patron sponsored the rent.
+    ///
+    /// If the balance falls below this level then the patron can close the
+    /// account to recover their rent. This is done to mitigate baiting &
+    /// griefing patrons (who expect to receive their sponsored rent back within
+    /// some predictable time frame).
+    pub initial_balance: u64,
+    /// The account that sponsored the rent for this rewards pool.
+    pub rent_sponsor: Pubkey,
+    /// Aligns to 80 bytes (multiple of 16).
+    pub _padding: u64,
 }
 
 /// Tracks the rewards accumulated by the system and manages the distribution
