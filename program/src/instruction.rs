@@ -104,28 +104,28 @@ pub enum PaladinRewardsInstruction {
     /// 3. `[ ]` Token mint.
     /// 4. `[ ]` System program.
     #[account(
-        0, 
+        0,
         name = "holder_rewards_pool",
         desc = "Holder rewards pool account.",
     )]
     #[account(
-        1, 
+        1,
         writable,
         name = "holder_rewards",
         desc = "Holder rewards account.",
     )]
     #[account(
-        2, 
+        2,
         name = "token_account",
         desc = "Token account.",
     )]
     #[account(
-        3, 
+        3,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        4, 
+        4,
         name = "system_program",
         desc = "System program.",
     )]

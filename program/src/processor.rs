@@ -175,6 +175,11 @@ fn update_holder_rewards_for_transfer_hook(
     current_accumulated_rewards_per_token: u128,
     adjust_token_balance_fn: impl FnOnce(u64) -> Result<u64, ProgramError>,
 ) -> ProgramResult {
+    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+    if holder_rewards_data.is_empty() {
+        return Ok(());
+    }
+
     // Calculate the token account's updated share of the pool rewards.
     //
     // Since the holder rewards account may already have unharvested
@@ -187,7 +192,6 @@ fn update_holder_rewards_for_transfer_hook(
     // so this token account balance is the balance _after_ the transfer.
     // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
-    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
