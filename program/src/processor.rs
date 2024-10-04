@@ -480,8 +480,10 @@ fn process_initialize_holder_rewards(
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
                 unharvested_rewards: 0,
                 rent_debt: match rent_sponsor == Pubkey::default() {
-                    true => holder_rewards_info.lamports(),
-                    false => 0,
+                    true => 0,
+                    // NB: Sponsor is paid back a 10% premium as an incentive to sponsor the
+                    // account.
+                    false => Rent::get()?.minimum_balance(HolderRewards::LEN) * 11 / 10,
                 },
                 initial_balance,
                 rent_sponsor,
@@ -561,7 +563,29 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .min(pool_excess_lamports)
     };
 
-    if rewards_to_harvest != 0 {
+    if rewards_to_harvest > 0 {
+        // If there is still payment owing to the rental sponsor, then pay up to 50% of
+        // the pending rewards.
+        let user_rewards = if holder_rewards_state.rent_debt > 0 {
+            let repayment = std::cmp::min(rewards_to_harvest / 2, holder_rewards_state.rent_debt);
+
+            // Get the rent sponsor.
+            let rent_sponsor = next_account_info(accounts_iter)?;
+            if rent_sponsor.key != &holder_rewards_state.rent_sponsor {
+                return Err(PaladinRewardsError::IncorrectSponsorAddress.into());
+            }
+
+            // Pay the rent sponsor.
+            **rent_sponsor.try_borrow_mut_lamports()? += repayment;
+
+            // Decrease the rent debt.
+            holder_rewards_state.rent_debt -= repayment;
+
+            rewards_to_harvest - repayment
+        } else {
+            rewards_to_harvest
+        };
+
         // Move the amount from the holder rewards pool to the token account.
         let new_holder_rewards_pool_lamports = holder_rewards_pool_info
             .lamports()
@@ -569,7 +593,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .ok_or(ProgramError::ArithmeticOverflow)?;
         let new_token_account_lamports = token_account_info
             .lamports()
-            .checked_add(rewards_to_harvest)
+            .checked_add(user_rewards)
             .ok_or(ProgramError::ArithmeticOverflow)?;
         **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
         **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;

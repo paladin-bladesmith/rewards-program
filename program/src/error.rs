@@ -32,6 +32,9 @@ pub enum PaladinRewardsError {
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
+    /// Provided sponsor account did not match expected sponsor.
+    #[error("Holder rewards sponsor account mismatch")]
+    IncorrectSponsorAddress,
 }
 
 impl PrintProgramError for PaladinRewardsError {

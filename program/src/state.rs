@@ -244,6 +244,10 @@ pub struct HolderRewards {
     pub _padding: u64,
 }
 
+impl HolderRewards {
+    pub const LEN: usize = std::mem::size_of::<HolderRewards>();
+}
+
 /// Tracks the rewards accumulated by the system and manages the distribution
 /// of rewards to holders.
 ///
