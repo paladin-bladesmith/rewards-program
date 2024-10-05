@@ -30,6 +30,12 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
+export const INITIALIZE_HOLDER_REWARDS_POOL_DISCRIMINATOR = 0;
+
+export function getInitializeHolderRewardsPoolDiscriminatorBytes() {
+  return getU8Encoder().encode(INITIALIZE_HOLDER_REWARDS_POOL_DISCRIMINATOR);
+}
+
 export type InitializeHolderRewardsPoolInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
@@ -73,7 +79,10 @@ export type InitializeHolderRewardsPoolInstructionDataArgs = {};
 export function getInitializeHolderRewardsPoolInstructionDataEncoder(): Encoder<InitializeHolderRewardsPoolInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 0 })
+    (value) => ({
+      ...value,
+      discriminator: INITIALIZE_HOLDER_REWARDS_POOL_DISCRIMINATOR,
+    })
   );
 }
 
@@ -116,6 +125,7 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountMint extends string,
   TAccountMintAuthority extends string,
   TAccountSystemProgram extends string,
+  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: InitializeHolderRewardsPoolInput<
     TAccountHolderRewardsPool,
@@ -123,9 +133,10 @@ export function getInitializeHolderRewardsPoolInstruction<
     TAccountMint,
     TAccountMintAuthority,
     TAccountSystemProgram
-  >
+  >,
+  config?: { programAddress?: TProgramAddress }
 ): InitializeHolderRewardsPoolInstruction<
-  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+  TProgramAddress,
   TAccountHolderRewardsPool,
   TAccountExtraAccountMetas,
   TAccountMint,
@@ -133,7 +144,8 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress =
+    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -172,7 +184,7 @@ export function getInitializeHolderRewardsPoolInstruction<
     programAddress,
     data: getInitializeHolderRewardsPoolInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsPoolInstruction<
-    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+    TProgramAddress,
     TAccountHolderRewardsPool,
     TAccountExtraAccountMetas,
     TAccountMint,

@@ -32,6 +32,12 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
+export const DISTRIBUTE_REWARDS_DISCRIMINATOR = 1;
+
+export function getDistributeRewardsDiscriminatorBytes() {
+  return getU8Encoder().encode(DISTRIBUTE_REWARDS_DISCRIMINATOR);
+}
+
 export type DistributeRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountPayer extends string | IAccountMeta<string> = string,
@@ -75,7 +81,7 @@ export function getDistributeRewardsInstructionDataEncoder(): Encoder<Distribute
       ['discriminator', getU8Encoder()],
       ['args', getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: 1 })
+    (value) => ({ ...value, discriminator: DISTRIBUTE_REWARDS_DISCRIMINATOR })
   );
 }
 
@@ -118,22 +124,25 @@ export function getDistributeRewardsInstruction<
   TAccountHolderRewardsPool extends string,
   TAccountMint extends string,
   TAccountSystemProgram extends string,
+  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: DistributeRewardsInput<
     TAccountPayer,
     TAccountHolderRewardsPool,
     TAccountMint,
     TAccountSystemProgram
-  >
+  >,
+  config?: { programAddress?: TProgramAddress }
 ): DistributeRewardsInstruction<
-  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+  TProgramAddress,
   TAccountPayer,
   TAccountHolderRewardsPool,
   TAccountMint,
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress =
+    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -172,7 +181,7 @@ export function getDistributeRewardsInstruction<
       args as DistributeRewardsInstructionDataArgs
     ),
   } as DistributeRewardsInstruction<
-    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+    TProgramAddress,
     TAccountPayer,
     TAccountHolderRewardsPool,
     TAccountMint,
