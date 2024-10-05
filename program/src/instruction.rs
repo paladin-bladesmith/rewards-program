@@ -279,13 +279,17 @@ pub fn harvest_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
+    sponsor: Option<Pubkey>,
 ) -> Instruction {
-    let accounts = vec![
+    let accounts: Vec<_> = [
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-    ];
+    ]
+    .into_iter()
+    .chain(sponsor.map(|key| AccountMeta::new(key, false)))
+    .collect();
     let data = PaladinRewardsInstruction::HarvestRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }

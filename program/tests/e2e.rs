@@ -574,6 +574,7 @@ async fn test_e2e() {
                 &bob_holder_rewards,
                 &bob_token_account,
                 &mint,
+                None,
             )],
             &[&payer],
         )
@@ -662,6 +663,7 @@ async fn test_e2e() {
                     &alice_holder_rewards,
                     &alice_token_account,
                     &mint,
+                    None,
                 ),
                 spl_token_2022::instruction::burn(
                     &spl_token_2022::id(),
@@ -1047,18 +1049,21 @@ async fn test_e2e() {
                     &bob_holder_rewards,
                     &bob_token_account,
                     &mint,
+                    None,
                 ),
                 harvest_rewards(
                     &holder_rewards_pool,
                     &carol_holder_rewards,
                     &carol_token_account,
                     &mint,
+                    None,
                 ),
                 harvest_rewards(
                     &holder_rewards_pool,
                     &dave_holder_rewards,
                     &dave_token_account,
                     &mint,
+                    None,
                 ),
             ],
             &[&payer],

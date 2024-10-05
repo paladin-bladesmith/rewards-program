@@ -141,6 +141,19 @@ pub async fn setup_token_account_transferring(
     setup_token_account_common(context, token_account, owner, mint, amount, true).await;
 }
 
+pub async fn setup_sponsor(context: &mut ProgramTestContext, sponsor: &Pubkey) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(0);
+
+    context.set_account(
+        sponsor,
+        &AccountSharedData::from(Account {
+            lamports,
+            ..Account::default()
+        }),
+    )
+}
+
 #[allow(clippy::arithmetic_side_effects)]
 pub async fn setup_system_account(
     context: &mut ProgramTestContext,
@@ -188,18 +201,28 @@ pub async fn setup_holder_rewards_account(
     holder_rewards: &Pubkey,
     unharvested_rewards: u64,
     last_accumulated_rewards_per_token: u128,
+    rent_sponsor: Option<(Pubkey, u64)>,
 ) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let (rent_sponsor, rent_debt, minimum_balance) = rent_sponsor
+        .map(|(sponsor, minimum_balance)| {
+            (
+                sponsor,
+                rent.minimum_balance(HolderRewards::LEN) * 11 / 10,
+                minimum_balance,
+            )
+        })
+        .unwrap_or_default();
     let state = HolderRewards {
         last_accumulated_rewards_per_token,
         unharvested_rewards,
-        rent_debt: 0,
-        rent_sponsor: Pubkey::default(),
-        minimum_balance: 0,
+        rent_debt,
+        rent_sponsor,
+        minimum_balance,
         _padding: 0,
     };
     let data = bytemuck::bytes_of(&state).to_vec();
 
-    let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(data.len());
 
     context.set_account(
