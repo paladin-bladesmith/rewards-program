@@ -129,7 +129,7 @@ pub enum PaladinRewardsInstruction {
         name = "system_program",
         desc = "System program.",
     )]
-    InitializeHolderRewards,
+    InitializeHolderRewards(Pubkey),
     /// Moves accrued SOL rewards into the provided token account based on the
     /// share of the total rewards pool represented in the holder rewards
     /// account.
@@ -140,6 +140,7 @@ pub enum PaladinRewardsInstruction {
     /// 1. `[w]` Holder rewards account.
     /// 2. `[w]` Token account.
     /// 3. `[ ]` Token mint.
+    /// 4. `[w]?` Sponsor account if rent_debt is non zero.
     #[account(
         0,
         writable,
@@ -163,7 +164,43 @@ pub enum PaladinRewardsInstruction {
         name = "mint",
         desc = "Token mint.",
     )]
+    #[account(
+        4,
+        name = "sponsor",
+        desc = "Sponsor of this account, required if rent_debt is non zero",
+        optional
+    )]
     HarvestRewards,
+    /// Closes the provided holder rewards account.
+    #[account(
+        0,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
+    )]
+    #[account(
+        2,
+        writable,
+        name = "token_account",
+        desc = "Token account.",
+    )]
+    #[account(
+        3,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        4,
+        name = "authority",
+        desc = "Either the owner or the sponsor can close the account.",
+    )]
+    CloseHolderRewards,
 }
 
 impl PaladinRewardsInstruction {
@@ -179,8 +216,14 @@ impl PaladinRewardsInstruction {
                 data.extend_from_slice(&amount.to_le_bytes());
                 data
             }
-            PaladinRewardsInstruction::InitializeHolderRewards => vec![2],
+            PaladinRewardsInstruction::InitializeHolderRewards(sponsor) => {
+                let mut data = Vec::with_capacity(33);
+                data.push(2);
+                data.extend_from_slice(bytemuck::bytes_of(sponsor));
+                data
+            }
             PaladinRewardsInstruction::HarvestRewards => vec![3],
+            PaladinRewardsInstruction::CloseHolderRewards => vec![4],
         }
     }
 
@@ -196,8 +239,16 @@ impl PaladinRewardsInstruction {
                     .ok_or(ProgramError::InvalidInstructionData)?;
                 Ok(PaladinRewardsInstruction::DistributeRewards(amount))
             }
-            Some((&2, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
+            Some((&2, rest)) => {
+                let sponsor = rest
+                    .get(..32)
+                    .map(bytemuck::from_bytes)
+                    .ok_or(ProgramError::InvalidInstructionData)?;
+
+                Ok(PaladinRewardsInstruction::InitializeHolderRewards(*sponsor))
+            }
             Some((&3, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
+            Some((&4, _)) => Ok(PaladinRewardsInstruction::CloseHolderRewards),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -248,6 +299,7 @@ pub fn initialize_holder_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
+    sponsor: Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new_readonly(*holder_rewards_pool_address, false),
@@ -256,7 +308,7 @@ pub fn initialize_holder_rewards(
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
-    let data = PaladinRewardsInstruction::InitializeHolderRewards.pack();
+    let data = PaladinRewardsInstruction::InitializeHolderRewards(sponsor).pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -266,14 +318,38 @@ pub fn harvest_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
+    sponsor: Option<Pubkey>,
 ) -> Instruction {
-    let accounts = vec![
+    let accounts: Vec<_> = [
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-    ];
+    ]
+    .into_iter()
+    .chain(sponsor.map(|key| AccountMeta::new(key, false)))
+    .collect();
     let data = PaladinRewardsInstruction::HarvestRewards.pack();
+    Instruction::new_with_bytes(crate::id(), &data, accounts)
+}
+
+/// Creates a [CloseHolderRewards](enum.PaladinRewardsInstruction.html)
+/// instruction.
+pub fn close_holder_rewards(
+    holder_rewards_pool_address: Pubkey,
+    holder_rewards_address: Pubkey,
+    token_account_address: Pubkey,
+    mint_address: Pubkey,
+    authority: Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new_readonly(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_address, false),
+        AccountMeta::new_readonly(token_account_address, false),
+        AccountMeta::new_readonly(mint_address, false),
+        AccountMeta::new(authority, true),
+    ];
+    let data = PaladinRewardsInstruction::CloseHolderRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -298,8 +374,17 @@ mod tests {
     }
 
     #[test]
-    fn test_pack_unpack_initialize_holder_rewards() {
-        let original = PaladinRewardsInstruction::InitializeHolderRewards;
+    fn test_pack_unpack_initialize_holder_rewards_unsponsored() {
+        let original = PaladinRewardsInstruction::InitializeHolderRewards(Pubkey::default());
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
+
+    #[test]
+    fn test_pack_unpack_initialize_holder_rewards_sponsored() {
+        let original =
+            PaladinRewardsInstruction::InitializeHolderRewards(Pubkey::new_from_array([1; 32]));
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

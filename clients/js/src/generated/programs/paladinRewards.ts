@@ -13,6 +13,7 @@ import {
   type ReadonlyUint8Array,
 } from '@solana/web3.js';
 import {
+  type ParsedCloseHolderRewardsInstruction,
   type ParsedDistributeRewardsInstruction,
   type ParsedHarvestRewardsInstruction,
   type ParsedInitializeHolderRewardsInstruction,
@@ -32,6 +33,7 @@ export enum PaladinRewardsInstruction {
   DistributeRewards,
   InitializeHolderRewards,
   HarvestRewards,
+  CloseHolderRewards,
 }
 
 export function identifyPaladinRewardsInstruction(
@@ -49,6 +51,9 @@ export function identifyPaladinRewardsInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return PaladinRewardsInstruction.HarvestRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+    return PaladinRewardsInstruction.CloseHolderRewards;
   }
   throw new Error(
     'The provided instruction could not be identified as a paladinRewards instruction.'
@@ -69,4 +74,7 @@ export type ParsedPaladinRewardsInstruction<
     } & ParsedInitializeHolderRewardsInstruction<TProgram>)
   | ({
       instructionType: PaladinRewardsInstruction.HarvestRewards;
-    } & ParsedHarvestRewardsInstruction<TProgram>);
+    } & ParsedHarvestRewardsInstruction<TProgram>)
+  | ({
+      instructionType: PaladinRewardsInstruction.CloseHolderRewards;
+    } & ParsedCloseHolderRewardsInstruction<TProgram>);

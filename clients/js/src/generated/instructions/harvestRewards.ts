@@ -33,6 +33,7 @@ export type HarvestRewardsInstruction<
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
+  TAccountSponsor extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -50,6 +51,9 @@ export type HarvestRewardsInstruction<
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
+      TAccountSponsor extends string
+        ? ReadonlyAccount<TAccountSponsor>
+        : TAccountSponsor,
       ...TRemainingAccounts,
     ]
   >;
@@ -84,6 +88,7 @@ export type HarvestRewardsInput<
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
+  TAccountSponsor extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
@@ -93,6 +98,8 @@ export type HarvestRewardsInput<
   tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
+  /** Sponsor of this account, required if rent_debt is non zero */
+  sponsor?: Address<TAccountSponsor>;
 };
 
 export function getHarvestRewardsInstruction<
@@ -100,19 +107,22 @@ export function getHarvestRewardsInstruction<
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
+  TAccountSponsor extends string,
 >(
   input: HarvestRewardsInput<
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
-    TAccountMint
+    TAccountMint,
+    TAccountSponsor
   >
 ): HarvestRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
-  TAccountMint
+  TAccountMint,
+  TAccountSponsor
 > {
   // Program address.
   const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
@@ -126,6 +136,7 @@ export function getHarvestRewardsInstruction<
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
+    sponsor: { value: input.sponsor ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -139,6 +150,7 @@ export function getHarvestRewardsInstruction<
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
+      getAccountMeta(accounts.sponsor),
     ],
     programAddress,
     data: getHarvestRewardsInstructionDataEncoder().encode({}),
@@ -147,7 +159,8 @@ export function getHarvestRewardsInstruction<
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
-    TAccountMint
+    TAccountMint,
+    TAccountSponsor
   >;
 
   return instruction;
@@ -167,6 +180,8 @@ export type ParsedHarvestRewardsInstruction<
     tokenAccount: TAccountMetas[2];
     /** Token mint. */
     mint: TAccountMetas[3];
+    /** Sponsor of this account, required if rent_debt is non zero */
+    sponsor?: TAccountMetas[4] | undefined;
   };
   data: HarvestRewardsInstructionData;
 };
@@ -179,7 +194,7 @@ export function parseHarvestRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedHarvestRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 5) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -189,6 +204,12 @@ export function parseHarvestRewardsInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === PALADIN_REWARDS_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
@@ -196,6 +217,7 @@ export function parseHarvestRewardsInstruction<
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),
+      sponsor: getNextOptionalAccount(),
     },
     data: getHarvestRewardsInstructionDataDecoder().decode(instruction.data),
   };
