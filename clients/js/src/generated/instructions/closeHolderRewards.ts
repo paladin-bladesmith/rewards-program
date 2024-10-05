@@ -27,12 +27,6 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const CLOSE_HOLDER_REWARDS_DISCRIMINATOR = 4;
-
-export function getCloseHolderRewardsDiscriminatorBytes() {
-  return getU8Encoder().encode(CLOSE_HOLDER_REWARDS_DISCRIMINATOR);
-}
-
 export type CloseHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
@@ -71,7 +65,7 @@ export type CloseHolderRewardsInstructionDataArgs = {};
 export function getCloseHolderRewardsInstructionDataEncoder(): Encoder<CloseHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: CLOSE_HOLDER_REWARDS_DISCRIMINATOR })
+    (value) => ({ ...value, discriminator: 4 })
   );
 }
 
@@ -114,7 +108,6 @@ export function getCloseHolderRewardsInstruction<
   TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountAuthority extends string,
-  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: CloseHolderRewardsInput<
     TAccountHolderRewardsPool,
@@ -122,10 +115,9 @@ export function getCloseHolderRewardsInstruction<
     TAccountTokenAccount,
     TAccountMint,
     TAccountAuthority
-  >,
-  config?: { programAddress?: TProgramAddress }
+  >
 ): CloseHolderRewardsInstruction<
-  TProgramAddress,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
@@ -133,8 +125,7 @@ export function getCloseHolderRewardsInstruction<
   TAccountAuthority
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -164,7 +155,7 @@ export function getCloseHolderRewardsInstruction<
     programAddress,
     data: getCloseHolderRewardsInstructionDataEncoder().encode({}),
   } as CloseHolderRewardsInstruction<
-    TProgramAddress,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,

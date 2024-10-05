@@ -27,12 +27,6 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const HARVEST_REWARDS_DISCRIMINATOR = 3;
-
-export function getHarvestRewardsDiscriminatorBytes() {
-  return getU8Encoder().encode(HARVEST_REWARDS_DISCRIMINATOR);
-}
-
 export type HarvestRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
@@ -71,7 +65,7 @@ export type HarvestRewardsInstructionDataArgs = {};
 export function getHarvestRewardsInstructionDataEncoder(): Encoder<HarvestRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: HARVEST_REWARDS_DISCRIMINATOR })
+    (value) => ({ ...value, discriminator: 3 })
   );
 }
 
@@ -114,7 +108,6 @@ export function getHarvestRewardsInstruction<
   TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountSponsor extends string,
-  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: HarvestRewardsInput<
     TAccountHolderRewardsPool,
@@ -122,10 +115,9 @@ export function getHarvestRewardsInstruction<
     TAccountTokenAccount,
     TAccountMint,
     TAccountSponsor
-  >,
-  config?: { programAddress?: TProgramAddress }
+  >
 ): HarvestRewardsInstruction<
-  TProgramAddress,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
@@ -133,8 +125,7 @@ export function getHarvestRewardsInstruction<
   TAccountSponsor
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -164,7 +155,7 @@ export function getHarvestRewardsInstruction<
     programAddress,
     data: getHarvestRewardsInstructionDataEncoder().encode({}),
   } as HarvestRewardsInstruction<
-    TProgramAddress,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,

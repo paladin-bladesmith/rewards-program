@@ -29,12 +29,6 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export const INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR = 2;
-
-export function getInitializeHolderRewardsDiscriminatorBytes() {
-  return getU8Encoder().encode(INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR);
-}
-
 export type InitializeHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
@@ -81,10 +75,7 @@ export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<Init
       ['discriminator', getU8Encoder()],
       ['pubkey', getAddressEncoder()],
     ]),
-    (value) => ({
-      ...value,
-      discriminator: INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR,
-    })
+    (value) => ({ ...value, discriminator: 2 })
   );
 }
 
@@ -131,7 +122,6 @@ export function getInitializeHolderRewardsInstruction<
   TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountSystemProgram extends string,
-  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: InitializeHolderRewardsInput<
     TAccountHolderRewardsPool,
@@ -139,10 +129,9 @@ export function getInitializeHolderRewardsInstruction<
     TAccountTokenAccount,
     TAccountMint,
     TAccountSystemProgram
-  >,
-  config?: { programAddress?: TProgramAddress }
+  >
 ): InitializeHolderRewardsInstruction<
-  TProgramAddress,
+  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
@@ -150,8 +139,7 @@ export function getInitializeHolderRewardsInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -192,7 +180,7 @@ export function getInitializeHolderRewardsInstruction<
       args as InitializeHolderRewardsInstructionDataArgs
     ),
   } as InitializeHolderRewardsInstruction<
-    TProgramAddress,
+    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
