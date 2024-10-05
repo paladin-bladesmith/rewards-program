@@ -229,7 +229,8 @@ pub struct HolderRewards {
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
     pub unharvested_rewards: u64,
-    /// The account that sponsored the rent for this rewards pool.
+    /// The account that sponsored the rent for this account,
+    /// `Pubkey::default()` indicates no sponsor.
     pub rent_sponsor: Pubkey,
     /// The amount of rent owed back to the patron.
     pub rent_debt: u64,

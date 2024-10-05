@@ -484,6 +484,7 @@ fn process_initialize_holder_rewards(
                     true => 0,
                     // NB: Sponsor is paid back a 10% premium as an incentive to sponsor the
                     // account.
+                    #[allow(clippy::arithmetic_side_effects)]
                     false => Rent::get()?.minimum_balance(HolderRewards::LEN) * 11 / 10,
                 },
                 minimum_balance: match rent_sponsor == Pubkey::default() {
@@ -578,11 +579,16 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
                 return Err(PaladinRewardsError::IncorrectSponsorAddress.into());
             }
 
-            // Pay the rent sponsor.
-            **rent_sponsor.try_borrow_mut_lamports()? += repayment;
+            // NB: The following operations cannot over/underflow, or if they can they will
+            // be caught by the runtime (unbalanced SOL transfer).
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                // Pay the rent sponsor.
+                **rent_sponsor.try_borrow_mut_lamports()? += repayment;
 
-            // Decrease the rent debt.
-            holder_rewards_state.rent_debt -= repayment;
+                // Decrease the rent debt.
+                holder_rewards_state.rent_debt -= repayment;
+            }
 
             // Remove the sponsor related fields if debt is fully repaid.
             if holder_rewards_state.rent_debt == 0 {
@@ -590,7 +596,11 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
                 holder_rewards_state.minimum_balance = 0;
             }
 
-            rewards_to_harvest - repayment
+            // NB: Cannot underflow as repayment is `min(rewards_to_harvest / 2, other)`.
+            #[allow(clippy::arithmetic_side_effects)]
+            {
+                rewards_to_harvest - repayment
+            }
         } else {
             rewards_to_harvest
         };
@@ -675,7 +685,11 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     // Close the account.
     let rent_recovered = holder_rewards_info.lamports();
     **holder_rewards_info.lamports.borrow_mut() = 0;
-    **authority.lamports.borrow_mut() += rent_recovered;
+    // NB: If this overflows then the runtime will catch it.
+    #[allow(clippy::arithmetic_side_effects)]
+    {
+        **authority.lamports.borrow_mut() += rent_recovered;
+    }
 
     Ok(())
 }
