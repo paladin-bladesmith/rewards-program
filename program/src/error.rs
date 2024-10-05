@@ -35,6 +35,12 @@ pub enum PaladinRewardsError {
     /// Provided sponsor account did not match expected sponsor.
     #[error("Holder rewards sponsor account mismatch")]
     IncorrectSponsorAddress,
+    /// Attempted to close a holder rewards account that had unclaimed rewards.
+    #[error("Holder rewards has unclaimed rewards")]
+    CloseWithUnclaimedRewards,
+    /// Cannot close holder rewards due to invalid token balance.
+    #[error("Holder rewards token account has invalid balance for close")]
+    InvalidClosingBalance,
 }
 
 impl PrintProgramError for PaladinRewardsError {

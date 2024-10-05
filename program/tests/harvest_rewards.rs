@@ -805,8 +805,14 @@ async fn success(
             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
             unharvested_rewards: expected_unharvested_rewards,
             rent_debt: rent_debt.checked_sub(expected_sponsor_rewards).unwrap(),
-            rent_sponsor,
-            minimum_balance,
+            rent_sponsor: match expected_sponsor_rewards == SPONSOR_DEBT {
+                true => Pubkey::default(),
+                false => rent_sponsor,
+            },
+            minimum_balance: match expected_sponsor_rewards == SPONSOR_DEBT {
+                true => 0,
+                false => minimum_balance,
+            },
             _padding: 0,
         }
     );

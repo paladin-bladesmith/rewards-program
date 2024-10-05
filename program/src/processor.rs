@@ -584,6 +584,12 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             // Decrease the rent debt.
             holder_rewards_state.rent_debt -= repayment;
 
+            // Remove the sponsor related fields if debt is fully repaid.
+            if holder_rewards_state.rent_debt == 0 {
+                holder_rewards_state.rent_sponsor = Pubkey::default();
+                holder_rewards_state.minimum_balance = 0;
+            }
+
             rewards_to_harvest - repayment
         } else {
             rewards_to_harvest
@@ -607,6 +613,70 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .checked_sub(rewards_to_harvest)
             .ok_or(ProgramError::ArithmeticOverflow)?;
     }
+
+    Ok(())
+}
+
+/// Processes a
+/// [CloseHolderRewards](enum.PaladinRewardsInstruction.html)
+/// instruction.
+fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let authority = next_account_info(accounts_iter)?;
+
+    // Load pool & holder rewards.
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
+    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    let holder_rewards_data = holder_rewards_info.try_borrow_data()?;
+    let holder_rewards_state = bytemuck::try_from_bytes::<HolderRewards>(&holder_rewards_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Ensure holder has no unclaimed rewards.
+    if holder_rewards_state.last_accumulated_rewards_per_token
+        != pool_state.accumulated_rewards_per_token
+        || holder_rewards_state.unharvested_rewards != 0
+    {
+        return Err(PaladinRewardsError::CloseWithUnclaimedRewards.into());
+    }
+
+    // Load token account info.
+    solana_program::msg!("{:?}", token_account_info);
+    let token_account_data = token_account_info.data.borrow();
+    let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)?.base;
+
+    // Ensure authority is either:
+    //
+    // - The owner.
+    // - OR; The sponsor AND the token balance has dropped below the initial level.
+    if !authority.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+    match authority.key {
+        key if key == &token_account_state.owner => {
+            if token_account_state.amount > 0 {
+                return Err(PaladinRewardsError::InvalidClosingBalance.into());
+            }
+        }
+        key if key == &holder_rewards_state.rent_sponsor => {
+            if token_account_state.amount >= holder_rewards_state.minimum_balance {
+                return Err(PaladinRewardsError::InvalidClosingBalance.into());
+            }
+        }
+        _ => return Err(ProgramError::IncorrectAuthority),
+    }
+
+    // Close the account.
+    let rent_recovered = holder_rewards_info.lamports();
+    **holder_rewards_info.lamports.borrow_mut() = 0;
+    **authority.lamports.borrow_mut() += rent_recovered;
 
     Ok(())
 }
@@ -700,6 +770,10 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");
                 process_harvest_rewards(program_id, accounts)
+            }
+            PaladinRewardsInstruction::CloseHolderRewards => {
+                msg!("Instruction: CloseHolderRewards");
+                process_close_holder_rewards(program_id, accounts)
             }
         }
     }
