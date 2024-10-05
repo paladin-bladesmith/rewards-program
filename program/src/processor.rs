@@ -479,6 +479,7 @@ fn process_initialize_holder_rewards(
             HolderRewards {
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
                 unharvested_rewards: 0,
+                rent_sponsor,
                 rent_debt: match rent_sponsor == Pubkey::default() {
                     true => 0,
                     // NB: Sponsor is paid back a 10% premium as an incentive to sponsor the
@@ -489,7 +490,6 @@ fn process_initialize_holder_rewards(
                     true => 0,
                     false => initial_balance,
                 },
-                rent_sponsor,
                 _padding: 0,
             };
     }
@@ -648,7 +648,6 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     }
 
     // Load token account info.
-    solana_program::msg!("{:?}", token_account_info);
     let token_account_data = token_account_info.data.borrow();
     let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)?.base;
 

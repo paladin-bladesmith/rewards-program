@@ -216,8 +216,8 @@ pub async fn setup_holder_rewards_account(
     let state = HolderRewards {
         last_accumulated_rewards_per_token,
         unharvested_rewards,
-        rent_debt,
         rent_sponsor,
+        rent_debt,
         minimum_balance,
         _padding: 0,
     };

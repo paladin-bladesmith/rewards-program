@@ -1163,8 +1163,8 @@ async fn check_holder_rewards(
         &HolderRewards {
             last_accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
             unharvested_rewards: holder.expected_unharvested_rewards,
-            rent_debt: 0,
             rent_sponsor: Pubkey::default(),
+            rent_debt: 0,
             minimum_balance: 0,
             _padding: 0,
         }
