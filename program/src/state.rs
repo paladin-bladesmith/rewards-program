@@ -232,6 +232,8 @@ pub struct HolderRewards {
     _padding: u64,
 }
 impl HolderRewards {
+    pub const LEN: usize = std::mem::size_of::<HolderRewards>();
+
     pub fn new(last_accumulated_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
         Self {
             last_accumulated_rewards_per_token,
