@@ -13,11 +13,9 @@ import {
   type ReadonlyUint8Array,
 } from '@solana/web3.js';
 import {
-  type ParsedDistributeRewardsInstruction,
   type ParsedHarvestRewardsInstruction,
   type ParsedInitializeHolderRewardsInstruction,
   type ParsedInitializeHolderRewardsPoolInstruction,
-  type ParsedSweepRewardsInstruction,
 } from '../instructions';
 
 export const PALADIN_REWARDS_PROGRAM_ADDRESS =
@@ -30,10 +28,8 @@ export enum PaladinRewardsAccount {
 
 export enum PaladinRewardsInstruction {
   InitializeHolderRewardsPool,
-  DistributeRewards,
   InitializeHolderRewards,
   HarvestRewards,
-  SweepRewards,
 }
 
 export function identifyPaladinRewardsInstruction(
@@ -44,16 +40,10 @@ export function identifyPaladinRewardsInstruction(
     return PaladinRewardsInstruction.InitializeHolderRewardsPool;
   }
   if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return PaladinRewardsInstruction.DistributeRewards;
-  }
-  if (containsBytes(data, getU8Encoder().encode(2), 0)) {
     return PaladinRewardsInstruction.InitializeHolderRewards;
   }
-  if (containsBytes(data, getU8Encoder().encode(3), 0)) {
+  if (containsBytes(data, getU8Encoder().encode(2), 0)) {
     return PaladinRewardsInstruction.HarvestRewards;
-  }
-  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
-    return PaladinRewardsInstruction.SweepRewards;
   }
   throw new Error(
     'The provided instruction could not be identified as a paladinRewards instruction.'
@@ -67,14 +57,8 @@ export type ParsedPaladinRewardsInstruction<
       instructionType: PaladinRewardsInstruction.InitializeHolderRewardsPool;
     } & ParsedInitializeHolderRewardsPoolInstruction<TProgram>)
   | ({
-      instructionType: PaladinRewardsInstruction.DistributeRewards;
-    } & ParsedDistributeRewardsInstruction<TProgram>)
-  | ({
       instructionType: PaladinRewardsInstruction.InitializeHolderRewards;
     } & ParsedInitializeHolderRewardsInstruction<TProgram>)
   | ({
       instructionType: PaladinRewardsInstruction.HarvestRewards;
-    } & ParsedHarvestRewardsInstruction<TProgram>)
-  | ({
-      instructionType: PaladinRewardsInstruction.SweepRewards;
-    } & ParsedSweepRewardsInstruction<TProgram>);
+    } & ParsedHarvestRewardsInstruction<TProgram>);

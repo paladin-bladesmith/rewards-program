@@ -31,7 +31,7 @@ pub fn setup() -> ProgramTest {
     ProgramTest::new(
         "paladin_rewards_program",
         paladin_rewards_program::id(),
-        processor!(paladin_rewards_program::processor::process),
+        None,
     )
 }
 
@@ -169,13 +169,14 @@ pub async fn setup_holder_rewards_pool_account(
     excess_lamports: u64,
     accumulated_rewards_per_token: u128,
 ) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(HolderRewardsPool::LEN) + excess_lamports;
     let state = HolderRewardsPool {
         accumulated_rewards_per_token,
+        lamports_last: lamports,
+        _padding: 0,
     };
     let data = bytemuck::bytes_of(&state).to_vec();
-
-    let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(data.len()) + excess_lamports;
 
     context.set_account(
         holder_rewards_pool_address,

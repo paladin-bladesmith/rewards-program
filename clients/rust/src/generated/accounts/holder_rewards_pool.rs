@@ -13,10 +13,12 @@ use {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HolderRewardsPool {
     pub accumulated_rewards_per_token: u128,
+    pub lamports_last: u64,
+    pub padding: u64,
 }
 
 impl HolderRewardsPool {
-    pub const LEN: usize = 16;
+    pub const LEN: usize = 32;
 
     /// Prefix values used to generate a PDA for this account.
     ///

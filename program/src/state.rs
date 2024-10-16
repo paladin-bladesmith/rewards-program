@@ -256,7 +256,7 @@ impl HolderRewards {
 /// of rewards to holders.
 ///
 /// All rewards ready to be distributed are stored directly on this account.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewardsPool {
     /// The current rewards per token exchange rate.
@@ -264,4 +264,12 @@ pub struct HolderRewardsPool {
     /// Stored as a `u128`, which includes a scaling factor of `1e18` to
     /// represent the exchange rate with 18 decimal places of precision.
     pub accumulated_rewards_per_token: u128,
+    /// Tracks the last updated lmaports so we can track inbound payments.
+    pub lamports_last: u64,
+
+    pub _padding: u64,
+}
+
+impl HolderRewardsPool {
+    pub const LEN: usize = std::mem::size_of::<HolderRewardsPool>();
 }

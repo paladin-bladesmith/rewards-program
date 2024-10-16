@@ -9,14 +9,14 @@ use {
             collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
             get_holder_rewards_address, get_holder_rewards_address_and_bump_seed,
             get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
-            get_sweep_address, HolderRewards, HolderRewardsPool,
+            HolderRewards, HolderRewardsPool,
         },
     },
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
-        program::{invoke, invoke_signed},
+        program::invoke_signed,
         program_error::ProgramError,
         program_option::COption,
         pubkey::Pubkey,
@@ -43,8 +43,11 @@ use {
 const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
 
 fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
+    solana_program::msg!("M0");
     let mint_data = mint_info.try_borrow_data()?;
+    solana_program::msg!("M1");
     let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+    solana_program::msg!("M2");
     Ok(mint.base.supply)
 }
 
@@ -165,6 +168,29 @@ fn calculate_eligible_rewards(
         .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
         .and_then(|product| product.try_into().ok())
         .ok_or(ProgramError::ArithmeticOverflow)
+}
+
+fn update_accumulated_rewards_per_token(
+    mint_info: &AccountInfo,
+    holder_rewards_pool_info: &AccountInfo,
+    pool_state: &mut HolderRewardsPool,
+) -> ProgramResult {
+    solana_program::msg!("-> 0");
+    let latest_lamports = holder_rewards_pool_info.lamports();
+    let additional_lamports = latest_lamports
+        .checked_sub(pool_state.lamports_last)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    solana_program::msg!("-> 1");
+    let marginal_rate =
+        calculate_rewards_per_token(additional_lamports, get_token_supply(mint_info)?)?;
+    solana_program::msg!("-> 2");
+    pool_state.accumulated_rewards_per_token = pool_state
+        .accumulated_rewards_per_token
+        .wrapping_add(marginal_rate);
+    pool_state.lamports_last = latest_lamports;
+    solana_program::msg!("-> 3");
+
+    Ok(())
 }
 
 fn update_holder_rewards_for_transfer_hook(
@@ -311,7 +337,11 @@ fn process_initialize_holder_rewards_pool(
         // Write the data.
         let mut data = holder_rewards_pool_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
-            HolderRewardsPool::default();
+            HolderRewardsPool {
+                accumulated_rewards_per_token: 0,
+                lamports_last: holder_rewards_pool_info.lamports(),
+                _padding: 0,
+            };
     }
 
     // Initialize the extra metas account.
@@ -356,55 +386,6 @@ fn process_initialize_holder_rewards_pool(
     Ok(())
 }
 
-/// Processes a [DistributeRewards](enum.PaladinRewardsInstruction.html)
-/// instruction.
-fn process_distribute_rewards(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    amount: u64,
-) -> ProgramResult {
-    let accounts_iter = &mut accounts.iter();
-
-    let payer_info = next_account_info(accounts_iter)?;
-    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
-    let mint_info = next_account_info(accounts_iter)?;
-    let _system_program_info = next_account_info(accounts_iter)?;
-
-    // Ensure the payer account is a signer.
-    if !payer_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
-
-    let token_supply = get_token_supply(mint_info)?;
-
-    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-
-    // Update the total rewards in the holder rewards pool.
-    {
-        let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
-        let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        // Calculate the new rewards per token by first calculating the rewards
-        // per token on the provided rewards amount, then adding that rate to
-        // the old rate.
-        let marginal_rate = calculate_rewards_per_token(amount, token_supply)?;
-        let new_accumulated_rewards_per_token = pool_state
-            .accumulated_rewards_per_token
-            .wrapping_add(marginal_rate);
-
-        pool_state.accumulated_rewards_per_token = new_accumulated_rewards_per_token;
-    }
-
-    // Move the amount from the payer to the holder rewards pool.
-    invoke(
-        &system_instruction::transfer(payer_info.key, holder_rewards_pool_info.key, amount),
-        &[payer_info.clone(), holder_rewards_pool_info.clone()],
-    )?;
-
-    Ok(())
-}
-
 /// Processes an
 /// [InitializeHolderRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
@@ -432,9 +413,12 @@ fn process_initialize_holder_rewards(
     }
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
-    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Process any received lamports.
+    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
 
     // Initialize the holder rewards account.
     {
@@ -482,6 +466,7 @@ fn process_initialize_holder_rewards(
 /// Processes a [HarvestRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    solana_program::msg!("0");
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
@@ -490,19 +475,27 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let mint_info = next_account_info(accounts_iter)?;
 
     // Run checks on the token account.
+    solana_program::msg!("1");
     let token_account_balance =
         get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
 
+    solana_program::msg!("2");
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
-    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
+    solana_program::msg!("3");
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Handle any lamports received since last harvest.
+    solana_program::msg!("4");
+    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    solana_program::msg!("5");
 
     // Determine the amount the holder can harvest.
     //
@@ -518,6 +511,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             holder_rewards_state.last_accumulated_rewards_per_token,
             token_account_balance,
         )?;
+        solana_program::msg!("6");
 
         if eligible_rewards != 0 {
             // Update the holder rewards state.
@@ -542,6 +536,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
                 .lamports()
                 .saturating_sub(rent_exempt_lamports)
         };
+        solana_program::msg!("7");
 
         holder_rewards_state
             .unharvested_rewards
@@ -558,8 +553,12 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .lamports()
             .checked_add(rewards_to_harvest)
             .ok_or(ProgramError::ArithmeticOverflow)?;
+        solana_program::msg!("8");
+
         **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
         **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+        pool_state.lamports_last = new_holder_rewards_pool_lamports;
+        solana_program::msg!("9");
 
         // Update the holder's unharvested rewards.
         holder_rewards_state.unharvested_rewards = holder_rewards_state
@@ -567,57 +566,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
             .checked_sub(rewards_to_harvest)
             .ok_or(ProgramError::ArithmeticOverflow)?;
     }
-
-    Ok(())
-}
-
-/// Processes a [SweepRewards](enum.PaladinRewardsInstruction.html)
-/// instruction.
-fn process_sweep_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    let accounts_iter = &mut accounts.iter();
-
-    let sweep_info = next_account_info(accounts_iter)?;
-    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
-    let mint_info = next_account_info(accounts_iter)?;
-    let _system_program_info = next_account_info(accounts_iter)?;
-
-    // Sweep all lamports over the rent exemption.
-    let rent = <Rent as Sysvar>::get()?;
-    let amount = sweep_info
-        .lamports()
-        .saturating_sub(rent.minimum_balance(sweep_info.data_len()));
-
-    // Ensure the sweep account has the correct address.
-    if sweep_info.key != &get_sweep_address(program_id) {
-        return Err(PaladinRewardsError::IncorrectSweepAddress.into());
-    }
-
-    let token_supply = get_token_supply(mint_info)?;
-
-    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-
-    // Update the total rewards in the holder rewards pool.
-    {
-        let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
-        let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        // Calculate the new rewards per token by first calculating the rewards
-        // per token on the provided rewards amount, then adding that rate to
-        // the old rate.
-        let marginal_rate = calculate_rewards_per_token(amount, token_supply)?;
-        let new_accumulated_rewards_per_token = pool_state
-            .accumulated_rewards_per_token
-            .wrapping_add(marginal_rate);
-
-        pool_state.accumulated_rewards_per_token = new_accumulated_rewards_per_token;
-    }
-
-    // Move the amount from the payer to the holder rewards pool.
-    let new_sweep_lamports = sweep_info.lamports().saturating_sub(amount);
-    let new_pool_lamports = holder_rewards_pool_info.lamports().saturating_add(amount);
-    **sweep_info.lamports.borrow_mut() = new_sweep_lamports;
-    **holder_rewards_pool_info.lamports.borrow_mut() = new_pool_lamports;
+    solana_program::msg!("10");
 
     Ok(())
 }
@@ -700,10 +649,6 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
                 msg!("Instruction: InitializeHolderRewardsPool");
                 process_initialize_holder_rewards_pool(program_id, accounts)
             }
-            PaladinRewardsInstruction::DistributeRewards(amount) => {
-                msg!("Instruction: DistributeRewards");
-                process_distribute_rewards(program_id, accounts, amount)
-            }
             PaladinRewardsInstruction::InitializeHolderRewards => {
                 msg!("Instruction: InitializeHolderRewards");
                 process_initialize_holder_rewards(program_id, accounts)
@@ -711,10 +656,6 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");
                 process_harvest_rewards(program_id, accounts)
-            }
-            PaladinRewardsInstruction::SweepRewards => {
-                msg!("Instruction: SweepRewards");
-                process_sweep_rewards(program_id, accounts)
             }
         }
     }
