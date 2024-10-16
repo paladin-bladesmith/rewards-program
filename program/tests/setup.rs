@@ -141,19 +141,25 @@ pub async fn setup_token_account_transferring(
     setup_token_account_common(context, token_account, owner, mint, amount, true).await;
 }
 
+pub async fn setup_rent_exempt_account(
+    context: &mut ProgramTestContext,
+    address: &Pubkey,
+    excess_lamports: u64,
+    owner: &Pubkey,
+) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(0) + excess_lamports;
+
+    context.set_account(address, &AccountSharedData::new(lamports, 0, owner));
+}
+
 #[allow(clippy::arithmetic_side_effects)]
 pub async fn setup_system_account(
     context: &mut ProgramTestContext,
     address: &Pubkey,
     excess_lamports: u64,
 ) {
-    let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(0) + excess_lamports;
-
-    context.set_account(
-        address,
-        &AccountSharedData::new(lamports, 0, &system_program::id()),
-    );
+    setup_rent_exempt_account(context, address, excess_lamports, &system_program::id()).await;
 }
 
 #[allow(clippy::arithmetic_side_effects)]
