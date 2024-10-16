@@ -9,7 +9,7 @@ use {
             collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
             get_holder_rewards_address, get_holder_rewards_address_and_bump_seed,
             get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
-            HolderRewards, HolderRewardsPool,
+            get_sweep_address, HolderRewards, HolderRewardsPool,
         },
     },
     solana_program::{
@@ -571,6 +571,57 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     Ok(())
 }
 
+/// Processes a [SweepRewards](enum.PaladinRewardsInstruction.html)
+/// instruction.
+fn process_sweep_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let sweep_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let _system_program_info = next_account_info(accounts_iter)?;
+
+    // Sweep all lamports over the rent exemption.
+    let rent = <Rent as Sysvar>::get()?;
+    let amount = sweep_info
+        .lamports()
+        .saturating_sub(rent.minimum_balance(sweep_info.data_len()));
+
+    // Ensure the sweep account has the correct address.
+    if sweep_info.key != &get_sweep_address(program_id) {
+        return Err(PaladinRewardsError::IncorrectSweepAddress.into());
+    }
+
+    let token_supply = get_token_supply(mint_info)?;
+
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+
+    // Update the total rewards in the holder rewards pool.
+    {
+        let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+        let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        // Calculate the new rewards per token by first calculating the rewards
+        // per token on the provided rewards amount, then adding that rate to
+        // the old rate.
+        let marginal_rate = calculate_rewards_per_token(amount, token_supply)?;
+        let new_accumulated_rewards_per_token = pool_state
+            .accumulated_rewards_per_token
+            .wrapping_add(marginal_rate);
+
+        pool_state.accumulated_rewards_per_token = new_accumulated_rewards_per_token;
+    }
+
+    // Move the amount from the payer to the holder rewards pool.
+    let new_sweep_lamports = sweep_info.lamports().saturating_sub(amount);
+    let new_pool_lamports = holder_rewards_pool_info.lamports().saturating_add(amount);
+    **sweep_info.lamports.borrow_mut() = new_sweep_lamports;
+    **holder_rewards_pool_info.lamports.borrow_mut() = new_pool_lamports;
+
+    Ok(())
+}
+
 /// Processes an SPL Transfer Hook Interface
 /// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
 fn process_spl_transfer_hook_execute(
@@ -660,6 +711,10 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             PaladinRewardsInstruction::HarvestRewards => {
                 msg!("Instruction: HarvestRewards");
                 process_harvest_rewards(program_id, accounts)
+            }
+            PaladinRewardsInstruction::SweepRewards => {
+                msg!("Instruction: SweepRewards");
+                process_sweep_rewards(program_id, accounts)
             }
         }
     }

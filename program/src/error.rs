@@ -32,6 +32,9 @@ pub enum PaladinRewardsError {
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
+    /// Incorrect sweep address.
+    #[error("Incorrect sweep address")]
+    IncorrectSweepAddress,
 }
 
 impl PrintProgramError for PaladinRewardsError {

@@ -190,6 +190,48 @@
         "type": "u8",
         "value": 3
       }
+    },
+    {
+      "name": "SweepRewards",
+      "accounts": [
+        {
+          "name": "sweep",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Sweep account."
+          ]
+        },
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "System program."
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
     }
   ],
   "accounts": [
@@ -256,6 +298,11 @@
       "code": 5,
       "name": "TokenAccountMintMismatch",
       "msg": "Token account mint mismatch"
+    },
+    {
+      "code": 6,
+      "name": "IncorrectSweepAddress",
+      "msg": "Incorrect sweep address"
     }
   ],
   "metadata": {

@@ -164,6 +164,45 @@ pub enum PaladinRewardsInstruction {
         desc = "Token mint.",
     )]
     HarvestRewards,
+    /// Moves SOL rewards from the sweep account to the holder rewards pool and
+    /// updates the total.
+    /// 
+    /// This instruction operates exactly the same as `DistributeRewards`, but
+    /// with the following differences:
+    /// * This instruction is permissionless. The sweep account is required
+    ///   instead of the payer signer.
+    /// * All excess lamports above the rent-exempt minimum are automatically
+    ///   swept into the system.
+    ///
+    /// Accounts expected by this instruction:
+    ///
+    /// 0. `[w]` Sweep account.
+    /// 1. `[w]` Holder rewards pool account.
+    /// 2. `[ ]` Token mint.
+    /// 3. `[ ]` System program.
+    #[account(
+        0,
+        writable,
+        name = "sweep",
+        desc = "Sweep account.",
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        2,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        3,
+        name = "system_program",
+        desc = "System program.",
+    )]
+    SweepRewards,
 }
 
 impl PaladinRewardsInstruction {
@@ -181,6 +220,7 @@ impl PaladinRewardsInstruction {
             }
             PaladinRewardsInstruction::InitializeHolderRewards => vec![2],
             PaladinRewardsInstruction::HarvestRewards => vec![3],
+            PaladinRewardsInstruction::SweepRewards => vec![4],
         }
     }
 
@@ -198,6 +238,7 @@ impl PaladinRewardsInstruction {
             }
             Some((&2, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
             Some((&3, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
+            Some((&4, _)) => Ok(PaladinRewardsInstruction::SweepRewards),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -277,6 +318,22 @@ pub fn harvest_rewards(
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
+/// Creates a [SweepRewards](enum.PaladinRewardsInstruction.html) instruction.
+pub fn sweep_rewards(
+    sweep_address: &Pubkey,
+    holder_rewards_pool_address: &Pubkey,
+    mint_address: &Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new(*sweep_address, false),
+        AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*mint_address, false),
+        AccountMeta::new_readonly(system_program::id(), false),
+    ];
+    let data = PaladinRewardsInstruction::SweepRewards.pack();
+    Instruction::new_with_bytes(crate::id(), &data, accounts)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,6 +365,14 @@ mod tests {
     #[test]
     fn test_pack_unpack_harvest_rewards() {
         let original = PaladinRewardsInstruction::HarvestRewards;
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
+
+    #[test]
+    fn test_pack_unpack_sweep_rewards() {
+        let original = PaladinRewardsInstruction::SweepRewards;
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);
