@@ -17,6 +17,7 @@ import {
   type ParsedHarvestRewardsInstruction,
   type ParsedInitializeHolderRewardsInstruction,
   type ParsedInitializeHolderRewardsPoolInstruction,
+  type ParsedSweepRewardsInstruction,
 } from '../instructions';
 
 export const PALADIN_REWARDS_PROGRAM_ADDRESS =
@@ -32,6 +33,7 @@ export enum PaladinRewardsInstruction {
   DistributeRewards,
   InitializeHolderRewards,
   HarvestRewards,
+  SweepRewards,
 }
 
 export function identifyPaladinRewardsInstruction(
@@ -49,6 +51,9 @@ export function identifyPaladinRewardsInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return PaladinRewardsInstruction.HarvestRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+    return PaladinRewardsInstruction.SweepRewards;
   }
   throw new Error(
     'The provided instruction could not be identified as a paladinRewards instruction.'
@@ -69,4 +74,7 @@ export type ParsedPaladinRewardsInstruction<
     } & ParsedInitializeHolderRewardsInstruction<TProgram>)
   | ({
       instructionType: PaladinRewardsInstruction.HarvestRewards;
-    } & ParsedHarvestRewardsInstruction<TProgram>);
+    } & ParsedHarvestRewardsInstruction<TProgram>)
+  | ({
+      instructionType: PaladinRewardsInstruction.SweepRewards;
+    } & ParsedSweepRewardsInstruction<TProgram>);

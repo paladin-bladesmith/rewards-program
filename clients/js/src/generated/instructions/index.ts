@@ -10,3 +10,4 @@ export * from './distributeRewards';
 export * from './harvestRewards';
 export * from './initializeHolderRewards';
 export * from './initializeHolderRewardsPool';
+export * from './sweepRewards';

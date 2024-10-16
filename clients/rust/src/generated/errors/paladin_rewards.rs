@@ -26,6 +26,9 @@ pub enum PaladinRewardsError {
     /// 5 - Token account mint mismatch
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch = 0x5,
+    /// 6 - Incorrect sweep address
+    #[error("Incorrect sweep address")]
+    IncorrectSweepAddress = 0x6,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {
