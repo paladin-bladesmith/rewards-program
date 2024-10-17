@@ -4,13 +4,10 @@
 //!
 //! <https://github.com/kinobi-so/kinobi>
 
-pub(crate) mod r#distribute_rewards;
 pub(crate) mod r#harvest_rewards;
 pub(crate) mod r#initialize_holder_rewards;
 pub(crate) mod r#initialize_holder_rewards_pool;
-pub(crate) mod r#sweep_rewards;
 
 pub use self::{
-    r#distribute_rewards::*, r#harvest_rewards::*, r#initialize_holder_rewards::*,
-    r#initialize_holder_rewards_pool::*, r#sweep_rewards::*,
+    r#harvest_rewards::*, r#initialize_holder_rewards::*, r#initialize_holder_rewards_pool::*,
 };

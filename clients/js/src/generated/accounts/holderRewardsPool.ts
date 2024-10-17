@@ -17,6 +17,8 @@ import {
   getStructEncoder,
   getU128Decoder,
   getU128Encoder,
+  getU64Decoder,
+  getU64Encoder,
   type Account,
   type Address,
   type Codec,
@@ -30,18 +32,32 @@ import {
 } from '@solana/web3.js';
 import { HolderRewardsPoolSeeds, findHolderRewardsPoolPda } from '../pdas';
 
-export type HolderRewardsPool = { accumulatedRewardsPerToken: bigint };
+export type HolderRewardsPool = {
+  accumulatedRewardsPerToken: bigint;
+  lamportsLast: bigint;
+  padding: bigint;
+};
 
 export type HolderRewardsPoolArgs = {
   accumulatedRewardsPerToken: number | bigint;
+  lamportsLast: number | bigint;
+  padding: number | bigint;
 };
 
 export function getHolderRewardsPoolEncoder(): Encoder<HolderRewardsPoolArgs> {
-  return getStructEncoder([['accumulatedRewardsPerToken', getU128Encoder()]]);
+  return getStructEncoder([
+    ['accumulatedRewardsPerToken', getU128Encoder()],
+    ['lamportsLast', getU64Encoder()],
+    ['padding', getU64Encoder()],
+  ]);
 }
 
 export function getHolderRewardsPoolDecoder(): Decoder<HolderRewardsPool> {
-  return getStructDecoder([['accumulatedRewardsPerToken', getU128Decoder()]]);
+  return getStructDecoder([
+    ['accumulatedRewardsPerToken', getU128Decoder()],
+    ['lamportsLast', getU64Decoder()],
+    ['padding', getU64Decoder()],
+  ]);
 }
 
 export function getHolderRewardsPoolCodec(): Codec<
@@ -118,7 +134,7 @@ export async function fetchAllMaybeHolderRewardsPool(
 }
 
 export function getHolderRewardsPoolSize(): number {
-  return 16;
+  return 32;
 }
 
 export async function fetchHolderRewardsPoolFromSeeds(

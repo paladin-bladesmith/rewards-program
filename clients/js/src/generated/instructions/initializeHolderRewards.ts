@@ -42,7 +42,7 @@ export type InitializeHolderRewardsInstruction<
   IInstructionWithAccounts<
     [
       TAccountHolderRewardsPool extends string
-        ? ReadonlyAccount<TAccountHolderRewardsPool>
+        ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
@@ -67,7 +67,7 @@ export type InitializeHolderRewardsInstructionDataArgs = {};
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 2 })
+    (value) => ({ ...value, discriminator: 1 })
   );
 }
 
@@ -133,7 +133,7 @@ export function getInitializeHolderRewardsInstruction<
   const originalAccounts = {
     holderRewardsPool: {
       value: input.holderRewardsPool ?? null,
-      isWritable: false,
+      isWritable: true,
     },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },

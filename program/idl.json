@@ -53,58 +53,11 @@
       }
     },
     {
-      "name": "DistributeRewards",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true,
-          "docs": [
-            "Payer account."
-          ]
-        },
-        {
-          "name": "holderRewardsPool",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Holder rewards pool account."
-          ]
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token mint."
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "System program."
-          ]
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": "u64"
-        }
-      ],
-      "discriminant": {
-        "type": "u8",
-        "value": 1
-      }
-    },
-    {
       "name": "InitializeHolderRewards",
       "accounts": [
         {
           "name": "holderRewardsPool",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "Holder rewards pool account."
@@ -146,7 +99,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 1
       }
     },
     {
@@ -188,49 +141,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 3
-      }
-    },
-    {
-      "name": "SweepRewards",
-      "accounts": [
-        {
-          "name": "sweep",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Sweep account."
-          ]
-        },
-        {
-          "name": "holderRewardsPool",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Holder rewards pool account."
-          ]
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token mint."
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "System program."
-          ]
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 4
+        "value": 2
       }
     }
   ],
@@ -263,6 +174,14 @@
           {
             "name": "accumulatedRewardsPerToken",
             "type": "u128"
+          },
+          {
+            "name": "lamportsLast",
+            "type": "u64"
+          },
+          {
+            "name": "padding",
+            "type": "u64"
           }
         ]
       }

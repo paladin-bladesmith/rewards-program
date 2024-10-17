@@ -6,7 +6,10 @@ use {
     paladin_rewards_program::{
         error::PaladinRewardsError,
         instruction::initialize_holder_rewards,
-        state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
+        state::{
+            get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
+            HolderRewardsPool,
+        },
     },
     setup::{setup, setup_holder_rewards_pool_account, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -404,7 +407,7 @@ async fn success() {
         .await
         .unwrap();
 
-    // Check the holder rewards account.
+    // Assert - Check the holder rewards account.
     let holder_rewards_account = context
         .banks_client
         .get_account(holder_rewards)
@@ -412,12 +415,29 @@ async fn success() {
         .unwrap()
         .unwrap();
     let holder_rewards_state = bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
-
     assert_eq!(
         holder_rewards_state,
         &HolderRewards::new(
             accumulated_rewards_per_token,
             /* unharvested_rewards */ 0
         ),
+    );
+
+    // Assert - Eligible tokens is updated.
+    let holder_rewards_pool_account = context
+        .banks_client
+        .get_account(holder_rewards_pool)
+        .await
+        .unwrap()
+        .unwrap();
+    let holder_rewards_pool_state =
+        bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data);
+    assert_eq!(
+        holder_rewards_pool_state,
+        &HolderRewardsPool {
+            accumulated_rewards_per_token,
+            lamports_last: holder_rewards_pool_account.lamports,
+            _padding: 0,
+        }
     );
 }
