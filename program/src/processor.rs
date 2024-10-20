@@ -523,9 +523,10 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
                 .saturating_sub(rent_exempt_lamports)
         };
 
-        holder_rewards_state
-            .unharvested_rewards
-            .min(pool_excess_lamports)
+        std::cmp::min(
+            holder_rewards_state.unharvested_rewards,
+            pool_excess_lamports,
+        )
     };
 
     if rewards_to_harvest != 0 {
