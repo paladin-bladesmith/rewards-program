@@ -717,7 +717,6 @@ async fn success(
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     // Sponsor details.
-    let mut context = setup().start_with_context().await;
     let rent = context.banks_client.get_rent().await.unwrap();
     let holder_rewards_rent = rent.minimum_balance(HolderRewards::LEN);
     assert_eq!(holder_rewards_rent, HOLDER_REWARDS_RENT);
