@@ -4,6 +4,7 @@ mod setup;
 
 use {
     paladin_rewards_program::{
+        constants::rent_debt,
         error::PaladinRewardsError,
         instruction::harvest_rewards,
         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
@@ -27,7 +28,7 @@ use {
 };
 
 const HOLDER_REWARDS_RENT: u64 = 1447680;
-const SPONSOR_DEBT: u64 = HOLDER_REWARDS_RENT * 11 / 10;
+const SPONSOR_DEBT: u64 = rent_debt(HOLDER_REWARDS_RENT);
 
 #[tokio::test]
 async fn fail_token_account_invalid_data() {
@@ -724,7 +725,7 @@ async fn success(
     let (rent_debt, rent_sponsor, minimum_balance, expected_sponsor_rewards) = sponsor
         .map(|expected| {
             (
-                holder_rewards_rent * 11 / 10,
+                rent_debt(holder_rewards_rent),
                 sponsor_account,
                 token_account_balance,
                 expected,

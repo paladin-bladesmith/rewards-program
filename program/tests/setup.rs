@@ -3,6 +3,7 @@
 
 use {
     paladin_rewards_program::{
+        constants::rent_debt,
         extra_metas::get_extra_account_metas,
         state::{HolderRewards, HolderRewardsPool},
     },
@@ -215,7 +216,7 @@ pub async fn setup_holder_rewards_account(
         .map(|(sponsor, minimum_balance)| {
             (
                 sponsor,
-                rent.minimum_balance(HolderRewards::LEN) * 11 / 10,
+                rent_debt(rent.minimum_balance(HolderRewards::LEN)),
                 minimum_balance,
             )
         })

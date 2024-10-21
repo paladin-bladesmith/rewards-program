@@ -2,6 +2,7 @@
 
 use {
     crate::{
+        constants::rent_debt,
         error::PaladinRewardsError,
         extra_metas::get_extra_account_metas,
         instruction::PaladinRewardsInstruction,
@@ -459,10 +460,9 @@ fn process_initialize_holder_rewards(
                 rent_sponsor,
                 rent_debt: match rent_sponsor == Pubkey::default() {
                     true => 0,
-                    // NB: Sponsor is paid back a 10% premium as an incentive to sponsor the
-                    // account.
+                    // NB: Sponsor is paid back a premium as an incentive to sponsor the account.
                     #[allow(clippy::arithmetic_side_effects)]
-                    false => Rent::get()?.minimum_balance(HolderRewards::LEN) * 11 / 10,
+                    false => rent_debt(Rent::get()?.minimum_balance(HolderRewards::LEN)),
                 },
                 minimum_balance: match rent_sponsor == Pubkey::default() {
                     true => 0,
