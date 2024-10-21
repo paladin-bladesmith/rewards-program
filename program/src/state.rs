@@ -241,15 +241,15 @@ pub struct HolderRewards {
     /// The account that sponsored the rent for this account,
     /// `Pubkey::default()` indicates no sponsor.
     pub rent_sponsor: Pubkey,
-    /// The amount of rent owed back to the patron.
+    /// The amount of rent owed back to the sponsor.
     pub rent_debt: u64,
     /// If the account has a rent sponsor then this was the balance at time of
     /// sponsoring.
     ///
-    /// If the balance falls below this level then the patron can close the
+    /// If the balance falls below this level then the sponsor can close the
     /// account to recover their rent. This is done to mitigate baiting &
-    /// griefing patrons (who expect to receive their sponsored rent back within
-    /// some predictable time frame).
+    /// griefing sponsors (who expect to receive their sponsored rent back
+    /// within some predictable time frame).
     pub minimum_balance: u64,
     /// Aligns to 80 bytes (multiple of 16).
     pub _padding: u64,
