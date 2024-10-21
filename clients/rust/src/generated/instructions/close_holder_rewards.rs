@@ -38,14 +38,14 @@ impl CloseHolderRewards {
             self.holder_rewards,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.token_account,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             self.authority,
             true,
         ));
@@ -85,9 +85,9 @@ impl Default for CloseHolderRewardsInstructionData {
 ///
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
+///   2. `[]` token_account
 ///   3. `[]` mint
-///   4. `[signer]` authority
+///   4. `[writable, signer]` authority
 #[derive(Clone, Debug, Default)]
 pub struct CloseHolderRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
@@ -255,7 +255,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             *self.holder_rewards.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.token_account.key,
             false,
         ));
@@ -263,7 +263,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             *self.mint.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             *self.authority.key,
             true,
         ));
@@ -308,9 +308,9 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
 ///
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
+///   2. `[]` token_account
 ///   3. `[]` mint
-///   4. `[signer]` authority
+///   4. `[writable, signer]` authority
 #[derive(Clone, Debug)]
 pub struct CloseHolderRewardsCpiBuilder<'a, 'b> {
     instruction: Box<CloseHolderRewardsCpiBuilderInstruction<'a, 'b>>,

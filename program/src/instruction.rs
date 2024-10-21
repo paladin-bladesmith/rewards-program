@@ -135,9 +135,10 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
+        optional,
+        writable,
         name = "sponsor",
         desc = "Sponsor of this account, required if rent_debt is non zero",
-        optional
     )]
     HarvestRewards,
     /// Closes the provided holder rewards account.
@@ -155,7 +156,6 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         2,
-        writable,
         name = "token_account",
         desc = "Token account.",
     )]
@@ -167,6 +167,7 @@ pub enum PaladinRewardsInstruction {
     #[account(
         4,
         signer,
+        writable,
         name = "authority",
         desc = "Either the owner or the sponsor can close the account.",
     )]

@@ -52,7 +52,7 @@ export type HarvestRewardsInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountSponsor extends string
-        ? ReadonlyAccount<TAccountSponsor>
+        ? WritableAccount<TAccountSponsor>
         : TAccountSponsor,
       ...TRemainingAccounts,
     ]
@@ -136,7 +136,7 @@ export function getHarvestRewardsInstruction<
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
-    sponsor: { value: input.sponsor ?? null, isWritable: false },
+    sponsor: { value: input.sponsor ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,

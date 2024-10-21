@@ -144,7 +144,7 @@
         },
         {
           "name": "sponsor",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "isOptional": true,
           "docs": [
@@ -179,7 +179,7 @@
         },
         {
           "name": "tokenAccount",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false,
           "docs": [
             "Token account."
@@ -195,7 +195,7 @@
         },
         {
           "name": "authority",
-          "isMut": false,
+          "isMut": true,
           "isSigner": true,
           "docs": [
             "Either the owner or the sponsor can close the account."

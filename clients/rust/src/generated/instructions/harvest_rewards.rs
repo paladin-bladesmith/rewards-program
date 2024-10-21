@@ -46,7 +46,7 @@ impl HarvestRewards {
             self.mint, false,
         ));
         if let Some(sponsor) = self.sponsor {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            accounts.push(solana_program::instruction::AccountMeta::new(
                 sponsor, false,
             ));
         } else {
@@ -91,7 +91,7 @@ impl Default for HarvestRewardsInstructionData {
 ///   1. `[writable]` holder_rewards
 ///   2. `[writable]` token_account
 ///   3. `[]` mint
-///   4. `[optional]` sponsor
+///   4. `[writable, optional]` sponsor
 #[derive(Clone, Debug, Default)]
 pub struct HarvestRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
@@ -269,7 +269,7 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
             false,
         ));
         if let Some(sponsor) = self.sponsor {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            accounts.push(solana_program::instruction::AccountMeta::new(
                 *sponsor.key,
                 false,
             ));
@@ -322,7 +322,7 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
 ///   1. `[writable]` holder_rewards
 ///   2. `[writable]` token_account
 ///   3. `[]` mint
-///   4. `[optional]` sponsor
+///   4. `[writable, optional]` sponsor
 #[derive(Clone, Debug)]
 pub struct HarvestRewardsCpiBuilder<'a, 'b> {
     instruction: Box<HarvestRewardsCpiBuilderInstruction<'a, 'b>>,
