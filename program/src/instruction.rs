@@ -166,6 +166,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
+        signer,
         name = "authority",
         desc = "Either the owner or the sponsor can close the account.",
     )]
@@ -328,5 +329,11 @@ mod tests {
         assert_eq!(original, unpacked);
     }
 
-    // TODO: Add test for close.
+    #[test]
+    fn test_pack_unpack_close_holder_rewards() {
+        let original = PaladinRewardsInstruction::CloseHolderRewards;
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
 }

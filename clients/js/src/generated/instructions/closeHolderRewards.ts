@@ -18,10 +18,13 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
+  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
+  type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
@@ -52,7 +55,8 @@ export type CloseHolderRewardsInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountAuthority extends string
-        ? ReadonlyAccount<TAccountAuthority>
+        ? ReadonlySignerAccount<TAccountAuthority> &
+            IAccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       ...TRemainingAccounts,
     ]
@@ -65,7 +69,7 @@ export type CloseHolderRewardsInstructionDataArgs = {};
 export function getCloseHolderRewardsInstructionDataEncoder(): Encoder<CloseHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 4 })
+    (value) => ({ ...value, discriminator: 3 })
   );
 }
 
@@ -99,7 +103,7 @@ export type CloseHolderRewardsInput<
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** Either the owner or the sponsor can close the account. */
-  authority: Address<TAccountAuthority>;
+  authority: TransactionSigner<TAccountAuthority>;
 };
 
 export function getCloseHolderRewardsInstruction<

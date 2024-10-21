@@ -47,7 +47,7 @@ impl CloseHolderRewards {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.authority,
-            false,
+            true,
         ));
         accounts.extend_from_slice(remaining_accounts);
         let data = CloseHolderRewardsInstructionData::new()
@@ -69,7 +69,7 @@ pub struct CloseHolderRewardsInstructionData {
 
 impl CloseHolderRewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 4 }
+        Self { discriminator: 3 }
     }
 }
 
@@ -87,7 +87,7 @@ impl Default for CloseHolderRewardsInstructionData {
 ///   1. `[writable]` holder_rewards
 ///   2. `[writable]` token_account
 ///   3. `[]` mint
-///   4. `[]` authority
+///   4. `[signer]` authority
 #[derive(Clone, Debug, Default)]
 pub struct CloseHolderRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
@@ -265,7 +265,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.authority.key,
-            false,
+            true,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -310,7 +310,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
 ///   1. `[writable]` holder_rewards
 ///   2. `[writable]` token_account
 ///   3. `[]` mint
-///   4. `[]` authority
+///   4. `[signer]` authority
 #[derive(Clone, Debug)]
 pub struct CloseHolderRewardsCpiBuilder<'a, 'b> {
     instruction: Box<CloseHolderRewardsCpiBuilderInstruction<'a, 'b>>,

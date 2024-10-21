@@ -96,7 +96,12 @@
           ]
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "pubkey",
+          "type": "publicKey"
+        }
+      ],
       "discriminant": {
         "type": "u8",
         "value": 1
@@ -136,12 +141,71 @@
           "docs": [
             "Token mint."
           ]
+        },
+        {
+          "name": "sponsor",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "Sponsor of this account, required if rent_debt is non zero"
+          ]
         }
       ],
       "args": [],
       "discriminant": {
         "type": "u8",
         "value": 2
+      }
+    },
+    {
+      "name": "CloseHolderRewards",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards account."
+          ]
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Either the owner or the sponsor can close the account."
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
       }
     }
   ],
@@ -157,6 +221,18 @@
           },
           {
             "name": "unharvestedRewards",
+            "type": "u64"
+          },
+          {
+            "name": "rentSponsor",
+            "type": "publicKey"
+          },
+          {
+            "name": "rentDebt",
+            "type": "u64"
+          },
+          {
+            "name": "minimumBalance",
             "type": "u64"
           },
           {
@@ -220,6 +296,21 @@
     },
     {
       "code": 6,
+      "name": "IncorrectSponsorAddress",
+      "msg": "Holder rewards sponsor account mismatch"
+    },
+    {
+      "code": 7,
+      "name": "CloseWithUnclaimedRewards",
+      "msg": "Holder rewards has unclaimed rewards"
+    },
+    {
+      "code": 8,
+      "name": "ClosingBalanceNotZero",
+      "msg": "Holder rewards token account balance must be zero"
+    },
+    {
+      "code": 9,
       "name": "IncorrectSweepAddress",
       "msg": "Incorrect sweep address"
     }
