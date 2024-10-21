@@ -397,17 +397,8 @@ fn process_initialize_holder_rewards(
     let _system_program = next_account_info(accounts_iter)?;
 
     // Run checks on the token account.
-    let initial_balance = {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-
-        // Ensure the provided token account is for the mint.
-        if !token_account.base.mint.eq(mint_info.key) {
-            return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
-        }
-
-        token_account.base.amount
-    };
+    let initial_balance =
+        get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
 
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
@@ -634,8 +625,8 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
 
     // Ensure holder has no unclaimed rewards.
     if holder_rewards_state.last_accumulated_rewards_per_token
-        != pool_state.accumulated_rewards_per_token
-        || holder_rewards_state.unharvested_rewards != 0
+        < pool_state.accumulated_rewards_per_token
+        || holder_rewards_state.unharvested_rewards > 0
     {
         return Err(PaladinRewardsError::CloseWithUnclaimedRewards.into());
     }
