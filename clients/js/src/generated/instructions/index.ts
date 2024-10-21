@@ -6,8 +6,6 @@
  * @see https://github.com/kinobi-so/kinobi
  */
 
-export * from './closeHolderRewards';
-export * from './distributeRewards';
 export * from './harvestRewards';
 export * from './initializeHolderRewards';
 export * from './initializeHolderRewardsPool';

@@ -7,10 +7,7 @@ mod setup;
 use {
     paladin_rewards_program::{
         extra_metas::get_extra_account_metas,
-        instruction::{
-            distribute_rewards, harvest_rewards, initialize_holder_rewards,
-            initialize_holder_rewards_pool,
-        },
+        instruction::{harvest_rewards, initialize_holder_rewards, initialize_holder_rewards_pool},
         state::{
             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
             HolderRewardsPool,
@@ -37,6 +34,7 @@ struct Pool {
     token_supply: u64,
     accumulated_rewards_per_token: u128,
     pool_excess_lamports: u64,
+    lamports_last: u64,
 }
 
 struct Holder {
@@ -180,6 +178,8 @@ async fn validate_state(
             pool_state,
             &HolderRewardsPool {
                 accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
+                lamports_last: pool.lamports_last,
+                _padding: 0,
             }
         );
     }
@@ -214,11 +214,14 @@ async fn validate_state(
 
 #[tokio::test]
 async fn test_e2e() {
+    let mut context = setup().start_with_context().await;
+
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_rent_exempt_lamports = pool_rent_exempt_lamports(&mut context).await;
 
     let alice = Keypair::new();
     let alice_token_account = get_associated_token_address(&alice.pubkey(), &mint);
@@ -232,7 +235,6 @@ async fn test_e2e() {
     let dave = Keypair::new();
     let dave_token_account = get_associated_token_address(&dave.pubkey(), &mint);
 
-    let mut context = setup().start_with_context().await;
     let payer = context.payer.insecure_clone();
 
     // Initial environment.
@@ -278,7 +280,6 @@ async fn test_e2e() {
         {
             let extra_metas =
                 get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
-            let pool_rent_exempt_lamports = pool_rent_exempt_lamports(&mut context).await;
             let extra_metas_rent_exempt_lamports =
                 extra_metas_rent_exempt_lamports(&mut context).await;
 
@@ -313,6 +314,7 @@ async fn test_e2e() {
                     token_supply: 100,
                     accumulated_rewards_per_token: 0,
                     pool_excess_lamports: 0,
+                    lamports_last: pool_rent_exempt_lamports,
                 },
                 &[],
             )
@@ -381,6 +383,7 @@ async fn test_e2e() {
                     token_supply: 100,
                     accumulated_rewards_per_token: 0,
                     pool_excess_lamports: 0,
+                    lamports_last: pool_rent_exempt_lamports,
                 },
                 &[
                     (
@@ -416,10 +419,9 @@ async fn test_e2e() {
         {
             send_transaction(
                 &mut context,
-                &[distribute_rewards(
+                &[system_instruction::transfer(
                     &payer.pubkey(),
                     &holder_rewards_pool,
-                    &mint,
                     100,
                 )],
                 &[&payer],
@@ -431,8 +433,9 @@ async fn test_e2e() {
                 &mint,
                 Pool {
                     token_supply: 100,
-                    accumulated_rewards_per_token: 1_000_000_000_000_000_000,
+                    accumulated_rewards_per_token: 0,
                     pool_excess_lamports: 100,
+                    lamports_last: pool_rent_exempt_lamports,
                 },
                 &[],
             )
@@ -472,15 +475,6 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[
-                spl_token_2022::instruction::mint_to(
-                    &spl_token_2022::id(),
-                    &mint,
-                    &dave_token_account,
-                    &mint_authority.pubkey(),
-                    &[],
-                    25,
-                )
-                .unwrap(),
                 system_instruction::transfer(
                     &payer.pubkey(),
                     &dave_holder_rewards,
@@ -493,6 +487,15 @@ async fn test_e2e() {
                     &mint,
                     Pubkey::default(),
                 ),
+                spl_token_2022::instruction::mint_to(
+                    &spl_token_2022::id(),
+                    &mint,
+                    &dave_token_account,
+                    &mint_authority.pubkey(),
+                    &[],
+                    25,
+                )
+                .unwrap(),
             ],
             &[&payer, &mint_authority],
         )
@@ -505,6 +508,7 @@ async fn test_e2e() {
                 token_supply: 125,
                 accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 100,
+                lamports_last: pool_rent_exempt_lamports + 100,
             },
             &[
                 (
@@ -587,6 +591,7 @@ async fn test_e2e() {
                 token_supply: 125,
                 accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 60,
+                lamports_last: pool_rent_exempt_lamports + 60,
             },
             &[
                 (
@@ -686,6 +691,7 @@ async fn test_e2e() {
                 token_supply: 100,
                 accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                 pool_excess_lamports: 35,
+                lamports_last: pool_rent_exempt_lamports + 35,
             },
             &[
                 (
@@ -764,14 +770,22 @@ async fn test_e2e() {
     //                                                 token_balance:      25
     //                                                 eligible_for:       50
     {
+        // Dummy harvest to trigger lamports sync.
+        let alice_holder_rewards =
+            get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+
         send_transaction(
             &mut context,
-            &[distribute_rewards(
-                &payer.pubkey(),
-                &holder_rewards_pool,
-                &mint,
-                200,
-            )],
+            &[
+                system_instruction::transfer(&payer.pubkey(), &holder_rewards_pool, 200),
+                harvest_rewards(
+                    &holder_rewards_pool,
+                    &alice_holder_rewards,
+                    &alice_token_account,
+                    &mint,
+                    None,
+                ),
+            ],
             &[&payer],
         )
         .await;
@@ -783,6 +797,7 @@ async fn test_e2e() {
                 token_supply: 100,
                 accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                 pool_excess_lamports: 235,
+                lamports_last: pool_rent_exempt_lamports + 235,
             },
             &[
                 (
@@ -875,6 +890,7 @@ async fn test_e2e() {
                 token_supply: 100,
                 accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                 pool_excess_lamports: 235,
+                lamports_last: pool_rent_exempt_lamports + 235,
             },
             &[
                 (
@@ -946,14 +962,22 @@ async fn test_e2e() {
     //                                                 eligible_for:       180
     //                                                 unharvested:        50
     {
+        // Dummy harvest to trigger lamports sync.
+        let alice_holder_rewards =
+            get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+
         send_transaction(
             &mut context,
-            &[distribute_rewards(
-                &payer.pubkey(),
-                &holder_rewards_pool,
-                &mint,
-                300,
-            )],
+            &[
+                system_instruction::transfer(&payer.pubkey(), &holder_rewards_pool, 300),
+                harvest_rewards(
+                    &holder_rewards_pool,
+                    &alice_holder_rewards,
+                    &alice_token_account,
+                    &mint,
+                    None,
+                ),
+            ],
             &[&payer],
         )
         .await;
@@ -965,6 +989,7 @@ async fn test_e2e() {
                 token_supply: 100,
                 accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                 pool_excess_lamports: 535,
+                lamports_last: pool_rent_exempt_lamports + 535,
             },
             &[
                 (
@@ -1077,6 +1102,7 @@ async fn test_e2e() {
                 token_supply: 100,
                 accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                 pool_excess_lamports: 0,
+                lamports_last: pool_rent_exempt_lamports,
             },
             &[
                 (
@@ -1133,3 +1159,5 @@ async fn test_e2e() {
         assert_eq!(dave_ending_lamports - dave_starting_lamports, 230);
     }
 }
+
+// TODO: Add sponsored account to e2e test.

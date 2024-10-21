@@ -9,14 +9,15 @@ use {
         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
     },
     setup::{
-        setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_sponsor,
-        setup_token_account,
+        setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_mint,
+        setup_sponsor, setup_token_account,
     },
     solana_program_test::*,
     solana_sdk::{
         account::AccountSharedData,
         instruction::InstructionError,
         pubkey::Pubkey,
+        signature::Keypair,
         signer::Signer,
         system_program,
         transaction::{Transaction, TransactionError},
@@ -691,15 +692,24 @@ async fn success(
         excess_lamports,
         accumulated_rewards_per_token,
     } = pool;
-
     let Holder {
         token_account_balance,
         last_accumulated_rewards_per_token,
         unharvested_rewards,
     } = holder;
 
+    let mut context = setup().start_with_context().await;
+
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
+    let mint_authority = Keypair::new();
+    setup_mint(
+        &mut context,
+        &mint,
+        &mint_authority.pubkey(),
+        token_account_balance,
+    )
+    .await;
 
     let token_account = get_associated_token_address(&owner, &mint);
     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());

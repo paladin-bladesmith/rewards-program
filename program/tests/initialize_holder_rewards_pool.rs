@@ -513,6 +513,7 @@ async fn success() {
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
+    let rent = context.banks_client.get_rent().await.unwrap();
     setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
 
     // Fund the holder rewards pool account and extra metas account.
@@ -559,7 +560,11 @@ async fn success() {
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data),
-        &HolderRewardsPool::default(),
+        &HolderRewardsPool {
+            accumulated_rewards_per_token: 0,
+            lamports_last: rent.minimum_balance(HolderRewardsPool::LEN),
+            _padding: 0,
+        }
     );
 
     // Check the extra metas account.

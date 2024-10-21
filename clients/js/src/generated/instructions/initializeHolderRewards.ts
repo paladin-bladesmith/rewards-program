@@ -8,8 +8,6 @@
 
 import {
   combineCodec,
-  getAddressDecoder,
-  getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
   getU8Decoder,
@@ -44,7 +42,7 @@ export type InitializeHolderRewardsInstruction<
   IInstructionWithAccounts<
     [
       TAccountHolderRewardsPool extends string
-        ? ReadonlyAccount<TAccountHolderRewardsPool>
+        ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
@@ -62,28 +60,19 @@ export type InitializeHolderRewardsInstruction<
     ]
   >;
 
-export type InitializeHolderRewardsInstructionData = {
-  discriminator: number;
-  pubkey: Address;
-};
+export type InitializeHolderRewardsInstructionData = { discriminator: number };
 
-export type InitializeHolderRewardsInstructionDataArgs = { pubkey: Address };
+export type InitializeHolderRewardsInstructionDataArgs = {};
 
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ['discriminator', getU8Encoder()],
-      ['pubkey', getAddressEncoder()],
-    ]),
-    (value) => ({ ...value, discriminator: 2 })
+    getStructEncoder([['discriminator', getU8Encoder()]]),
+    (value) => ({ ...value, discriminator: 1 })
   );
 }
 
 export function getInitializeHolderRewardsInstructionDataDecoder(): Decoder<InitializeHolderRewardsInstructionData> {
-  return getStructDecoder([
-    ['discriminator', getU8Decoder()],
-    ['pubkey', getAddressDecoder()],
-  ]);
+  return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
 export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
@@ -113,7 +102,6 @@ export type InitializeHolderRewardsInput<
   mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
-  pubkey: InitializeHolderRewardsInstructionDataArgs['pubkey'];
 };
 
 export function getInitializeHolderRewardsInstruction<
@@ -145,7 +133,7 @@ export function getInitializeHolderRewardsInstruction<
   const originalAccounts = {
     holderRewardsPool: {
       value: input.holderRewardsPool ?? null,
-      isWritable: false,
+      isWritable: true,
     },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
@@ -156,9 +144,6 @@ export function getInitializeHolderRewardsInstruction<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -176,9 +161,7 @@ export function getInitializeHolderRewardsInstruction<
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
-    data: getInitializeHolderRewardsInstructionDataEncoder().encode(
-      args as InitializeHolderRewardsInstructionDataArgs
-    ),
+    data: getInitializeHolderRewardsInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,

@@ -26,22 +26,16 @@ export const PALADIN_REWARDS_ERROR__INCORRECT_EXTRA_METAS_ADDRESS = 0x3; // 3
 export const PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS = 0x4; // 4
 /** TokenAccountMintMismatch: Token account mint mismatch */
 export const PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH = 0x5; // 5
-/** IncorrectSponsorAddress: Holder rewards sponsor account mismatch */
-export const PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS = 0x6; // 6
-/** CloseWithUnclaimedRewards: Holder rewards has unclaimed rewards */
-export const PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS = 0x7; // 7
-/** InvalidClosingBalance: Holder rewards token account has invalid balance for close */
-export const PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE = 0x8; // 8
+/** IncorrectSweepAddress: Incorrect sweep address */
+export const PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS = 0x6; // 6
 
 export type PaladinRewardsError =
-  | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_EXTRA_METAS_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_MINT_AUTHORITY
-  | typeof PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS
+  | typeof PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID
-  | typeof PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE
   | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH;
 
 let paladinRewardsErrorMessages:
@@ -49,14 +43,12 @@ let paladinRewardsErrorMessages:
   | undefined;
 if (process.env.NODE_ENV !== 'production') {
   paladinRewardsErrorMessages = {
-    [PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS]: `Holder rewards has unclaimed rewards`,
     [PALADIN_REWARDS_ERROR__INCORRECT_EXTRA_METAS_ADDRESS]: `Incorrect extra metas address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS]: `Incorrect holder rewards address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS]: `Incorrect holder rewards pool address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_MINT_AUTHORITY]: `Incorrect mint authority`,
-    [PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS]: `Holder rewards sponsor account mismatch`,
+    [PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS]: `Incorrect sweep address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID]: `Incorrect transfer hook program ID`,
-    [PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE]: `Holder rewards token account has invalid balance for close`,
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH]: `Token account mint mismatch`,
   };
 }

@@ -148,6 +148,10 @@ use {
     solana_program::pubkey::Pubkey,
 };
 
+/// The seed prefix (`"sweep"`) in bytes used to derive the address of the
+/// sweep account.
+/// Seeds: `"sweep".
+pub const SEED_PREFIX_SWEEP: &[u8] = b"sweep";
 /// The seed prefix (`"holder"`) in bytes used to derive the address of a
 /// token account's holder rewards account.
 /// Seeds: `"holder" + token_account_address`.
@@ -156,6 +160,11 @@ pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 /// the mint's holder rewards pool account.
 /// Seeds: `"holder_pool" + mint_address`.
 pub const SEED_PREFIX_HOLDER_REWARDS_POOL: &[u8] = b"holder_pool";
+
+/// Derive the address of the sweep account.
+pub fn get_sweep_address(program_id: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[SEED_PREFIX_SWEEP], program_id).0
+}
 
 /// Derive the address of a holder rewards account.
 pub fn get_holder_rewards_address(token_account_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
@@ -254,7 +263,7 @@ impl HolderRewards {
 /// of rewards to holders.
 ///
 /// All rewards ready to be distributed are stored directly on this account.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, ShankAccount, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, ShankAccount, Zeroable)]
 #[repr(C)]
 pub struct HolderRewardsPool {
     /// The current rewards per token exchange rate.
@@ -262,4 +271,12 @@ pub struct HolderRewardsPool {
     /// Stored as a `u128`, which includes a scaling factor of `1e18` to
     /// represent the exchange rate with 18 decimal places of precision.
     pub accumulated_rewards_per_token: u128,
+    /// Tracks the last updated lmaports so we can track inbound payments.
+    pub lamports_last: u64,
+
+    pub _padding: u64,
+}
+
+impl HolderRewardsPool {
+    pub const LEN: usize = std::mem::size_of::<HolderRewardsPool>();
 }

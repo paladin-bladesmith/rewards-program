@@ -41,6 +41,9 @@ pub enum PaladinRewardsError {
     /// Cannot close holder rewards due to invalid token balance.
     #[error("Holder rewards token account has invalid balance for close")]
     InvalidClosingBalance,
+    /// Incorrect sweep address.
+    #[error("Incorrect sweep address")]
+    IncorrectSweepAddress,
 }
 
 impl PrintProgramError for PaladinRewardsError {

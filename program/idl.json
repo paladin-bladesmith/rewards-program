@@ -53,58 +53,11 @@
       }
     },
     {
-      "name": "DistributeRewards",
-      "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true,
-          "docs": [
-            "Payer account."
-          ]
-        },
-        {
-          "name": "holderRewardsPool",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Holder rewards pool account."
-          ]
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token mint."
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "System program."
-          ]
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": "u64"
-        }
-      ],
-      "discriminant": {
-        "type": "u8",
-        "value": 1
-      }
-    },
-    {
       "name": "InitializeHolderRewards",
       "accounts": [
         {
           "name": "holderRewardsPool",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "Holder rewards pool account."
@@ -143,15 +96,10 @@
           ]
         }
       ],
-      "args": [
-        {
-          "name": "pubkey",
-          "type": "publicKey"
-        }
-      ],
+      "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 1
       }
     },
     {
@@ -188,71 +136,12 @@
           "docs": [
             "Token mint."
           ]
-        },
-        {
-          "name": "sponsor",
-          "isMut": false,
-          "isSigner": false,
-          "isOptional": true,
-          "docs": [
-            "Sponsor of this account, required if rent_debt is non zero"
-          ]
         }
       ],
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 3
-      }
-    },
-    {
-      "name": "CloseHolderRewards",
-      "accounts": [
-        {
-          "name": "holderRewardsPool",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Holder rewards pool account."
-          ]
-        },
-        {
-          "name": "holderRewards",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Holder rewards account."
-          ]
-        },
-        {
-          "name": "tokenAccount",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Token account."
-          ]
-        },
-        {
-          "name": "mint",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token mint."
-          ]
-        },
-        {
-          "name": "authority",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Either the owner or the sponsor can close the account."
-          ]
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 4
+        "value": 2
       }
     }
   ],
@@ -271,18 +160,6 @@
             "type": "u64"
           },
           {
-            "name": "rentSponsor",
-            "type": "publicKey"
-          },
-          {
-            "name": "rentDebt",
-            "type": "u64"
-          },
-          {
-            "name": "minimumBalance",
-            "type": "u64"
-          },
-          {
             "name": "padding",
             "type": "u64"
           }
@@ -297,6 +174,14 @@
           {
             "name": "accumulatedRewardsPerToken",
             "type": "u128"
+          },
+          {
+            "name": "lamportsLast",
+            "type": "u64"
+          },
+          {
+            "name": "padding",
+            "type": "u64"
           }
         ]
       }
@@ -335,18 +220,8 @@
     },
     {
       "code": 6,
-      "name": "IncorrectSponsorAddress",
-      "msg": "Holder rewards sponsor account mismatch"
-    },
-    {
-      "code": 7,
-      "name": "CloseWithUnclaimedRewards",
-      "msg": "Holder rewards has unclaimed rewards"
-    },
-    {
-      "code": 8,
-      "name": "InvalidClosingBalance",
-      "msg": "Holder rewards token account has invalid balance for close"
+      "name": "IncorrectSweepAddress",
+      "msg": "Incorrect sweep address"
     }
   ],
   "metadata": {

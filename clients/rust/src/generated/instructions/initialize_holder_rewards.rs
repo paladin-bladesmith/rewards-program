@@ -37,7 +37,7 @@ impl InitializeHolderRewards {
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
             false,
         ));
@@ -78,7 +78,7 @@ pub struct InitializeHolderRewardsInstructionData {
 
 impl InitializeHolderRewardsInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 2 }
+        Self { discriminator: 1 }
     }
 }
 
@@ -98,7 +98,7 @@ pub struct InitializeHolderRewardsInstructionArgs {
 ///
 /// ### Accounts:
 ///
-///   0. `[]` holder_rewards_pool
+///   0. `[writable]` holder_rewards_pool
 ///   1. `[writable]` holder_rewards
 ///   2. `[]` token_account
 ///   3. `[]` mint
@@ -279,7 +279,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
         )],
     ) -> solana_program::entrypoint::ProgramResult {
         let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
             false,
         ));
@@ -340,7 +340,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-///   0. `[]` holder_rewards_pool
+///   0. `[writable]` holder_rewards_pool
 ///   1. `[writable]` holder_rewards
 ///   2. `[]` token_account
 ///   3. `[]` mint
