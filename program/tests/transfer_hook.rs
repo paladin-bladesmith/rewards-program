@@ -299,7 +299,7 @@ async fn fail_source_holder_rewards_incorrect_address() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
 
     let instruction = execute_with_extra_metas_instruction(
         &source_token_account,
@@ -353,7 +353,7 @@ async fn fail_source_holder_rewards_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
 
     // Setup source holder rewards account with invalid data.
     {
@@ -413,7 +413,7 @@ async fn fail_source_token_account_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
 
     // Set up source token account with invalid data.
     {
@@ -473,7 +473,7 @@ async fn fail_source_token_account_mint_mismatch() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -535,7 +535,7 @@ async fn fail_source_token_account_not_transferring() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
     // Not transferring.
     setup_token_account(
         &mut context,
@@ -597,8 +597,8 @@ async fn fail_destination_holder_rewards_incorrect_address() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
+    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -660,7 +660,7 @@ async fn fail_destination_holder_rewards_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -728,8 +728,8 @@ async fn fail_destination_token_account_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
+    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -797,8 +797,8 @@ async fn fail_destination_token_account_mint_mismatch() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
+    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -868,8 +868,8 @@ async fn fail_destination_token_account_not_transferring() {
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0).await;
-    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0).await;
+    setup_holder_rewards_account(&mut context, &source_holder_rewards, 0, 0, None).await;
+    setup_holder_rewards_account(&mut context, &destination_holder_rewards, 0, 0, None).await;
     setup_token_account_transferring(
         &mut context,
         &source_token_account,
@@ -1022,6 +1022,7 @@ async fn setup_direct_invoke(
         source_holder_rewards,
         *source_unharvested_rewards,
         *source_last_accumulated_rewards_per_token,
+        None,
     )
     .await;
     setup_holder_rewards_account(
@@ -1029,6 +1030,7 @@ async fn setup_direct_invoke(
         destination_holder_rewards,
         *destination_unharvested_rewards,
         *destination_last_accumulated_rewards_per_token,
+        None,
     )
     .await;
     setup_token_account_transferring(
@@ -1108,6 +1110,7 @@ async fn setup_transfer_hook(
         source_holder_rewards,
         *source_unharvested_rewards,
         *source_last_accumulated_rewards_per_token,
+        None,
     )
     .await;
     setup_holder_rewards_account(
@@ -1115,6 +1118,7 @@ async fn setup_transfer_hook(
         destination_holder_rewards,
         *destination_unharvested_rewards,
         *destination_last_accumulated_rewards_per_token,
+        None,
     )
     .await;
     setup_token_account(
@@ -1156,10 +1160,14 @@ async fn check_holder_rewards(
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
-        &HolderRewards::new(
-            pool.accumulated_rewards_per_token,
-            holder.expected_unharvested_rewards,
-        ),
+        &HolderRewards {
+            last_accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
+            unharvested_rewards: holder.expected_unharvested_rewards,
+            rent_sponsor: Pubkey::default(),
+            rent_debt: 0,
+            minimum_balance: 0,
+            _padding: 0,
+        }
     );
 }
 

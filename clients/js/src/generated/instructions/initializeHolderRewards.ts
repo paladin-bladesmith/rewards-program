@@ -8,6 +8,8 @@
 
 import {
   combineCodec,
+  getAddressDecoder,
+  getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
   getU8Decoder,
@@ -60,19 +62,28 @@ export type InitializeHolderRewardsInstruction<
     ]
   >;
 
-export type InitializeHolderRewardsInstructionData = { discriminator: number };
+export type InitializeHolderRewardsInstructionData = {
+  discriminator: number;
+  pubkey: Address;
+};
 
-export type InitializeHolderRewardsInstructionDataArgs = {};
+export type InitializeHolderRewardsInstructionDataArgs = { pubkey: Address };
 
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([['discriminator', getU8Encoder()]]),
+    getStructEncoder([
+      ['discriminator', getU8Encoder()],
+      ['pubkey', getAddressEncoder()],
+    ]),
     (value) => ({ ...value, discriminator: 1 })
   );
 }
 
 export function getInitializeHolderRewardsInstructionDataDecoder(): Decoder<InitializeHolderRewardsInstructionData> {
-  return getStructDecoder([['discriminator', getU8Decoder()]]);
+  return getStructDecoder([
+    ['discriminator', getU8Decoder()],
+    ['pubkey', getAddressDecoder()],
+  ]);
 }
 
 export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
@@ -102,6 +113,7 @@ export type InitializeHolderRewardsInput<
   mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
+  pubkey: InitializeHolderRewardsInstructionDataArgs['pubkey'];
 };
 
 export function getInitializeHolderRewardsInstruction<
@@ -145,6 +157,9 @@ export function getInitializeHolderRewardsInstruction<
     ResolvedAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -161,7 +176,9 @@ export function getInitializeHolderRewardsInstruction<
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
-    data: getInitializeHolderRewardsInstructionDataEncoder().encode({}),
+    data: getInitializeHolderRewardsInstructionDataEncoder().encode(
+      args as InitializeHolderRewardsInstructionDataArgs
+    ),
   } as InitializeHolderRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,

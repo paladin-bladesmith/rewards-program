@@ -32,6 +32,15 @@ pub enum PaladinRewardsError {
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
+    /// Provided sponsor account did not match expected sponsor.
+    #[error("Holder rewards sponsor account mismatch")]
+    IncorrectSponsorAddress,
+    /// Attempted to close a holder rewards account that had unclaimed rewards.
+    #[error("Holder rewards has unclaimed rewards")]
+    CloseWithUnclaimedRewards,
+    /// Cannot close holder rewards if the token balance is not zero.
+    #[error("Holder rewards token account balance must be zero")]
+    ClosingBalanceNotZero,
     /// Incorrect sweep address.
     #[error("Incorrect sweep address")]
     IncorrectSweepAddress,

@@ -18,22 +18,25 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
+  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export type HarvestRewardsInstruction<
+export type CloseHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
-  TAccountSponsor extends string | IAccountMeta<string> = string,
+  TAccountAuthority extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -46,49 +49,50 @@ export type HarvestRewardsInstruction<
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
       TAccountTokenAccount extends string
-        ? WritableAccount<TAccountTokenAccount>
+        ? ReadonlyAccount<TAccountTokenAccount>
         : TAccountTokenAccount,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
-      TAccountSponsor extends string
-        ? WritableAccount<TAccountSponsor>
-        : TAccountSponsor,
+      TAccountAuthority extends string
+        ? WritableSignerAccount<TAccountAuthority> &
+            IAccountSignerMeta<TAccountAuthority>
+        : TAccountAuthority,
       ...TRemainingAccounts,
     ]
   >;
 
-export type HarvestRewardsInstructionData = { discriminator: number };
+export type CloseHolderRewardsInstructionData = { discriminator: number };
 
-export type HarvestRewardsInstructionDataArgs = {};
+export type CloseHolderRewardsInstructionDataArgs = {};
 
-export function getHarvestRewardsInstructionDataEncoder(): Encoder<HarvestRewardsInstructionDataArgs> {
+export function getCloseHolderRewardsInstructionDataEncoder(): Encoder<CloseHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 2 })
+    (value) => ({ ...value, discriminator: 3 })
   );
 }
 
-export function getHarvestRewardsInstructionDataDecoder(): Decoder<HarvestRewardsInstructionData> {
+export function getCloseHolderRewardsInstructionDataDecoder(): Decoder<CloseHolderRewardsInstructionData> {
   return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
-export function getHarvestRewardsInstructionDataCodec(): Codec<
-  HarvestRewardsInstructionDataArgs,
-  HarvestRewardsInstructionData
+export function getCloseHolderRewardsInstructionDataCodec(): Codec<
+  CloseHolderRewardsInstructionDataArgs,
+  CloseHolderRewardsInstructionData
 > {
   return combineCodec(
-    getHarvestRewardsInstructionDataEncoder(),
-    getHarvestRewardsInstructionDataDecoder()
+    getCloseHolderRewardsInstructionDataEncoder(),
+    getCloseHolderRewardsInstructionDataDecoder()
   );
 }
 
-export type HarvestRewardsInput<
+export type CloseHolderRewardsInput<
   TAccountHolderRewardsPool extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
-  TAccountSponsor extends string = string,
+  TAccountAuthority extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
@@ -98,31 +102,31 @@ export type HarvestRewardsInput<
   tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
-  /** Sponsor of this account, required if rent_debt is non zero */
-  sponsor?: Address<TAccountSponsor>;
+  /** Either the owner or the sponsor can close the account. */
+  authority: TransactionSigner<TAccountAuthority>;
 };
 
-export function getHarvestRewardsInstruction<
+export function getCloseHolderRewardsInstruction<
   TAccountHolderRewardsPool extends string,
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
-  TAccountSponsor extends string,
+  TAccountAuthority extends string,
 >(
-  input: HarvestRewardsInput<
+  input: CloseHolderRewardsInput<
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountSponsor
+    TAccountAuthority
   >
-): HarvestRewardsInstruction<
+): CloseHolderRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint,
-  TAccountSponsor
+  TAccountAuthority
 > {
   // Program address.
   const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
@@ -134,9 +138,9 @@ export function getHarvestRewardsInstruction<
       isWritable: true,
     },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
-    tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
+    tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
-    sponsor: { value: input.sponsor ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -150,23 +154,23 @@ export function getHarvestRewardsInstruction<
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
-      getAccountMeta(accounts.sponsor),
+      getAccountMeta(accounts.authority),
     ],
     programAddress,
-    data: getHarvestRewardsInstructionDataEncoder().encode({}),
-  } as HarvestRewardsInstruction<
+    data: getCloseHolderRewardsInstructionDataEncoder().encode({}),
+  } as CloseHolderRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountSponsor
+    TAccountAuthority
   >;
 
   return instruction;
 }
 
-export type ParsedHarvestRewardsInstruction<
+export type ParsedCloseHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -180,20 +184,20 @@ export type ParsedHarvestRewardsInstruction<
     tokenAccount: TAccountMetas[2];
     /** Token mint. */
     mint: TAccountMetas[3];
-    /** Sponsor of this account, required if rent_debt is non zero */
-    sponsor?: TAccountMetas[4] | undefined;
+    /** Either the owner or the sponsor can close the account. */
+    authority: TAccountMetas[4];
   };
-  data: HarvestRewardsInstructionData;
+  data: CloseHolderRewardsInstructionData;
 };
 
-export function parseHarvestRewardsInstruction<
+export function parseCloseHolderRewardsInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedHarvestRewardsInstruction<TProgram, TAccountMetas> {
+): ParsedCloseHolderRewardsInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
@@ -204,12 +208,6 @@ export function parseHarvestRewardsInstruction<
     accountIndex += 1;
     return accountMeta;
   };
-  const getNextOptionalAccount = () => {
-    const accountMeta = getNextAccount();
-    return accountMeta.address === PALADIN_REWARDS_PROGRAM_ADDRESS
-      ? undefined
-      : accountMeta;
-  };
   return {
     programAddress: instruction.programAddress,
     accounts: {
@@ -217,8 +215,10 @@ export function parseHarvestRewardsInstruction<
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),
-      sponsor: getNextOptionalAccount(),
+      authority: getNextAccount(),
     },
-    data: getHarvestRewardsInstructionDataDecoder().decode(instruction.data),
+    data: getCloseHolderRewardsInstructionDataDecoder().decode(
+      instruction.data
+    ),
   };
 }

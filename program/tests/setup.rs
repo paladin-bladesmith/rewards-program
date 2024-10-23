@@ -3,6 +3,7 @@
 
 use {
     paladin_rewards_program::{
+        constants::rent_debt,
         extra_metas::get_extra_account_metas,
         state::{HolderRewards, HolderRewardsPool},
     },
@@ -141,6 +142,19 @@ pub async fn setup_token_account_transferring(
     setup_token_account_common(context, token_account, owner, mint, amount, true).await;
 }
 
+pub async fn setup_sponsor(context: &mut ProgramTestContext, sponsor: &Pubkey) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(0);
+
+    context.set_account(
+        sponsor,
+        &AccountSharedData::from(Account {
+            lamports,
+            ..Account::default()
+        }),
+    )
+}
+
 pub async fn setup_rent_exempt_account(
     context: &mut ProgramTestContext,
     address: &Pubkey,
@@ -195,11 +209,28 @@ pub async fn setup_holder_rewards_account(
     holder_rewards: &Pubkey,
     unharvested_rewards: u64,
     last_accumulated_rewards_per_token: u128,
+    rent_sponsor: Option<(Pubkey, u64)>,
 ) {
-    let state = HolderRewards::new(last_accumulated_rewards_per_token, unharvested_rewards);
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let (rent_sponsor, rent_debt, minimum_balance) = rent_sponsor
+        .map(|(sponsor, minimum_balance)| {
+            (
+                sponsor,
+                rent_debt(rent.minimum_balance(HolderRewards::LEN)),
+                minimum_balance,
+            )
+        })
+        .unwrap_or_default();
+    let state = HolderRewards {
+        last_accumulated_rewards_per_token,
+        unharvested_rewards,
+        rent_sponsor,
+        rent_debt,
+        minimum_balance,
+        _padding: 0,
+    };
     let data = bytemuck::bytes_of(&state).to_vec();
 
-    let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(data.len());
 
     context.set_account(

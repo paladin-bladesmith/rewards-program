@@ -26,9 +26,18 @@ pub enum PaladinRewardsError {
     /// 5 - Token account mint mismatch
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch = 0x5,
-    /// 6 - Incorrect sweep address
+    /// 6 - Holder rewards sponsor account mismatch
+    #[error("Holder rewards sponsor account mismatch")]
+    IncorrectSponsorAddress = 0x6,
+    /// 7 - Holder rewards has unclaimed rewards
+    #[error("Holder rewards has unclaimed rewards")]
+    CloseWithUnclaimedRewards = 0x7,
+    /// 8 - Holder rewards token account balance must be zero
+    #[error("Holder rewards token account balance must be zero")]
+    ClosingBalanceNotZero = 0x8,
+    /// 9 - Incorrect sweep address
     #[error("Incorrect sweep address")]
-    IncorrectSweepAddress = 0x6,
+    IncorrectSweepAddress = 0x9,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

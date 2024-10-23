@@ -6,6 +6,7 @@ mod setup;
 
 use {
     paladin_rewards_program::{
+        constants::rent_debt,
         extra_metas::get_extra_account_metas,
         instruction::{harvest_rewards, initialize_holder_rewards, initialize_holder_rewards_pool},
         state::{
@@ -41,6 +42,7 @@ struct Holder {
     token_account_balance: u64,
     last_accumulated_rewards_per_token: u128,
     unharvested_rewards: u64,
+    sponsor: Option<(Pubkey, u64, u64)>,
 }
 
 async fn extra_metas_rent_exempt_lamports(context: &mut ProgramTestContext) -> u64 {
@@ -193,6 +195,8 @@ async fn validate_state(
             checks.token_account_balance
         );
 
+        let (rent_sponsor, rent_debt, minimum_balance) = checks.sponsor.unwrap_or_default();
+
         let holder_rewards_address =
             get_holder_rewards_address(token_account_address, &paladin_rewards_program::id());
         let holder_rewards_account = get_account(context, &holder_rewards_address).await;
@@ -200,10 +204,14 @@ async fn validate_state(
             bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
         assert_eq!(
             holder_rewards_state,
-            &HolderRewards::new(
-                checks.last_accumulated_rewards_per_token,
-                checks.unharvested_rewards
-            )
+            &HolderRewards {
+                last_accumulated_rewards_per_token: checks.last_accumulated_rewards_per_token,
+                unharvested_rewards: checks.unharvested_rewards,
+                rent_sponsor,
+                rent_debt,
+                minimum_balance,
+                _padding: 0,
+            }
         );
     }
 }
@@ -211,6 +219,7 @@ async fn validate_state(
 #[tokio::test]
 async fn test_e2e() {
     let mut context = setup().start_with_context().await;
+    let holder_rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
 
     let mint = Pubkey::new_unique();
     let mint_authority = Keypair::new();
@@ -326,43 +335,44 @@ async fn test_e2e() {
             let carol_holder_rewards =
                 get_holder_rewards_address(&carol_token_account, &paladin_rewards_program::id());
 
-            let rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
-
             send_transaction(
                 &mut context,
                 &[
                     system_instruction::transfer(
                         &payer.pubkey(),
                         &alice_holder_rewards,
-                        rent_exempt_lamports,
+                        holder_rent_exempt_lamports,
                     ),
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &alice_holder_rewards,
                         &alice_token_account,
                         &mint,
+                        Pubkey::default(),
                     ),
                     system_instruction::transfer(
                         &payer.pubkey(),
                         &bob_holder_rewards,
-                        rent_exempt_lamports,
+                        holder_rent_exempt_lamports,
                     ),
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &bob_holder_rewards,
                         &bob_token_account,
                         &mint,
+                        Pubkey::default(),
                     ),
                     system_instruction::transfer(
                         &payer.pubkey(),
                         &carol_holder_rewards,
-                        rent_exempt_lamports,
+                        holder_rent_exempt_lamports,
                     ),
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &carol_holder_rewards,
                         &carol_token_account,
                         &mint,
+                        payer.pubkey(), // Sponsor Carol
                     ),
                 ],
                 &[&payer],
@@ -385,6 +395,7 @@ async fn test_e2e() {
                             token_account_balance: 25,
                             last_accumulated_rewards_per_token: 0,
                             unharvested_rewards: 0,
+                            sponsor: None,
                         },
                     ),
                     (
@@ -393,6 +404,7 @@ async fn test_e2e() {
                             token_account_balance: 40,
                             last_accumulated_rewards_per_token: 0,
                             unharvested_rewards: 0,
+                            sponsor: None,
                         },
                     ),
                     (
@@ -401,6 +413,11 @@ async fn test_e2e() {
                             token_account_balance: 35,
                             last_accumulated_rewards_per_token: 0,
                             unharvested_rewards: 0,
+                            sponsor: Some((
+                                payer.pubkey(),
+                                rent_debt(holder_rent_exempt_lamports),
+                                35,
+                            )),
                         },
                     ),
                 ],
@@ -463,7 +480,6 @@ async fn test_e2e() {
 
         let dave_holder_rewards =
             get_holder_rewards_address(&dave_token_account, &paladin_rewards_program::id());
-        let rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
 
         send_transaction(
             &mut context,
@@ -471,13 +487,14 @@ async fn test_e2e() {
                 system_instruction::transfer(
                     &payer.pubkey(),
                     &dave_holder_rewards,
-                    rent_exempt_lamports,
+                    holder_rent_exempt_lamports,
                 ),
                 initialize_holder_rewards(
                     &holder_rewards_pool,
                     &dave_holder_rewards,
                     &dave_token_account,
                     &mint,
+                    Pubkey::default(),
                 ),
                 spl_token_2022::instruction::mint_to(
                     &spl_token_2022::id(),
@@ -509,6 +526,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -517,6 +535,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -525,6 +544,7 @@ async fn test_e2e() {
                         token_account_balance: 35,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -533,6 +553,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -570,6 +591,7 @@ async fn test_e2e() {
                 &bob_holder_rewards,
                 &bob_token_account,
                 &mint,
+                None,
             )],
             &[&payer],
         )
@@ -591,6 +613,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -599,6 +622,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -607,6 +631,7 @@ async fn test_e2e() {
                         token_account_balance: 35,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -615,6 +640,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -659,6 +685,7 @@ async fn test_e2e() {
                     &alice_holder_rewards,
                     &alice_token_account,
                     &mint,
+                    None,
                 ),
                 spl_token_2022::instruction::burn(
                     &spl_token_2022::id(),
@@ -690,6 +717,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -698,6 +726,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -706,6 +735,7 @@ async fn test_e2e() {
                         token_account_balance: 35,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -714,6 +744,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -773,6 +804,7 @@ async fn test_e2e() {
                     &alice_holder_rewards,
                     &alice_token_account,
                     &mint,
+                    None,
                 ),
             ],
             &[&payer],
@@ -795,6 +827,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -803,6 +836,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -811,6 +845,7 @@ async fn test_e2e() {
                         token_account_balance: 35,
                         last_accumulated_rewards_per_token: 0,
                         unharvested_rewards: 0,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -819,6 +854,7 @@ async fn test_e2e() {
                         token_account_balance: 25,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -888,6 +924,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -896,6 +933,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -904,6 +942,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 105,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -912,6 +951,7 @@ async fn test_e2e() {
                         token_account_balance: 60,
                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 50,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -964,6 +1004,7 @@ async fn test_e2e() {
                     &alice_holder_rewards,
                     &alice_token_account,
                     &mint,
+                    None,
                 ),
             ],
             &[&payer],
@@ -986,6 +1027,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -994,6 +1036,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -1002,6 +1045,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 105,
+                        sponsor: Some((payer.pubkey(), rent_debt(holder_rent_exempt_lamports), 35)),
                     },
                 ),
                 (
@@ -1010,6 +1054,7 @@ async fn test_e2e() {
                         token_account_balance: 60,
                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 50,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -1062,18 +1107,21 @@ async fn test_e2e() {
                     &bob_holder_rewards,
                     &bob_token_account,
                     &mint,
+                    None,
                 ),
                 harvest_rewards(
                     &holder_rewards_pool,
                     &carol_holder_rewards,
                     &carol_token_account,
                     &mint,
+                    Some(payer.pubkey()),
                 ),
                 harvest_rewards(
                     &holder_rewards_pool,
                     &dave_holder_rewards,
                     &dave_token_account,
                     &mint,
+                    None,
                 ),
             ],
             &[&payer],
@@ -1096,6 +1144,7 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -1104,6 +1153,7 @@ async fn test_e2e() {
                         token_account_balance: 40,
                         last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
                 (
@@ -1112,6 +1162,11 @@ async fn test_e2e() {
                         token_account_balance: 0,
                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: Some((
+                            payer.pubkey(),
+                            rent_debt(holder_rent_exempt_lamports) - 105 / 2,
+                            35,
+                        )),
                     },
                 ),
                 (
@@ -1120,6 +1175,7 @@ async fn test_e2e() {
                         token_account_balance: 60,
                         last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
                         unharvested_rewards: 0,
+                        sponsor: None,
                     },
                 ),
             ],
@@ -1137,8 +1193,8 @@ async fn test_e2e() {
         // Bob harvested 200 rewards.
         assert_eq!(bob_ending_lamports - bob_starting_lamports, 200);
 
-        // Carol harvested 105 rewards.
-        assert_eq!(carol_ending_lamports - carol_starting_lamports, 105);
+        // Carol harvested 53 (52 went to sponsor) rewards.
+        assert_eq!(carol_ending_lamports - carol_starting_lamports, 53);
 
         // Dave harvested 180 + 50 = 230 rewards.
         assert_eq!(dave_ending_lamports - dave_starting_lamports, 230);

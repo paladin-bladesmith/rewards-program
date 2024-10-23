@@ -238,18 +238,25 @@ pub struct HolderRewards {
     /// The amount of unharvested rewards currently stored in the holder
     /// rewards account that can be harvested by the holder.
     pub unharvested_rewards: u64,
-    _padding: u64,
+    /// The account that sponsored the rent for this account,
+    /// `Pubkey::default()` indicates no sponsor.
+    pub rent_sponsor: Pubkey,
+    /// The amount of rent owed back to the sponsor.
+    pub rent_debt: u64,
+    /// If the account has a rent sponsor then this was the balance at time of
+    /// sponsoring.
+    ///
+    /// If the balance falls below this level then the sponsor can close the
+    /// account to recover their rent. This is done to mitigate baiting &
+    /// griefing sponsors (who expect to receive their sponsored rent back
+    /// within some predictable time frame).
+    pub minimum_balance: u64,
+    /// Aligns to 80 bytes (multiple of 16).
+    pub _padding: u64,
 }
+
 impl HolderRewards {
     pub const LEN: usize = std::mem::size_of::<HolderRewards>();
-
-    pub fn new(last_accumulated_rewards_per_token: u128, unharvested_rewards: u64) -> Self {
-        Self {
-            last_accumulated_rewards_per_token,
-            unharvested_rewards,
-            _padding: 0,
-        }
-    }
 }
 
 /// Tracks the rewards accumulated by the system and manages the distribution
