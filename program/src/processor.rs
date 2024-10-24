@@ -478,15 +478,17 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
 
-    // Run checks on the token account.
+    // NB: Checks program owner & mint correctness.
     let token_account_balance =
         get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
 
+    // Check & load the pool
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
+    // Check & load the holder rewards.
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
