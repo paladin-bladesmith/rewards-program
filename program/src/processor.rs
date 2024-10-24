@@ -54,6 +54,7 @@ fn get_token_account_balance_checked(
     token_account_info: &AccountInfo,
     check_is_transferring: bool,
 ) -> Result<u64, ProgramError> {
+    assert_eq!(token_account_info.owner, &spl_token_2022::ID);
     let token_account_data = token_account_info.try_borrow_data()?;
     let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
 
@@ -264,6 +265,7 @@ fn process_initialize_holder_rewards_pool(
 
     // Run checks on the mint.
     {
+        assert_eq!(mint_info.owner, &spl_token_2022::ID);
         let mint_data = mint_info.try_borrow_data()?;
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
 
@@ -632,8 +634,11 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     }
 
     // Load token account info.
+    assert_eq!(token_account_info.owner, &spl_token_2022::ID);
     let token_account_data = token_account_info.data.borrow();
     let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)?.base;
+    assert_eq!(&token_account_state.mint, mint_info.key);
+    assert_eq!(mint_info.owner, &spl_token_2022::ID);
 
     // Ensure authority is either:
     //
