@@ -9,4 +9,4 @@ solana = "2.1.4"
 # Any unprovided toolchains default to stable.
 [workspace.metadata.toolchains]
 format = "nightly-2024-12-01"
-lint = "1.81.0"
+lint = "nightly-2024-12-01"
