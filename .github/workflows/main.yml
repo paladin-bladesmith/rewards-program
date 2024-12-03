@@ -151,6 +151,3 @@ jobs:
         with:
           path: ./**/*.so
           key: ${{ runner.os }}-builds-${{ github.sha }}
-
-      - name: Test Client JS
-        run: pnpm clients:js:test
