@@ -64,16 +64,16 @@ export type InitializeHolderRewardsInstruction<
 
 export type InitializeHolderRewardsInstructionData = {
   discriminator: number;
-  pubkey: Address;
+  sponsor: Address;
 };
 
-export type InitializeHolderRewardsInstructionDataArgs = { pubkey: Address };
+export type InitializeHolderRewardsInstructionDataArgs = { sponsor: Address };
 
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['pubkey', getAddressEncoder()],
+      ['sponsor', getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: 1 })
   );
@@ -82,7 +82,7 @@ export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<Init
 export function getInitializeHolderRewardsInstructionDataDecoder(): Decoder<InitializeHolderRewardsInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['pubkey', getAddressDecoder()],
+    ['sponsor', getAddressDecoder()],
   ]);
 }
 
@@ -113,7 +113,7 @@ export type InitializeHolderRewardsInput<
   mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
-  pubkey: InitializeHolderRewardsInstructionDataArgs['pubkey'];
+  sponsor: InitializeHolderRewardsInstructionDataArgs['sponsor'];
 };
 
 export function getInitializeHolderRewardsInstruction<

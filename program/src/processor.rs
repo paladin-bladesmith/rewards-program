@@ -753,7 +753,7 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
                 msg!("Instruction: InitializeHolderRewardsPool");
                 process_initialize_holder_rewards_pool(program_id, accounts)
             }
-            PaladinRewardsInstruction::InitializeHolderRewards(sponsor) => {
+            PaladinRewardsInstruction::InitializeHolderRewards { sponsor } => {
                 msg!("Instruction: InitializeHolderRewards");
                 process_initialize_holder_rewards(program_id, accounts, sponsor)
             }

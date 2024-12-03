@@ -91,7 +91,7 @@ impl Default for InitializeHolderRewardsInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializeHolderRewardsInstructionArgs {
-    pub pubkey: Pubkey,
+    pub sponsor: Pubkey,
 }
 
 /// Instruction builder for `InitializeHolderRewards`.
@@ -111,7 +111,7 @@ pub struct InitializeHolderRewardsBuilder {
     token_account: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
-    pubkey: Option<Pubkey>,
+    sponsor: Option<Pubkey>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -154,8 +154,8 @@ impl InitializeHolderRewardsBuilder {
         self
     }
     #[inline(always)]
-    pub fn pubkey(&mut self, pubkey: Pubkey) -> &mut Self {
-        self.pubkey = Some(pubkey);
+    pub fn sponsor(&mut self, sponsor: Pubkey) -> &mut Self {
+        self.sponsor = Some(sponsor);
         self
     }
     /// Add an aditional account to the instruction.
@@ -190,7 +190,7 @@ impl InitializeHolderRewardsBuilder {
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
         let args = InitializeHolderRewardsInstructionArgs {
-            pubkey: self.pubkey.clone().expect("pubkey is not set"),
+            sponsor: self.sponsor.clone().expect("sponsor is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -359,7 +359,7 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
             token_account: None,
             mint: None,
             system_program: None,
-            pubkey: None,
+            sponsor: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -407,8 +407,8 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn pubkey(&mut self, pubkey: Pubkey) -> &mut Self {
-        self.instruction.pubkey = Some(pubkey);
+    pub fn sponsor(&mut self, sponsor: Pubkey) -> &mut Self {
+        self.instruction.sponsor = Some(sponsor);
         self
     }
     /// Add an additional account to the instruction.
@@ -454,7 +454,11 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = InitializeHolderRewardsInstructionArgs {
-            pubkey: self.instruction.pubkey.clone().expect("pubkey is not set"),
+            sponsor: self
+                .instruction
+                .sponsor
+                .clone()
+                .expect("sponsor is not set"),
         };
         let instruction = InitializeHolderRewardsCpi {
             __program: self.instruction.__program,
@@ -497,7 +501,7 @@ struct InitializeHolderRewardsCpiBuilderInstruction<'a, 'b> {
     token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    pubkey: Option<Pubkey>,
+    sponsor: Option<Pubkey>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,
