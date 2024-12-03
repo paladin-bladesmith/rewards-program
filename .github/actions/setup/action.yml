@@ -40,13 +40,6 @@ runs:
       shell: bash
       run: pnpm zx ./scripts/ci/set-env.mjs
 
-    - name: Install Protobuf Compiler (Temporary Workaround for Solana 2.0)
-      if: ${{ inputs.solana == 'true' || inputs.rustfmt == 'true' || inputs.clippy == 'true' }}
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y protobuf-compiler
-
     - name: Install Rustfmt
       if: ${{ inputs.rustfmt == 'true' }}
       uses: dtolnay/rust-toolchain@master

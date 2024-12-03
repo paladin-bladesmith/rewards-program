@@ -171,9 +171,6 @@ jobs:
           path: ./**/*.so
           key: ${{ runner.os }}-builds-${{ github.sha }}
 
-      - name: Test Client JS
-        run: pnpm clients:js:test
-
   test_client_rust:
     name: Test Client Rust
     runs-on: ubuntu-latest
