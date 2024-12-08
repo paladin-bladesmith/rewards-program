@@ -40,7 +40,7 @@ pub enum PaladinRewardsError {
     CloseWithUnclaimedRewards,
     /// Cannot close holder rewards if the token balance is not zero.
     #[error("Holder rewards token account balance must be zero")]
-    ClosingBalanceNotZero,
+    InvalidClosingBalance,
     /// Incorrect sweep address.
     #[error("Incorrect sweep address")]
     IncorrectSweepAddress,

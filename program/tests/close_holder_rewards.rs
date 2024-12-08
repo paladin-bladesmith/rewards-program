@@ -127,7 +127,7 @@ async fn owner_cannot_close_non_zero_balance() {
         err,
         TransactionError::InstructionError(
             0,
-            InstructionError::Custom(PaladinRewardsError::ClosingBalanceNotZero as u32)
+            InstructionError::Custom(PaladinRewardsError::InvalidClosingBalance as u32)
         )
     );
 }
@@ -263,7 +263,7 @@ async fn sponsor_cannot_close_balance_equal_to_minimum() {
         err,
         TransactionError::InstructionError(
             0,
-            InstructionError::Custom(PaladinRewardsError::ClosingBalanceNotZero as u32)
+            InstructionError::Custom(PaladinRewardsError::InvalidClosingBalance as u32)
         )
     );
 }

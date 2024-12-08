@@ -652,12 +652,12 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     match authority.key {
         key if key == &token_account_state.owner => {
             if token_account_state.amount > 0 {
-                return Err(PaladinRewardsError::ClosingBalanceNotZero.into());
+                return Err(PaladinRewardsError::InvalidClosingBalance.into());
             }
         }
         key if key == &holder_rewards_state.rent_sponsor => {
             if token_account_state.amount >= holder_rewards_state.minimum_balance {
-                return Err(PaladinRewardsError::ClosingBalanceNotZero.into());
+                return Err(PaladinRewardsError::InvalidClosingBalance.into());
             }
         }
         _ => return Err(ProgramError::IncorrectAuthority),

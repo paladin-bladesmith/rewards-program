@@ -306,7 +306,7 @@
     },
     {
       "code": 8,
-      "name": "ClosingBalanceNotZero",
+      "name": "InvalidClosingBalance",
       "msg": "Holder rewards token account balance must be zero"
     },
     {
