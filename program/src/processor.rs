@@ -248,6 +248,10 @@ fn update_holder_rewards_for_transfer_hook(
     Ok(())
 }
 
+fn assert_rent_exempt(account: &AccountInfo) {
+    assert!(account.lamports() >= Rent::get().unwrap().minimum_balance(account.data_len()));
+}
+
 /// Processes an
 /// [InitializeHolderRewardsPool](enum.PaladinRewardsInstruction.html)
 /// instruction.
@@ -273,18 +277,16 @@ fn process_initialize_holder_rewards_pool(
         // and the program ID is the Paladin Rewards program.
         let transfer_hook = mint.get_extension::<TransferHook>()?;
         let hook_program_id: Option<Pubkey> = transfer_hook.program_id.into();
-        if !hook_program_id.eq(&Some(*program_id)) {
+        if hook_program_id != Some(*program_id) {
             return Err(PaladinRewardsError::IncorrectTransferHookProgramId.into());
         }
 
         // Ensure the provided mint authority is the correct mint authority.
-        if !mint
-            .base
-            .mint_authority
-            .eq(&COption::Some(*mint_authority_info.key))
-        {
+        if mint.base.mint_authority != COption::Some(*mint_authority_info.key) {
             return Err(PaladinRewardsError::IncorrectMintAuthority.into());
         }
+
+        // TODO: Can we remove the need for the mint authority to sign?
 
         // Ensure the mint authority is a signer.
         if !mint_authority_info.is_signer {
@@ -302,10 +304,7 @@ fn process_initialize_holder_rewards_pool(
 
         // Ensure the provided holder rewards pool address is the correct
         // address derived from the mint.
-        if !holder_rewards_pool_info
-            .key
-            .eq(&holder_rewards_pool_address)
-        {
+        if holder_rewards_pool_info.key != &holder_rewards_pool_address {
             return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
         }
 
@@ -329,6 +328,7 @@ fn process_initialize_holder_rewards_pool(
             &[holder_rewards_pool_info.clone()],
             &[&holder_rewards_pool_signer_seeds],
         )?;
+        assert_rent_exempt(holder_rewards_pool_info);
 
         // Write the data.
         let mut data = holder_rewards_pool_info.try_borrow_mut_data()?;
@@ -350,7 +350,7 @@ fn process_initialize_holder_rewards_pool(
 
         // Ensure the provided extra metas address is the correct address
         // derived from the mint.
-        if !extra_metas_info.key.eq(&extra_metas_address) {
+        if extra_metas_info.key != &extra_metas_address {
             return Err(PaladinRewardsError::IncorrectExtraMetasAddress.into());
         }
 
@@ -373,6 +373,7 @@ fn process_initialize_holder_rewards_pool(
             &[extra_metas_info.clone()],
             &[&extra_metas_signer_seeds],
         )?;
+        assert_rent_exempt(extra_metas_info);
 
         // Write the data.
         let mut data = extra_metas_info.try_borrow_mut_data()?;
@@ -443,6 +444,7 @@ fn process_initialize_holder_rewards(
             &[holder_rewards_info.clone()],
             &[&holder_rewards_signer_seeds],
         )?;
+        assert_rent_exempt(holder_rewards_info);
 
         // Write the data.
         let mut data = holder_rewards_info.try_borrow_mut_data()?;

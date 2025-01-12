@@ -421,13 +421,27 @@ async fn fail_extra_metas_incorrect_address() {
     let mut context = setup().start_with_context().await;
     setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
 
+    // Fund the holder rewards pool account and extra metas account.
+    {
+        let rent = context.banks_client.get_rent().await.unwrap();
+        let lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+        context.set_account(
+            &holder_rewards_pool,
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
+        );
+        let lamports = rent.minimum_balance(ExtraAccountMetaList::size_of(3).unwrap());
+        context.set_account(
+            &extra_metas,
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
+        );
+    }
+
     let instruction = initialize_holder_rewards_pool(
         &holder_rewards_pool,
         &extra_metas,
         &mint,
         &mint_authority.pubkey(),
     );
-
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
@@ -465,6 +479,12 @@ async fn fail_extra_metas_account_initialized() {
 
     // Set up an already (arbitrarily) initialized extra metas account.
     {
+        let rent = context.banks_client.get_rent().await.unwrap();
+        let lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+        context.set_account(
+            &holder_rewards_pool,
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
+        );
         context.set_account(
             &extra_metas,
             &AccountSharedData::from(Account {
@@ -482,7 +502,6 @@ async fn fail_extra_metas_account_initialized() {
         &mint,
         &mint_authority.pubkey(),
     );
-
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
