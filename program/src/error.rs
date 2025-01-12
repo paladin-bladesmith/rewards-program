@@ -14,9 +14,6 @@ use {
 // Note: Shank does not export the type when we use `spl_program_error`.
 #[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinRewardsError {
-    /// Incorrect mint authority.
-    #[error("Incorrect mint authority")]
-    IncorrectMintAuthority,
     /// Incorrect transfer hook program ID.
     #[error("Incorrect transfer hook program ID")]
     IncorrectTransferHookProgramId,

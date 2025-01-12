@@ -35,7 +35,7 @@ async fn fail_token_account_invalid_data() {
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up a token account with invalid data.
     {
@@ -93,7 +93,7 @@ async fn fail_token_account_mint_mismatch() {
         0,
     )
     .await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
@@ -138,7 +138,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
 
     let mut context = setup().start_with_context().await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up a holder rewards pool account with incorrect owner.
     {
@@ -188,7 +188,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
@@ -233,7 +233,7 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
     let mut context = setup().start_with_context().await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up a holder rewards pool account with invalid data.
     {
@@ -289,7 +289,7 @@ async fn fail_holder_rewards_incorrect_address() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
@@ -335,7 +335,7 @@ async fn fail_holder_rewards_account_initialized() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up an already (arbitrarily) initialized holder rewards account.
     {
@@ -411,8 +411,8 @@ async fn success() {
     setup_mint(
         &mut context,
         &mint,
-        &Pubkey::new_unique(),
         100_000, // Token supply (not used here).
+        None,
     )
     .await;
 

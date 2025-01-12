@@ -27,7 +27,6 @@ use {
 #[tokio::test]
 async fn owner_can_close_zero_balance() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
     let owner = context.payer.pubkey();
@@ -36,7 +35,7 @@ async fn owner_can_close_zero_balance() {
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
-    setup_mint(&mut context, &mint, &mint_authority, 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, None).await;
@@ -91,7 +90,6 @@ async fn owner_can_close_zero_balance() {
 #[tokio::test]
 async fn owner_cannot_close_non_zero_balance() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
     let owner = context.payer.pubkey();
@@ -100,7 +98,7 @@ async fn owner_cannot_close_non_zero_balance() {
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
 
-    setup_mint(&mut context, &mint, &mint_authority, 1).await;
+    setup_mint(&mut context, &mint, 1, None).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 1).await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0, None).await;
@@ -135,7 +133,6 @@ async fn owner_cannot_close_non_zero_balance() {
 #[tokio::test]
 async fn sponsor_can_close_balance_below_minimum() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Pubkey::new_unique();
     let sponsor = Keypair::new();
 
     let mut context = setup().start_with_context().await;
@@ -152,7 +149,7 @@ async fn sponsor_can_close_balance_below_minimum() {
             ..Default::default()
         }),
     );
-    setup_mint(&mut context, &mint, &mint_authority, 99).await;
+    setup_mint(&mut context, &mint, 99, None).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 99).await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(
@@ -213,7 +210,6 @@ async fn sponsor_can_close_balance_below_minimum() {
 #[tokio::test]
 async fn sponsor_cannot_close_balance_equal_to_minimum() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Pubkey::new_unique();
     let sponsor = Keypair::new();
 
     let mut context = setup().start_with_context().await;
@@ -230,7 +226,7 @@ async fn sponsor_cannot_close_balance_equal_to_minimum() {
             ..Default::default()
         }),
     );
-    setup_mint(&mut context, &mint, &mint_authority, 100).await;
+    setup_mint(&mut context, &mint, 100, None).await;
     setup_token_account(&mut context, &token_account, &owner, &mint, 100).await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_holder_rewards_account(

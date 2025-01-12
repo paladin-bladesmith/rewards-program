@@ -259,7 +259,7 @@ async fn test_e2e() {
         // Setup.
         {
             // Initial pool setup.
-            setup_mint(&mut context, &mint, &mint_authority.pubkey(), 100).await;
+            setup_mint(&mut context, &mint, 100, Some(mint_authority.pubkey())).await;
 
             // Initial holders setup.
             setup_token_account(
@@ -301,14 +301,9 @@ async fn test_e2e() {
                         &extra_metas,
                         extra_metas_rent_exempt_lamports,
                     ),
-                    initialize_holder_rewards_pool(
-                        &holder_rewards_pool,
-                        &extra_metas,
-                        &mint,
-                        &mint_authority.pubkey(),
-                    ),
+                    initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint),
                 ],
-                &[&payer, &mint_authority],
+                &[&payer],
             )
             .await;
 

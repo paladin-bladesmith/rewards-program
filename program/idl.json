@@ -30,14 +30,6 @@
           ]
         },
         {
-          "name": "mintAuthority",
-          "isMut": false,
-          "isSigner": true,
-          "docs": [
-            "Mint authority."
-          ]
-        },
-        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
@@ -266,51 +258,46 @@
   "errors": [
     {
       "code": 0,
-      "name": "IncorrectMintAuthority",
-      "msg": "Incorrect mint authority"
-    },
-    {
-      "code": 1,
       "name": "IncorrectTransferHookProgramId",
       "msg": "Incorrect transfer hook program ID"
     },
     {
-      "code": 2,
+      "code": 1,
       "name": "IncorrectHolderRewardsPoolAddress",
       "msg": "Incorrect holder rewards pool address"
     },
     {
-      "code": 3,
+      "code": 2,
       "name": "IncorrectExtraMetasAddress",
       "msg": "Incorrect extra metas address"
     },
     {
-      "code": 4,
+      "code": 3,
       "name": "IncorrectHolderRewardsAddress",
       "msg": "Incorrect holder rewards address"
     },
     {
-      "code": 5,
+      "code": 4,
       "name": "TokenAccountMintMismatch",
       "msg": "Token account mint mismatch"
     },
     {
-      "code": 6,
+      "code": 5,
       "name": "IncorrectSponsorAddress",
       "msg": "Holder rewards sponsor account mismatch"
     },
     {
-      "code": 7,
+      "code": 6,
       "name": "CloseWithUnclaimedRewards",
       "msg": "Holder rewards has unclaimed rewards"
     },
     {
-      "code": 8,
+      "code": 7,
       "name": "InvalidClosingBalance",
       "msg": "Holder rewards token account balance must be zero"
     },
     {
-      "code": 9,
+      "code": 8,
       "name": "IncorrectSweepAddress",
       "msg": "Incorrect sweep address"
     }

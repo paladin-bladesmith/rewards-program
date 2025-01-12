@@ -18,13 +18,10 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
-  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
-  type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
@@ -35,7 +32,6 @@ export type InitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
   TAccountExtraAccountMetas extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
-  TAccountMintAuthority extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
@@ -53,10 +49,6 @@ export type InitializeHolderRewardsPoolInstruction<
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
-      TAccountMintAuthority extends string
-        ? ReadonlySignerAccount<TAccountMintAuthority> &
-            IAccountSignerMeta<TAccountMintAuthority>
-        : TAccountMintAuthority,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -95,7 +87,6 @@ export type InitializeHolderRewardsPoolInput<
   TAccountHolderRewardsPool extends string = string,
   TAccountExtraAccountMetas extends string = string,
   TAccountMint extends string = string,
-  TAccountMintAuthority extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
@@ -104,8 +95,6 @@ export type InitializeHolderRewardsPoolInput<
   extraAccountMetas: Address<TAccountExtraAccountMetas>;
   /** Token mint. */
   mint: Address<TAccountMint>;
-  /** Mint authority. */
-  mintAuthority: TransactionSigner<TAccountMintAuthority>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
 };
@@ -114,14 +103,12 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool extends string,
   TAccountExtraAccountMetas extends string,
   TAccountMint extends string,
-  TAccountMintAuthority extends string,
   TAccountSystemProgram extends string,
 >(
   input: InitializeHolderRewardsPoolInput<
     TAccountHolderRewardsPool,
     TAccountExtraAccountMetas,
     TAccountMint,
-    TAccountMintAuthority,
     TAccountSystemProgram
   >
 ): InitializeHolderRewardsPoolInstruction<
@@ -129,7 +116,6 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool,
   TAccountExtraAccountMetas,
   TAccountMint,
-  TAccountMintAuthority,
   TAccountSystemProgram
 > {
   // Program address.
@@ -146,7 +132,6 @@ export function getInitializeHolderRewardsPoolInstruction<
       isWritable: true,
     },
     mint: { value: input.mint ?? null, isWritable: false },
-    mintAuthority: { value: input.mintAuthority ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -166,7 +151,6 @@ export function getInitializeHolderRewardsPoolInstruction<
       getAccountMeta(accounts.holderRewardsPool),
       getAccountMeta(accounts.extraAccountMetas),
       getAccountMeta(accounts.mint),
-      getAccountMeta(accounts.mintAuthority),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -176,7 +160,6 @@ export function getInitializeHolderRewardsPoolInstruction<
     TAccountHolderRewardsPool,
     TAccountExtraAccountMetas,
     TAccountMint,
-    TAccountMintAuthority,
     TAccountSystemProgram
   >;
 
@@ -195,10 +178,8 @@ export type ParsedInitializeHolderRewardsPoolInstruction<
     extraAccountMetas: TAccountMetas[1];
     /** Token mint. */
     mint: TAccountMetas[2];
-    /** Mint authority. */
-    mintAuthority: TAccountMetas[3];
     /** System program. */
-    systemProgram: TAccountMetas[4];
+    systemProgram: TAccountMetas[3];
   };
   data: InitializeHolderRewardsPoolInstructionData;
 };
@@ -211,7 +192,7 @@ export function parseInitializeHolderRewardsPoolInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsPoolInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 4) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -227,7 +208,6 @@ export function parseInitializeHolderRewardsPoolInstruction<
       holderRewardsPool: getNextAccount(),
       extraAccountMetas: getNextAccount(),
       mint: getNextAccount(),
-      mintAuthority: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializeHolderRewardsPoolInstructionDataDecoder().decode(

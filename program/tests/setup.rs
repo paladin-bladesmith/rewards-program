@@ -10,7 +10,6 @@ use {
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
-        program_option::COption,
         pubkey::Pubkey,
         system_program,
     },
@@ -39,8 +38,8 @@ pub fn setup() -> ProgramTest {
 pub async fn setup_mint(
     context: &mut ProgramTestContext,
     mint: &Pubkey,
-    mint_authority: &Pubkey,
     supply: u64,
+    mint_authority: Option<Pubkey>,
 ) {
     let account_size =
         ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::TransferHook]).unwrap();
@@ -56,9 +55,9 @@ pub async fn setup_mint(
             .unwrap()
             .program_id = Some(paladin_rewards_program::id()).try_into().unwrap();
         state.base = Mint {
-            mint_authority: COption::Some(*mint_authority),
             is_initialized: true,
             supply,
+            mint_authority: mint_authority.try_into().unwrap(),
             ..Mint::default()
         };
         state.pack_base();

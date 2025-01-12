@@ -19,7 +19,6 @@ use {
         msg,
         program::invoke_signed,
         program_error::ProgramError,
-        program_option::COption,
         pubkey::Pubkey,
         rent::Rent,
         system_instruction,
@@ -258,7 +257,6 @@ fn process_initialize_holder_rewards_pool(
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
     let extra_metas_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let mint_authority_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Run checks on the mint.
@@ -273,18 +271,6 @@ fn process_initialize_holder_rewards_pool(
         let hook_program_id: Option<Pubkey> = transfer_hook.program_id.into();
         if hook_program_id != Some(*program_id) {
             return Err(PaladinRewardsError::IncorrectTransferHookProgramId.into());
-        }
-
-        // Ensure the provided mint authority is the correct mint authority.
-        if mint.base.mint_authority != COption::Some(*mint_authority_info.key) {
-            return Err(PaladinRewardsError::IncorrectMintAuthority.into());
-        }
-
-        // TODO: Can we remove the need for the mint authority to sign?
-
-        // Ensure the mint authority is a signer.
-        if !mint_authority_info.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
         }
     }
 

@@ -14,9 +14,7 @@ use {
     solana_sdk::{
         account::{Account, AccountSharedData},
         instruction::InstructionError,
-        program_option::COption,
         pubkey::Pubkey,
-        signature::Keypair,
         signer::Signer,
         system_program,
         transaction::{Transaction, TransactionError},
@@ -39,7 +37,6 @@ use {
 #[tokio::test]
 async fn fail_mint_invalid_data() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
@@ -56,17 +53,12 @@ async fn fail_mint_invalid_data() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -86,7 +78,6 @@ async fn fail_mint_invalid_data() {
 #[tokio::test]
 async fn fail_mint_missing_transfer_hook_extension() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
@@ -105,7 +96,6 @@ async fn fail_mint_missing_transfer_hook_extension() {
             StateWithExtensionsMut::<Mint>::unpack_uninitialized(&mut account_data).unwrap();
         state.init_extension::<TransferFeeConfig>(true).unwrap();
         state.base = Mint {
-            mint_authority: COption::Some(mint_authority.pubkey()),
             is_initialized: true,
             ..Mint::default()
         };
@@ -123,17 +113,12 @@ async fn fail_mint_missing_transfer_hook_extension() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -153,7 +138,6 @@ async fn fail_mint_missing_transfer_hook_extension() {
 #[tokio::test]
 async fn fail_mint_incorrect_transfer_hook_program_id() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
@@ -176,7 +160,6 @@ async fn fail_mint_incorrect_transfer_hook_program_id() {
             .unwrap()
             .program_id = Some(Pubkey::new_unique()).try_into().unwrap(); // Incorrect program ID.
         state.base = Mint {
-            mint_authority: COption::Some(mint_authority.pubkey()),
             is_initialized: true,
             ..Mint::default()
         };
@@ -194,17 +177,12 @@ async fn fail_mint_incorrect_transfer_hook_program_id() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -225,119 +203,21 @@ async fn fail_mint_incorrect_transfer_hook_program_id() {
 }
 
 #[tokio::test]
-async fn fail_incorrect_mint_authority() {
-    let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
-
-    let holder_rewards_pool =
-        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
-    let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
-
-    let mut context = setup().start_with_context().await;
-
-    // Set up a mint with incorrect mint authority.
-    {
-        setup_mint(
-            &mut context,
-            &mint,
-            &Pubkey::new_unique(), // Incorrect mint authority.
-            0,
-        )
-        .await;
-    }
-
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(
-            0,
-            InstructionError::Custom(PaladinRewardsError::IncorrectMintAuthority as u32)
-        )
-    );
-}
-
-#[tokio::test]
-async fn fail_mint_authority_not_signer() {
-    let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
-
-    let holder_rewards_pool =
-        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
-    let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
-
-    let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
-
-    let mut instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
-    instruction.accounts[3].is_signer = false; // Not signer.
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer], // Missing mint authority.
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(0, InstructionError::MissingRequiredSignature)
-    );
-}
-
-#[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_address() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -360,14 +240,13 @@ async fn fail_holder_rewards_pool_incorrect_address() {
 #[tokio::test]
 async fn fail_holder_rewards_pool_account_initialized() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up an already (arbitrarily) initialized holder rewards pool account.
     {
@@ -382,17 +261,12 @@ async fn fail_holder_rewards_pool_account_initialized() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -412,14 +286,13 @@ async fn fail_holder_rewards_pool_account_initialized() {
 #[tokio::test]
 async fn fail_extra_metas_incorrect_address() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = Pubkey::new_unique(); // Incorrect extra metas address.
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Fund the holder rewards pool account and extra metas account.
     {
@@ -436,16 +309,11 @@ async fn fail_extra_metas_incorrect_address() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -468,14 +336,13 @@ async fn fail_extra_metas_incorrect_address() {
 #[tokio::test]
 async fn fail_extra_metas_account_initialized() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
     let extra_metas = get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
 
     let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up an already (arbitrarily) initialized extra metas account.
     {
@@ -496,16 +363,11 @@ async fn fail_extra_metas_account_initialized() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 
@@ -525,7 +387,6 @@ async fn fail_extra_metas_account_initialized() {
 #[tokio::test]
 async fn success() {
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
 
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
@@ -533,7 +394,7 @@ async fn success() {
 
     let mut context = setup().start_with_context().await;
     let rent = context.banks_client.get_rent().await.unwrap();
-    setup_mint(&mut context, &mint, &mint_authority.pubkey(), 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
 
     // Fund the holder rewards pool account and extra metas account.
     {
@@ -550,17 +411,12 @@ async fn success() {
         );
     }
 
-    let instruction = initialize_holder_rewards_pool(
-        &holder_rewards_pool,
-        &extra_metas,
-        &mint,
-        &mint_authority.pubkey(),
-    );
+    let instruction = initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &mint_authority],
+        &[&context.payer],
         context.last_blockhash,
     );
 

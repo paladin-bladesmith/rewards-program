@@ -18,7 +18,6 @@ use {
         account::AccountSharedData,
         instruction::InstructionError,
         pubkey::Pubkey,
-        signature::Keypair,
         signer::Signer,
         system_program,
         transaction::{Transaction, TransactionError},
@@ -703,14 +702,7 @@ async fn success(
 
     let owner = Pubkey::new_unique();
     let mint = Pubkey::new_unique();
-    let mint_authority = Keypair::new();
-    setup_mint(
-        &mut context,
-        &mint,
-        &mint_authority.pubkey(),
-        token_account_balance,
-    )
-    .await;
+    setup_mint(&mut context, &mint, token_account_balance, None).await;
 
     let token_account = get_associated_token_address(&owner, &mint);
     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());

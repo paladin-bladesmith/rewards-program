@@ -1050,10 +1050,8 @@ async fn setup_direct_invoke(
     )
     .await;
     setup_mint(
-        context,
-        mint,
-        &Pubkey::new_unique(),
-        100_000, // Token supply (unused here).
+        context, mint, 100_000, // Token supply (unused here).
+        None,
     )
     .await;
 }
@@ -1138,10 +1136,8 @@ async fn setup_transfer_hook(
     )
     .await;
     setup_mint(
-        context,
-        mint,
-        &Pubkey::new_unique(),
-        100_000, // Token supply (unused here).
+        context, mint, 100_000, // Token supply (unused here).
+        None,
     )
     .await;
 }

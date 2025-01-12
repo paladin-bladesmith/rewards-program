@@ -48,12 +48,6 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         3,
-        signer,
-        name = "mint_authority",
-        desc = "Mint authority.",
-    )]
-    #[account(
-        4,
         name = "system_program",
         desc = "System program.",
     )]
@@ -219,13 +213,11 @@ pub fn initialize_holder_rewards_pool(
     holder_rewards_pool_address: &Pubkey,
     extra_account_metas_address: &Pubkey,
     mint_address: &Pubkey,
-    mint_authority_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*extra_account_metas_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(*mint_authority_address, true),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
     let data = PaladinRewardsInstruction::InitializeHolderRewardsPool.pack();
