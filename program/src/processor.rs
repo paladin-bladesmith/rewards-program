@@ -81,16 +81,13 @@ fn check_pool(
 ) -> ProgramResult {
     // Ensure the holder rewards pool is owned by the Paladin Rewards
     // program.
-    if !holder_rewards_pool_info.owner.eq(program_id) {
+    if holder_rewards_pool_info.owner != program_id {
         return Err(ProgramError::InvalidAccountOwner);
     }
 
     // Ensure the provided holder rewards pool address is the correct
     // address derived from the mint.
-    if !holder_rewards_pool_info
-        .key
-        .eq(&get_holder_rewards_pool_address(mint, program_id))
-    {
+    if holder_rewards_pool_info.key != &get_holder_rewards_pool_address(mint, program_id) {
         return Err(PaladinRewardsError::IncorrectHolderRewardsPoolAddress.into());
     }
 
@@ -104,16 +101,13 @@ fn check_holder_rewards(
 ) -> ProgramResult {
     // Ensure the holder rewards account is owned by the Paladin Rewards
     // program.
-    if !holder_rewards_info.owner.eq(program_id) {
+    if holder_rewards_info.owner != program_id {
         return Err(ProgramError::InvalidAccountOwner);
     }
 
     // Ensure the provided holder rewards address is the correct address
     // derived from the token account.
-    if !holder_rewards_info
-        .key
-        .eq(&get_holder_rewards_address(token_account_key, program_id))
-    {
+    if holder_rewards_info.key != &get_holder_rewards_address(token_account_key, program_id) {
         return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
     }
 
@@ -421,7 +415,7 @@ fn process_initialize_holder_rewards(
 
         // Ensure the provided holder rewards address is the correct address
         // derived from the token account.
-        if !holder_rewards_info.key.eq(&holder_rewards_address) {
+        if holder_rewards_info.key != &holder_rewards_address {
             return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
         }
 
@@ -455,7 +449,8 @@ fn process_initialize_holder_rewards(
                 rent_sponsor,
                 rent_debt: match rent_sponsor == Pubkey::default() {
                     true => 0,
-                    // NB: Sponsor is paid back a premium as an incentive to sponsor the account.
+                    // NB: Sponsor is paid back at a 10% premium as an incentive to sponsor the
+                    // account.
                     #[allow(clippy::arithmetic_side_effects)]
                     false => rent_debt(Rent::get()?.minimum_balance(HolderRewards::LEN)),
                 },
@@ -666,13 +661,12 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     }
 
     // Close the account.
-    let rent_recovered = holder_rewards_info.lamports();
-    **holder_rewards_info.lamports.borrow_mut() = 0;
     // NB: If this overflows then the runtime will catch it.
     #[allow(clippy::arithmetic_side_effects)]
     {
-        **authority.lamports.borrow_mut() += rent_recovered;
+        **authority.lamports.borrow_mut() += holder_rewards_info.lamports();
     }
+    **holder_rewards_info.lamports.borrow_mut() = 0;
 
     Ok(())
 }
