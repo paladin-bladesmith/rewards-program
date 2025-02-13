@@ -618,12 +618,20 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         return Err(PaladinRewardsError::CloseWithUnclaimedRewards.into());
     }
 
-    // Load token account info.
-    assert_eq!(token_account_info.owner, &spl_token_2022::ID);
-    let token_account_data = token_account_info.data.borrow();
-    let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)?.base;
-    assert_eq!(&token_account_state.mint, mint_info.key);
-    assert_eq!(mint_info.owner, &spl_token_2022::ID);
+    // Load token account info (if it's not been closed).
+    let (token_amount, token_owner) = (!token_account_info.data_is_empty())
+        .then(|| {
+            assert_eq!(token_account_info.owner, &spl_token_2022::ID);
+            let token_account_data = token_account_info.data.borrow();
+            let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)
+                .unwrap()
+                .base;
+            assert_eq!(&token_account_state.mint, mint_info.key);
+            assert_eq!(mint_info.owner, &spl_token_2022::ID);
+
+            (token_account_state.amount, token_account_state.owner)
+        })
+        .unwrap_or_default();
 
     // Ensure authority is either:
     //
@@ -633,13 +641,15 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         return Err(ProgramError::MissingRequiredSignature);
     }
     match authority.key {
-        key if key == &token_account_state.owner => {
-            if token_account_state.amount > 0 {
+        // NB: If the account is closed, this will be the default pubkey which is the system program
+        // and cannot be a signer.
+        key if key == &token_owner => {
+            if token_amount > 0 {
                 return Err(PaladinRewardsError::InvalidClosingBalance.into());
             }
         }
         key if key == &holder_rewards_state.rent_sponsor => {
-            if token_account_state.amount >= holder_rewards_state.minimum_balance {
+            if token_amount >= holder_rewards_state.minimum_balance {
                 return Err(PaladinRewardsError::InvalidClosingBalance.into());
             }
         }
