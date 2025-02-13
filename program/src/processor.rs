@@ -647,12 +647,15 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     }
 
     // Close the account.
+    drop(holder_rewards_data);
+
     // NB: If this overflows then the runtime will catch it.
     #[allow(clippy::arithmetic_side_effects)]
     {
         **authority.lamports.borrow_mut() += holder_rewards_info.lamports();
     }
     **holder_rewards_info.lamports.borrow_mut() = 0;
+    holder_rewards_info.realloc(0, true)?;
 
     Ok(())
 }
