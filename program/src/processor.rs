@@ -696,6 +696,12 @@ fn process_spl_transfer_hook_execute(
         pool_state.accumulated_rewards_per_token
     };
 
+    // Don't accrue rewards on self transfer as there is no effective balance
+    // change.
+    if source_token_account_info.key == destination_token_account_info.key {
+        return Ok(());
+    }
+
     // Update the source holder rewards account.
     //
     // For the source - since it was just debited - the transfer amount
