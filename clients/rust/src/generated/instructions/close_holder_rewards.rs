@@ -17,7 +17,9 @@ pub struct CloseHolderRewards {
     /// Token mint.
     pub mint: solana_program::pubkey::Pubkey,
     /// Either the owner or the sponsor can close the account.
-    pub authority: solana_program::pubkey::Pubkey,
+    pub close_authority: solana_program::pubkey::Pubkey,
+    /// Owner of the account.
+    pub owner: solana_program::pubkey::Pubkey,
 }
 
 impl CloseHolderRewards {
@@ -29,7 +31,7 @@ impl CloseHolderRewards {
         &self,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
             false,
@@ -46,8 +48,11 @@ impl CloseHolderRewards {
             self.mint, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.authority,
+            self.close_authority,
             true,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.owner, false,
         ));
         accounts.extend_from_slice(remaining_accounts);
         let data = CloseHolderRewardsInstructionData::new()
@@ -87,14 +92,16 @@ impl Default for CloseHolderRewardsInstructionData {
 ///   1. `[writable]` holder_rewards
 ///   2. `[]` token_account
 ///   3. `[]` mint
-///   4. `[writable, signer]` authority
+///   4. `[writable, signer]` close_authority
+///   5. `[writable]` owner
 #[derive(Clone, Debug, Default)]
 pub struct CloseHolderRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
     holder_rewards: Option<solana_program::pubkey::Pubkey>,
     token_account: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
-    authority: Option<solana_program::pubkey::Pubkey>,
+    close_authority: Option<solana_program::pubkey::Pubkey>,
+    owner: Option<solana_program::pubkey::Pubkey>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -131,8 +138,17 @@ impl CloseHolderRewardsBuilder {
     }
     /// Either the owner or the sponsor can close the account.
     #[inline(always)]
-    pub fn authority(&mut self, authority: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.authority = Some(authority);
+    pub fn close_authority(
+        &mut self,
+        close_authority: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.close_authority = Some(close_authority);
+        self
+    }
+    /// Owner of the account.
+    #[inline(always)]
+    pub fn owner(&mut self, owner: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.owner = Some(owner);
         self
     }
     /// Add an aditional account to the instruction.
@@ -162,7 +178,8 @@ impl CloseHolderRewardsBuilder {
             holder_rewards: self.holder_rewards.expect("holder_rewards is not set"),
             token_account: self.token_account.expect("token_account is not set"),
             mint: self.mint.expect("mint is not set"),
-            authority: self.authority.expect("authority is not set"),
+            close_authority: self.close_authority.expect("close_authority is not set"),
+            owner: self.owner.expect("owner is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
@@ -180,7 +197,9 @@ pub struct CloseHolderRewardsCpiAccounts<'a, 'b> {
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
     /// Either the owner or the sponsor can close the account.
-    pub authority: &'b solana_program::account_info::AccountInfo<'a>,
+    pub close_authority: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Owner of the account.
+    pub owner: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 /// `close_holder_rewards` CPI instruction.
@@ -196,7 +215,9 @@ pub struct CloseHolderRewardsCpi<'a, 'b> {
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
     /// Either the owner or the sponsor can close the account.
-    pub authority: &'b solana_program::account_info::AccountInfo<'a>,
+    pub close_authority: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Owner of the account.
+    pub owner: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
@@ -210,7 +231,8 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             holder_rewards: accounts.holder_rewards,
             token_account: accounts.token_account,
             mint: accounts.mint,
-            authority: accounts.authority,
+            close_authority: accounts.close_authority,
+            owner: accounts.owner,
         }
     }
     #[inline(always)]
@@ -246,7 +268,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
             false,
@@ -264,8 +286,12 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.authority.key,
+            *self.close_authority.key,
             true,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.owner.key,
+            false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -283,13 +309,14 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
         account_infos.push(self.holder_rewards.clone());
         account_infos.push(self.token_account.clone());
         account_infos.push(self.mint.clone());
-        account_infos.push(self.authority.clone());
+        account_infos.push(self.close_authority.clone());
+        account_infos.push(self.owner.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -310,7 +337,8 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
 ///   1. `[writable]` holder_rewards
 ///   2. `[]` token_account
 ///   3. `[]` mint
-///   4. `[writable, signer]` authority
+///   4. `[writable, signer]` close_authority
+///   5. `[writable]` owner
 #[derive(Clone, Debug)]
 pub struct CloseHolderRewardsCpiBuilder<'a, 'b> {
     instruction: Box<CloseHolderRewardsCpiBuilderInstruction<'a, 'b>>,
@@ -324,7 +352,8 @@ impl<'a, 'b> CloseHolderRewardsCpiBuilder<'a, 'b> {
             holder_rewards: None,
             token_account: None,
             mint: None,
-            authority: None,
+            close_authority: None,
+            owner: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -364,11 +393,17 @@ impl<'a, 'b> CloseHolderRewardsCpiBuilder<'a, 'b> {
     }
     /// Either the owner or the sponsor can close the account.
     #[inline(always)]
-    pub fn authority(
+    pub fn close_authority(
         &mut self,
-        authority: &'b solana_program::account_info::AccountInfo<'a>,
+        close_authority: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.authority = Some(authority);
+        self.instruction.close_authority = Some(close_authority);
+        self
+    }
+    /// Owner of the account.
+    #[inline(always)]
+    pub fn owner(&mut self, owner: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+        self.instruction.owner = Some(owner);
         self
     }
     /// Add an additional account to the instruction.
@@ -433,7 +468,12 @@ impl<'a, 'b> CloseHolderRewardsCpiBuilder<'a, 'b> {
 
             mint: self.instruction.mint.expect("mint is not set"),
 
-            authority: self.instruction.authority.expect("authority is not set"),
+            close_authority: self
+                .instruction
+                .close_authority
+                .expect("close_authority is not set"),
+
+            owner: self.instruction.owner.expect("owner is not set"),
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -449,7 +489,8 @@ struct CloseHolderRewardsCpiBuilderInstruction<'a, 'b> {
     holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    close_authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

@@ -21,7 +21,7 @@ use {
         program_error::ProgramError,
         pubkey::Pubkey,
         rent::Rent,
-        system_instruction,
+        system_instruction, system_program,
         sysvar::Sysvar,
     },
     spl_tlv_account_resolution::state::ExtraAccountMetaList,
@@ -607,7 +607,8 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let authority = next_account_info(accounts_iter)?;
+    let close_authority = next_account_info(accounts_iter)?;
+    let owner = next_account_info(accounts_iter)?;
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -642,14 +643,14 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         })
         .unwrap_or_default();
 
-    // Ensure authority is either:
+    // Ensure close authority is either:
     //
     // - The owner.
     // - OR; The sponsor AND the token balance has dropped below the initial level.
-    if !authority.is_signer {
+    if !close_authority.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
-    match authority.key {
+    match close_authority.key {
         // NB: If the account is closed, this will be the default pubkey which is the system program
         // and cannot be a signer.
         key if key == &token_owner && holder_rewards_state.rent_debt == 0 => {
@@ -665,16 +666,26 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         _ => return Err(ProgramError::IncorrectAuthority),
     }
 
-    // Close the account.
+    // Grab rent debt and then drop the borrow.
+    let rent_debt = holder_rewards_state.rent_debt;
     drop(holder_rewards_data);
 
+    // Repay the closer (either sponsor or owner) and the residual to the owner.
+    let close_authority_repayment = std::cmp::min(holder_rewards_info.lamports(), rent_debt);
+    let owner_repayment = holder_rewards_info
+        .lamports()
+        .saturating_sub(close_authority_repayment);
     // NB: If this overflows then the runtime will catch it.
     #[allow(clippy::arithmetic_side_effects)]
     {
-        **authority.lamports.borrow_mut() += holder_rewards_info.lamports();
+        **close_authority.lamports.borrow_mut() += close_authority_repayment;
+        **owner.lamports.borrow_mut() += owner_repayment;
     }
+
+    // Close the account.
     **holder_rewards_info.lamports.borrow_mut() = 0;
     holder_rewards_info.realloc(0, true)?;
+    holder_rewards_info.assign(&system_program::ID);
 
     Ok(())
 }

@@ -162,8 +162,14 @@ pub enum PaladinRewardsInstruction {
         4,
         signer,
         writable,
-        name = "authority",
+        name = "close_authority",
         desc = "Either the owner or the sponsor can close the account.",
+    )]
+    #[account(
+        5,
+        writable,
+        name = "owner",
+        desc = "Owner of the account.",
     )]
     CloseHolderRewards,
 }
@@ -272,14 +278,16 @@ pub fn close_holder_rewards(
     holder_rewards_address: Pubkey,
     token_account_address: Pubkey,
     mint_address: Pubkey,
-    authority: Pubkey,
+    close_authority: Pubkey,
+    owner: Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new_readonly(holder_rewards_pool_address, false),
         AccountMeta::new(holder_rewards_address, false),
         AccountMeta::new_readonly(token_account_address, false),
         AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(authority, true),
+        AccountMeta::new(close_authority, true),
+        AccountMeta::new(owner, false),
     ];
     let data = PaladinRewardsInstruction::CloseHolderRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)

@@ -36,7 +36,8 @@ export type CloseHolderRewardsInstruction<
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
-  TAccountAuthority extends string | IAccountMeta<string> = string,
+  TAccountCloseAuthority extends string | IAccountMeta<string> = string,
+  TAccountOwner extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -54,10 +55,13 @@ export type CloseHolderRewardsInstruction<
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
-      TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
-            IAccountSignerMeta<TAccountAuthority>
-        : TAccountAuthority,
+      TAccountCloseAuthority extends string
+        ? WritableSignerAccount<TAccountCloseAuthority> &
+            IAccountSignerMeta<TAccountCloseAuthority>
+        : TAccountCloseAuthority,
+      TAccountOwner extends string
+        ? WritableAccount<TAccountOwner>
+        : TAccountOwner,
       ...TRemainingAccounts,
     ]
   >;
@@ -92,7 +96,8 @@ export type CloseHolderRewardsInput<
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
-  TAccountAuthority extends string = string,
+  TAccountCloseAuthority extends string = string,
+  TAccountOwner extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
@@ -103,7 +108,9 @@ export type CloseHolderRewardsInput<
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** Either the owner or the sponsor can close the account. */
-  authority: TransactionSigner<TAccountAuthority>;
+  closeAuthority: TransactionSigner<TAccountCloseAuthority>;
+  /** Owner of the account. */
+  owner: Address<TAccountOwner>;
 };
 
 export function getCloseHolderRewardsInstruction<
@@ -111,14 +118,16 @@ export function getCloseHolderRewardsInstruction<
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
-  TAccountAuthority extends string,
+  TAccountCloseAuthority extends string,
+  TAccountOwner extends string,
 >(
   input: CloseHolderRewardsInput<
     TAccountHolderRewardsPool,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountAuthority
+    TAccountCloseAuthority,
+    TAccountOwner
   >
 ): CloseHolderRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
@@ -126,7 +135,8 @@ export function getCloseHolderRewardsInstruction<
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint,
-  TAccountAuthority
+  TAccountCloseAuthority,
+  TAccountOwner
 > {
   // Program address.
   const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
@@ -140,7 +150,8 @@ export function getCloseHolderRewardsInstruction<
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
-    authority: { value: input.authority ?? null, isWritable: true },
+    closeAuthority: { value: input.closeAuthority ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -154,7 +165,8 @@ export function getCloseHolderRewardsInstruction<
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
-      getAccountMeta(accounts.authority),
+      getAccountMeta(accounts.closeAuthority),
+      getAccountMeta(accounts.owner),
     ],
     programAddress,
     data: getCloseHolderRewardsInstructionDataEncoder().encode({}),
@@ -164,7 +176,8 @@ export function getCloseHolderRewardsInstruction<
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountAuthority
+    TAccountCloseAuthority,
+    TAccountOwner
   >;
 
   return instruction;
@@ -185,7 +198,9 @@ export type ParsedCloseHolderRewardsInstruction<
     /** Token mint. */
     mint: TAccountMetas[3];
     /** Either the owner or the sponsor can close the account. */
-    authority: TAccountMetas[4];
+    closeAuthority: TAccountMetas[4];
+    /** Owner of the account. */
+    owner: TAccountMetas[5];
   };
   data: CloseHolderRewardsInstructionData;
 };
@@ -198,7 +213,7 @@ export function parseCloseHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedCloseHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -215,7 +230,8 @@ export function parseCloseHolderRewardsInstruction<
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),
-      authority: getNextAccount(),
+      closeAuthority: getNextAccount(),
+      owner: getNextAccount(),
     },
     data: getCloseHolderRewardsInstructionDataDecoder().decode(
       instruction.data
