@@ -29,12 +29,15 @@ pub enum PaladinRewardsError {
     /// 6 - Holder rewards has unclaimed rewards
     #[error("Holder rewards has unclaimed rewards")]
     CloseWithUnclaimedRewards = 0x6,
-    /// 7 - Holder rewards token account balance must be zero
-    #[error("Holder rewards token account balance must be zero")]
+    /// 7 - Cannot close holder rewards with current balance
+    #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance = 0x7,
     /// 8 - Incorrect sweep address
     #[error("Incorrect sweep address")]
     IncorrectSweepAddress = 0x8,
+    /// 9 - Invalid extension
+    #[error("Invalid extension")]
+    InvalidExtension = 0x9,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

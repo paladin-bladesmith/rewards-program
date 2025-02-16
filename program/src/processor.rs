@@ -28,7 +28,7 @@ use {
     spl_token_2022::{
         extension::{
             transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensions, StateWithExtensions,
+            BaseStateWithExtensions, ExtensionType, StateWithExtensions,
         },
         state::{Account, Mint},
     },
@@ -264,6 +264,15 @@ fn process_initialize_holder_rewards_pool(
         assert_eq!(mint_info.owner, &spl_token_2022::ID);
         let mint_data = mint_info.try_borrow_data()?;
         let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+
+        // Check only allowed extensions.
+        let extensions = mint.get_extension_types()?;
+        if !extensions
+            .iter()
+            .all(|extension| matches!(extension, ExtensionType::TransferHook))
+        {
+            return Err(PaladinRewardsError::InvalidExtension.into());
+        }
 
         // Ensure the mint is configured with the `TransferHook` extension,
         // and the program ID is the Paladin Rewards program.

@@ -131,7 +131,10 @@ async fn fail_mint_missing_transfer_hook_extension() {
 
     assert_eq!(
         err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinRewardsError::InvalidExtension as u32)
+        )
     );
 }
 

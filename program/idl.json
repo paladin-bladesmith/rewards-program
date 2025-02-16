@@ -294,12 +294,17 @@
     {
       "code": 7,
       "name": "InvalidClosingBalance",
-      "msg": "Holder rewards token account balance must be zero"
+      "msg": "Cannot close holder rewards with current balance"
     },
     {
       "code": 8,
       "name": "IncorrectSweepAddress",
       "msg": "Incorrect sweep address"
+    },
+    {
+      "code": 9,
+      "name": "InvalidExtension",
+      "msg": "Invalid extension"
     }
   ],
   "metadata": {
