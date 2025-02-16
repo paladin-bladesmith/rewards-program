@@ -652,7 +652,7 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     match authority.key {
         // NB: If the account is closed, this will be the default pubkey which is the system program
         // and cannot be a signer.
-        key if key == &token_owner => {
+        key if key == &token_owner && holder_rewards_state.rent_debt == 0 => {
             if token_amount > 0 {
                 return Err(PaladinRewardsError::InvalidClosingBalance.into());
             }
