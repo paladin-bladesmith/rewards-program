@@ -161,11 +161,6 @@ pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 /// Seeds: `"holder_pool" + mint_address`.
 pub const SEED_PREFIX_HOLDER_REWARDS_POOL: &[u8] = b"holder_pool";
 
-/// Derive the address of the sweep account.
-pub fn get_sweep_address(program_id: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[SEED_PREFIX_SWEEP], program_id).0
-}
-
 /// Derive the address of a holder rewards account.
 pub fn get_holder_rewards_address(token_account_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
     get_holder_rewards_address_and_bump_seed(token_account_address, program_id).0

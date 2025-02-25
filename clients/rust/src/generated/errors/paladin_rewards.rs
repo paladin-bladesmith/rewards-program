@@ -32,12 +32,9 @@ pub enum PaladinRewardsError {
     /// 7 - Cannot close holder rewards with current balance
     #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance = 0x7,
-    /// 8 - Incorrect sweep address
-    #[error("Incorrect sweep address")]
-    IncorrectSweepAddress = 0x8,
-    /// 9 - Invalid extension
+    /// 8 - Invalid extension
     #[error("Invalid extension")]
-    InvalidExtension = 0x9,
+    InvalidExtension = 0x8,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

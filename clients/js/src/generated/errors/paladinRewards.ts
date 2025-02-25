@@ -30,10 +30,8 @@ export const PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS = 0x5; // 5
 export const PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS = 0x6; // 6
 /** InvalidClosingBalance: Cannot close holder rewards with current balance */
 export const PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE = 0x7; // 7
-/** IncorrectSweepAddress: Incorrect sweep address */
-export const PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS = 0x8; // 8
 /** InvalidExtension: Invalid extension */
-export const PALADIN_REWARDS_ERROR__INVALID_EXTENSION = 0x9; // 9
+export const PALADIN_REWARDS_ERROR__INVALID_EXTENSION = 0x8; // 8
 
 export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS
@@ -41,7 +39,6 @@ export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS
-  | typeof PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID
   | typeof PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE
   | typeof PALADIN_REWARDS_ERROR__INVALID_EXTENSION
@@ -57,7 +54,6 @@ if (process.env.NODE_ENV !== 'production') {
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS]: `Incorrect holder rewards address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS]: `Incorrect holder rewards pool address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_SPONSOR_ADDRESS]: `Holder rewards sponsor account mismatch`,
-    [PALADIN_REWARDS_ERROR__INCORRECT_SWEEP_ADDRESS]: `Incorrect sweep address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID]: `Incorrect transfer hook program ID`,
     [PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE]: `Cannot close holder rewards with current balance`,
     [PALADIN_REWARDS_ERROR__INVALID_EXTENSION]: `Invalid extension`,

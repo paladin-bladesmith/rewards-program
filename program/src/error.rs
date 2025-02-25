@@ -38,9 +38,7 @@ pub enum PaladinRewardsError {
     /// Cannot close holder rewards with current balance.
     #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance,
-    /// Incorrect sweep address.
-    #[error("Incorrect sweep address")]
-    IncorrectSweepAddress,
+    /// Invalid extension.
     #[error("Invalid extension")]
     InvalidExtension,
 }
