@@ -35,6 +35,12 @@ pub enum PaladinRewardsError {
     /// 8 - Invalid extension
     #[error("Invalid extension")]
     InvalidExtension = 0x8,
+    /// 9 - Owner is not the signer
+    #[error("Owner is not the signer")]
+    OwnerNotSigner = 0x9,
+    /// 10 - Signer not owner of token account
+    #[error("Signer not owner of token account")]
+    SignerIsNotOwnerTokenAccount = 0xA,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

@@ -8,8 +8,6 @@
 
 import {
   combineCodec,
-  getAddressDecoder,
-  getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
   getU8Decoder,
@@ -32,6 +30,7 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export type InitializeHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountOwner extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
@@ -46,6 +45,9 @@ export type InitializeHolderRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountOwner extends string
+        ? WritableAccount<TAccountOwner>
+        : TAccountOwner,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
@@ -62,28 +64,19 @@ export type InitializeHolderRewardsInstruction<
     ]
   >;
 
-export type InitializeHolderRewardsInstructionData = {
-  discriminator: number;
-  sponsor: Address;
-};
+export type InitializeHolderRewardsInstructionData = { discriminator: number };
 
-export type InitializeHolderRewardsInstructionDataArgs = { sponsor: Address };
+export type InitializeHolderRewardsInstructionDataArgs = {};
 
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([
-      ['discriminator', getU8Encoder()],
-      ['sponsor', getAddressEncoder()],
-    ]),
+    getStructEncoder([['discriminator', getU8Encoder()]]),
     (value) => ({ ...value, discriminator: 1 })
   );
 }
 
 export function getInitializeHolderRewardsInstructionDataDecoder(): Decoder<InitializeHolderRewardsInstructionData> {
-  return getStructDecoder([
-    ['discriminator', getU8Decoder()],
-    ['sponsor', getAddressDecoder()],
-  ]);
+  return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
 export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
@@ -98,6 +91,7 @@ export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
 
 export type InitializeHolderRewardsInput<
   TAccountHolderRewardsPool extends string = string,
+  TAccountOwner extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
@@ -105,6 +99,8 @@ export type InitializeHolderRewardsInput<
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Token account owner. */
+  owner: Address<TAccountOwner>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
   /** Token account. */
@@ -113,11 +109,11 @@ export type InitializeHolderRewardsInput<
   mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
-  sponsor: InitializeHolderRewardsInstructionDataArgs['sponsor'];
 };
 
 export function getInitializeHolderRewardsInstruction<
   TAccountHolderRewardsPool extends string,
+  TAccountOwner extends string,
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
@@ -125,6 +121,7 @@ export function getInitializeHolderRewardsInstruction<
 >(
   input: InitializeHolderRewardsInput<
     TAccountHolderRewardsPool,
+    TAccountOwner,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
@@ -133,6 +130,7 @@ export function getInitializeHolderRewardsInstruction<
 ): InitializeHolderRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
+  TAccountOwner,
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint,
@@ -147,6 +145,7 @@ export function getInitializeHolderRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
+    owner: { value: input.owner ?? null, isWritable: true },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
@@ -156,9 +155,6 @@ export function getInitializeHolderRewardsInstruction<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
-
-  // Original args.
-  const args = { ...input };
 
   // Resolve default values.
   if (!accounts.systemProgram.value) {
@@ -170,18 +166,18 @@ export function getInitializeHolderRewardsInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.owner),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
-    data: getInitializeHolderRewardsInstructionDataEncoder().encode(
-      args as InitializeHolderRewardsInstructionDataArgs
-    ),
+    data: getInitializeHolderRewardsInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
+    TAccountOwner,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
@@ -199,14 +195,16 @@ export type ParsedInitializeHolderRewardsInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
+    /** Token account owner. */
+    owner: TAccountMetas[1];
     /** Holder rewards account. */
-    holderRewards: TAccountMetas[1];
+    holderRewards: TAccountMetas[2];
     /** Token account. */
-    tokenAccount: TAccountMetas[2];
+    tokenAccount: TAccountMetas[3];
     /** Token mint. */
-    mint: TAccountMetas[3];
+    mint: TAccountMetas[4];
     /** System program. */
-    systemProgram: TAccountMetas[4];
+    systemProgram: TAccountMetas[5];
   };
   data: InitializeHolderRewardsInstructionData;
 };
@@ -219,7 +217,7 @@ export function parseInitializeHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 6) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -233,6 +231,7 @@ export function parseInitializeHolderRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
+      owner: getNextAccount(),
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),

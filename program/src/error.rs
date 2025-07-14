@@ -41,6 +41,12 @@ pub enum PaladinRewardsError {
     /// Invalid extension.
     #[error("Invalid extension")]
     InvalidExtension,
+    /// Owner is not the signer.
+    #[error("Owner is not the signer")]
+    OwnerNotSigner,
+    /// Signer not owner of token account.
+    #[error("Signer not owner of token account")]
+    SignerIsNotOwnerTokenAccount,
 }
 
 impl PrintProgramError for PaladinRewardsError {

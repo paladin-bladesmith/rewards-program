@@ -5,7 +5,6 @@
 //! of the total token supply. Holders earn shares of rewards proportional to
 //! their share of token supply.
 
-pub mod constants;
 #[cfg(all(target_os = "solana", feature = "bpf-entrypoint"))]
 mod entrypoint;
 pub mod error;

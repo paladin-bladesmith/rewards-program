@@ -13,8 +13,6 @@ import {
   decodeAccount,
   fetchEncodedAccount,
   fetchEncodedAccounts,
-  getAddressDecoder,
-  getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
   getU128Decoder,
@@ -37,18 +35,12 @@ import { HolderRewardsSeeds, findHolderRewardsPda } from '../pdas';
 export type HolderRewards = {
   lastAccumulatedRewardsPerToken: bigint;
   unharvestedRewards: bigint;
-  rentSponsor: Address;
-  rentDebt: bigint;
-  minimumBalance: bigint;
   padding: bigint;
 };
 
 export type HolderRewardsArgs = {
   lastAccumulatedRewardsPerToken: number | bigint;
   unharvestedRewards: number | bigint;
-  rentSponsor: Address;
-  rentDebt: number | bigint;
-  minimumBalance: number | bigint;
   padding: number | bigint;
 };
 
@@ -56,9 +48,6 @@ export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
   return getStructEncoder([
     ['lastAccumulatedRewardsPerToken', getU128Encoder()],
     ['unharvestedRewards', getU64Encoder()],
-    ['rentSponsor', getAddressEncoder()],
-    ['rentDebt', getU64Encoder()],
-    ['minimumBalance', getU64Encoder()],
     ['padding', getU64Encoder()],
   ]);
 }
@@ -67,9 +56,6 @@ export function getHolderRewardsDecoder(): Decoder<HolderRewards> {
   return getStructDecoder([
     ['lastAccumulatedRewardsPerToken', getU128Decoder()],
     ['unharvestedRewards', getU64Decoder()],
-    ['rentSponsor', getAddressDecoder()],
-    ['rentDebt', getU64Decoder()],
-    ['minimumBalance', getU64Decoder()],
     ['padding', getU64Decoder()],
   ]);
 }
@@ -139,7 +125,7 @@ export async function fetchAllMaybeHolderRewards(
 }
 
 export function getHolderRewardsSize(): number {
-  return 80;
+  return 32;
 }
 
 export async function fetchHolderRewardsFromSeeds(
