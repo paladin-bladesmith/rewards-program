@@ -247,13 +247,11 @@ impl PaladinRewardsInstruction {
 pub fn initialize_holder_rewards_pool(
     holder_rewards_pool_address: &Pubkey,
     holder_rewards_pool_ata: &Pubkey,
-    extra_account_metas_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_pool_ata, false),
-        AccountMeta::new(*extra_account_metas_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
@@ -306,7 +304,6 @@ pub fn close_holder_rewards(
     holder_rewards_address: Pubkey,
     token_account_address: Pubkey,
     mint_address: Pubkey,
-    close_authority: Pubkey,
     owner: Pubkey,
 ) -> Instruction {
     let accounts = vec![
@@ -314,7 +311,6 @@ pub fn close_holder_rewards(
         AccountMeta::new(holder_rewards_address, false),
         AccountMeta::new_readonly(token_account_address, false),
         AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(close_authority, true),
         AccountMeta::new(owner, false),
     ];
     let data = PaladinRewardsInstruction::CloseHolderRewards.pack();

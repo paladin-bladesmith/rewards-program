@@ -276,11 +276,6 @@ async fn test_e2e() {
 
         // Create the pool.
         {
-            let extra_metas =
-                get_extra_account_metas_address(&mint, &paladin_rewards_program::id());
-            let extra_metas_rent_exempt_lamports =
-                extra_metas_rent_exempt_lamports(&mut context).await;
-
             send_transaction(
                 &mut context,
                 &[
@@ -289,12 +284,7 @@ async fn test_e2e() {
                         &holder_rewards_pool,
                         pool_rent_exempt_lamports,
                     ),
-                    system_instruction::transfer(
-                        &payer.pubkey(),
-                        &extra_metas,
-                        extra_metas_rent_exempt_lamports,
-                    ),
-                    initialize_holder_rewards_pool(&holder_rewards_pool, &extra_metas, &mint),
+                    initialize_holder_rewards_pool(&holder_rewards_pool, &mint),
                 ],
                 &[&payer],
             )

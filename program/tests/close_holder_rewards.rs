@@ -60,7 +60,6 @@ async fn owner_can_close_zero_balance() {
         token_account,
         mint,
         owner,
-        owner,
     );
     let tx =
         Transaction::new_signed_with_payer(&[ix], None, &[&context.payer], context.last_blockhash);
@@ -108,7 +107,6 @@ async fn owner_cannot_close_non_zero_balance() {
         holder_rewards,
         token_account,
         mint,
-        owner,
         owner,
     );
     let tx =

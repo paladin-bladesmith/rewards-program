@@ -10,8 +10,7 @@ use {
             get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
             HolderRewards, HolderRewardsPool,
         },
-    },
-    solana_program::{
+    }, solana_program::{
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
@@ -21,9 +20,7 @@ use {
         rent::Rent,
         system_instruction, system_program,
         sysvar::Sysvar,
-    },
-    solana_sdk::program_pack::Pack,
-    spl_token::state::{Account, Mint},
+    }, solana_sdk::program_pack::Pack, spl_associated_token_account::get_associated_token_address, spl_token::state::{Account, Mint}
 };
 
 const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
@@ -172,6 +169,7 @@ fn process_initialize_holder_rewards_pool(
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_ata_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
@@ -226,6 +224,13 @@ fn process_initialize_holder_rewards_pool(
                 lamports_last: holder_rewards_pool_info.lamports(),
                 _padding: 0,
             };
+    }
+
+    // Assert pool ata is correct
+    {
+        let pool_ata = get_associated_token_address(holder_rewards_pool_info.key, mint_info.key);
+        assert_eq!(&pool_ata, holder_rewards_pool_ata_info.key);
+        assert_rent_exempt(holder_rewards_pool_ata_info);
     }
 
     Ok(())
