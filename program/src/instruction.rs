@@ -74,25 +74,31 @@ pub enum PaladinRewardsInstruction {
     #[account(
         1,
         writable,
+        name = "owner",
+        desc = "Token account owner.",
+    )]
+    #[account(
+        2,
+        writable,
         name = "holder_rewards",
         desc = "Holder rewards account.",
     )]
     #[account(
-        2,
+        3,
         name = "token_account",
         desc = "Token account.",
     )]
     #[account(
-        3,
+        4,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        4,
+        5,
         name = "system_program",
         desc = "System program.",
     )]
-    InitializeHolderRewards { sponsor: Pubkey },
+    InitializeHolderRewards,
     /// Moves accrued SOL rewards into the provided token account based on the
     /// share of the total rewards pool represented in the holder rewards
     /// account.
@@ -160,13 +166,6 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
-        signer,
-        writable,
-        name = "close_authority",
-        desc = "Either the owner or the sponsor can close the account.",
-    )]
-    #[account(
-        5,
         writable,
         name = "owner",
         desc = "Owner of the account.",
@@ -181,12 +180,7 @@ impl PaladinRewardsInstruction {
     pub fn pack(&self) -> Vec<u8> {
         match self {
             PaladinRewardsInstruction::InitializeHolderRewardsPool => vec![0],
-            PaladinRewardsInstruction::InitializeHolderRewards { sponsor } => {
-                let mut data = Vec::with_capacity(33);
-                data.push(1);
-                data.extend_from_slice(bytemuck::bytes_of(sponsor));
-                data
-            }
+            PaladinRewardsInstruction::InitializeHolderRewards => vec![1],
             PaladinRewardsInstruction::HarvestRewards => vec![2],
             PaladinRewardsInstruction::CloseHolderRewards => vec![3],
         }
@@ -197,14 +191,7 @@ impl PaladinRewardsInstruction {
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         match input.split_first() {
             Some((&0, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewardsPool),
-            Some((&1, rest)) => {
-                let sponsor = *rest
-                    .get(..32)
-                    .map(bytemuck::from_bytes)
-                    .ok_or(ProgramError::InvalidInstructionData)?;
-
-                Ok(PaladinRewardsInstruction::InitializeHolderRewards { sponsor })
-            }
+            Some((&1, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
             Some((&2, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
             Some((&3, _)) => Ok(PaladinRewardsInstruction::CloseHolderRewards),
             _ => Err(ProgramError::InvalidInstructionData),
@@ -235,18 +222,19 @@ pub fn initialize_holder_rewards_pool(
 pub fn initialize_holder_rewards(
     holder_rewards_pool_address: &Pubkey,
     holder_rewards_address: &Pubkey,
+    owner: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
-    sponsor: Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
+        AccountMeta::new(*owner, true),
         AccountMeta::new_readonly(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
-    let data = PaladinRewardsInstruction::InitializeHolderRewards { sponsor }.pack();
+    let data = PaladinRewardsInstruction::InitializeHolderRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -256,7 +244,6 @@ pub fn harvest_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
-    sponsor: Option<Pubkey>,
 ) -> Instruction {
     let accounts: Vec<_> = [
         AccountMeta::new(*holder_rewards_pool_address, false),
@@ -265,7 +252,6 @@ pub fn harvest_rewards(
         AccountMeta::new_readonly(*mint_address, false),
     ]
     .into_iter()
-    .chain(sponsor.map(|key| AccountMeta::new(key, false)))
     .collect();
     let data = PaladinRewardsInstruction::HarvestRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
@@ -306,20 +292,8 @@ mod tests {
     }
 
     #[test]
-    fn test_pack_unpack_initialize_holder_rewards_unsponsored() {
-        let original = PaladinRewardsInstruction::InitializeHolderRewards {
-            sponsor: Pubkey::default(),
-        };
-        let packed = original.pack();
-        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
-        assert_eq!(original, unpacked);
-    }
-
-    #[test]
-    fn test_pack_unpack_initialize_holder_rewards_sponsored() {
-        let original = PaladinRewardsInstruction::InitializeHolderRewards {
-            sponsor: Pubkey::new_from_array([1; 32]),
-        };
+    fn test_pack_unpack_initialize_holder_rewards() {
+        let original = PaladinRewardsInstruction::InitializeHolderRewards;
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

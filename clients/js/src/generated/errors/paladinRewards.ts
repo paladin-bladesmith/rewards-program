@@ -32,6 +32,10 @@ export const PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS = 0x6; // 6
 export const PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE = 0x7; // 7
 /** InvalidExtension: Invalid extension */
 export const PALADIN_REWARDS_ERROR__INVALID_EXTENSION = 0x8; // 8
+/** OwnerNotSigner: Owner is not the signer */
+export const PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER = 0x9; // 9
+/** SignerIsNotOwnerTokenAccount: Signer not owner of token account */
+export const PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT = 0xa; // 10
 
 export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS
@@ -42,6 +46,8 @@ export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID
   | typeof PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE
   | typeof PALADIN_REWARDS_ERROR__INVALID_EXTENSION
+  | typeof PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER
+  | typeof PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT
   | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH;
 
 let paladinRewardsErrorMessages:
@@ -57,6 +63,8 @@ if (process.env.NODE_ENV !== 'production') {
     [PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID]: `Incorrect transfer hook program ID`,
     [PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE]: `Cannot close holder rewards with current balance`,
     [PALADIN_REWARDS_ERROR__INVALID_EXTENSION]: `Invalid extension`,
+    [PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER]: `Owner is not the signer`,
+    [PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT]: `Signer not owner of token account`,
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH]: `Token account mint mismatch`,
   };
 }

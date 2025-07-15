@@ -14,18 +14,11 @@ use {
 pub struct HolderRewards {
     pub last_accumulated_rewards_per_token: u128,
     pub unharvested_rewards: u64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub rent_sponsor: Pubkey,
-    pub rent_debt: u64,
-    pub minimum_balance: u64,
     pub padding: u64,
 }
 
 impl HolderRewards {
-    pub const LEN: usize = 80;
+    pub const LEN: usize = 32;
 
     /// Prefix values used to generate a PDA for this account.
     ///
