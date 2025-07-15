@@ -334,6 +334,7 @@ async fn test_e2e() {
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &alice_holder_rewards,
+                        &alice.pubkey(),
                         &alice_token_account,
                         &mint,
                     ),
@@ -345,6 +346,7 @@ async fn test_e2e() {
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &bob_holder_rewards,
+                        &bob.pubkey(),
                         &bob_token_account,
                         &mint,
                     ),
@@ -356,6 +358,7 @@ async fn test_e2e() {
                     initialize_holder_rewards(
                         &holder_rewards_pool,
                         &carol_holder_rewards,
+                        &carol.pubkey(),
                         &carol_token_account,
                         &mint,
                     ),
@@ -470,6 +473,7 @@ async fn test_e2e() {
                 initialize_holder_rewards(
                     &holder_rewards_pool,
                     &dave_holder_rewards,
+                    &dave.pubkey(),
                     &dave_token_account,
                     &mint,
                 ),
