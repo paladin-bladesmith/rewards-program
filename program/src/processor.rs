@@ -3,7 +3,6 @@
 use {
     crate::{
         error::PaladinRewardsError,
-        extra_metas::get_extra_account_metas,
         instruction::PaladinRewardsInstruction,
         state::{
             collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
@@ -23,53 +22,32 @@ use {
         system_instruction, system_program,
         sysvar::Sysvar,
     },
-    spl_tlv_account_resolution::state::ExtraAccountMetaList,
-    spl_token_2022::{
-        extension::{
-            transfer_hook::{TransferHook, TransferHookAccount},
-            BaseStateWithExtensions, ExtensionType, StateWithExtensions,
-        },
-        state::{Account, Mint},
-    },
-    spl_transfer_hook_interface::{
-        collect_extra_account_metas_signer_seeds,
-        error::TransferHookError,
-        get_extra_account_metas_address_and_bump_seed,
-        instruction::{ExecuteInstruction, TransferHookInstruction},
-    },
+    solana_sdk::program_pack::Pack,
+    spl_token::state::{Account, Mint},
 };
 
 const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
 
 fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
     let mint_data = mint_info.try_borrow_data()?;
-    let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
-    Ok(mint.base.supply)
+    let mint = Mint::unpack(&mint_data)?;
+    Ok(mint.supply)
 }
 
 fn get_token_account_balance_checked(
     mint: &Pubkey,
     token_account_info: &AccountInfo,
-    check_is_transferring: bool,
 ) -> Result<u64, ProgramError> {
-    assert_eq!(token_account_info.owner, &spl_token_2022::ID);
+    assert_eq!(token_account_info.owner, &spl_token::ID);
     let token_account_data = token_account_info.try_borrow_data()?;
-    let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+    let token_account = Account::unpack(&token_account_data)?;
 
     // Ensure the provided token account is for the mint.
-    if !token_account.base.mint.eq(mint) {
+    if !token_account.mint.eq(mint) {
         return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
     }
 
-    if check_is_transferring {
-        // Ensure the provided token account is transferring.
-        let extension = token_account.get_extension::<TransferHookAccount>()?;
-        if !bool::from(extension.transferring) {
-            return Err(TransferHookError::ProgramCalledOutsideOfTransfer.into());
-        }
-    }
-
-    Ok(token_account.base.amount)
+    Ok(token_account.amount)
 }
 
 fn check_pool(
@@ -180,66 +158,6 @@ fn update_accumulated_rewards_per_token(
     Ok(())
 }
 
-fn update_holder_rewards_for_transfer_hook(
-    program_id: &Pubkey,
-    mint: &Pubkey,
-    token_account_info: &AccountInfo,
-    holder_rewards_info: &AccountInfo,
-    current_accumulated_rewards_per_token: u128,
-    adjust_token_balance_fn: impl FnOnce(u64) -> Result<u64, ProgramError>,
-) -> ProgramResult {
-    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-    if holder_rewards_data.is_empty() {
-        return Ok(());
-    }
-
-    // Calculate the token account's updated share of the pool rewards.
-    //
-    // Since the holder rewards account may already have unharvested
-    // rewards, calculate the share of rewards that have not been seen
-    // by the holder rewards account.
-    //
-    // Then, adjust the unharvested rewards with the additional share.
-    //
-    // Token account balances are updated before transfer hooks are called,
-    // so this token account balance is the balance _after_ the transfer.
-    // See: https://github.com/solana-labs/solana-program-library/blob/3c60545668eafa2294365e2edfb5799c657971c3/token/program-2022/src/processor.rs#L479-L487.
-    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
-    let holder_rewards_state =
-        bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-    let token_account_balance = {
-        // At this point, the token account balance is the balance _after_ the
-        // transfer.
-        //
-        // For the source - since it was just debited - the transfer amount
-        // will be added back to calculate the rewards share before the
-        // transfer.
-        //
-        // For the destination - since it was just credited - the transfer
-        // amount will be subtracted to calculate the rewards share before
-        // the transfer.
-        let current_balance = get_token_account_balance_checked(mint, token_account_info, true)?;
-        adjust_token_balance_fn(current_balance)?
-    };
-
-    let eligible_rewards = calculate_eligible_rewards(
-        current_accumulated_rewards_per_token,
-        holder_rewards_state.last_accumulated_rewards_per_token,
-        token_account_balance,
-    )?;
-
-    // Update the holder rewards state.
-    holder_rewards_state.last_accumulated_rewards_per_token = current_accumulated_rewards_per_token;
-    holder_rewards_state.unharvested_rewards = holder_rewards_state
-        .unharvested_rewards
-        .checked_add(eligible_rewards)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
-
-    Ok(())
-}
-
 fn assert_rent_exempt(account: &AccountInfo) {
     assert!(account.lamports() >= Rent::get().unwrap().minimum_balance(account.data_len()));
 }
@@ -254,32 +172,14 @@ fn process_initialize_holder_rewards_pool(
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
-    let extra_metas_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Run checks on the mint.
     {
-        assert_eq!(mint_info.owner, &spl_token_2022::ID);
+        assert_eq!(mint_info.owner, &spl_token::ID);
         let mint_data = mint_info.try_borrow_data()?;
-        let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
-
-        // Check only allowed extensions.
-        let extensions = mint.get_extension_types()?;
-        if !extensions
-            .iter()
-            .all(|extension| matches!(extension, ExtensionType::TransferHook))
-        {
-            return Err(PaladinRewardsError::InvalidExtension.into());
-        }
-
-        // Ensure the mint is configured with the `TransferHook` extension,
-        // and the program ID is the Paladin Rewards program.
-        let transfer_hook = mint.get_extension::<TransferHook>()?;
-        let hook_program_id: Option<Pubkey> = transfer_hook.program_id.into();
-        if hook_program_id != Some(*program_id) {
-            return Err(PaladinRewardsError::IncorrectTransferHookProgramId.into());
-        }
+        Mint::unpack(&mint_data)?;
     }
 
     // Initialize the holder rewards pool account.
@@ -328,46 +228,6 @@ fn process_initialize_holder_rewards_pool(
             };
     }
 
-    // Initialize the extra metas account.
-    {
-        let (extra_metas_address, extra_metas_bump) =
-            get_extra_account_metas_address_and_bump_seed(mint_info.key, program_id);
-        let extra_metas_bump = [extra_metas_bump];
-        let extra_metas_signer_seeds =
-            collect_extra_account_metas_signer_seeds(mint_info.key, &extra_metas_bump);
-
-        // Ensure the provided extra metas address is the correct address
-        // derived from the mint.
-        if extra_metas_info.key != &extra_metas_address {
-            return Err(PaladinRewardsError::IncorrectExtraMetasAddress.into());
-        }
-
-        // Ensure the extra metas account has not already been initialized.
-        if extra_metas_info.data_len() != 0 {
-            return Err(ProgramError::AccountAlreadyInitialized);
-        }
-
-        let extra_metas = get_extra_account_metas();
-        let account_size = ExtraAccountMetaList::size_of(extra_metas.len())?;
-
-        // Allocate & assign.
-        invoke_signed(
-            &system_instruction::allocate(&extra_metas_address, account_size as u64),
-            &[extra_metas_info.clone()],
-            &[&extra_metas_signer_seeds],
-        )?;
-        invoke_signed(
-            &system_instruction::assign(&extra_metas_address, program_id),
-            &[extra_metas_info.clone()],
-            &[&extra_metas_signer_seeds],
-        )?;
-        assert_rent_exempt(extra_metas_info);
-
-        // Write the data.
-        let mut data = extra_metas_info.try_borrow_mut_data()?;
-        ExtraAccountMetaList::init::<ExecuteInstruction>(&mut data, &extra_metas)?;
-    }
-
     Ok(())
 }
 
@@ -388,13 +248,11 @@ fn process_initialize_holder_rewards(
     let _system_program = next_account_info(accounts_iter)?;
 
     // Confirm owner is signer and the token account owner
-    assert_eq!(token_account_info.owner, &spl_token_2022::ID);
+    assert_eq!(token_account_info.owner, &spl_token::ID);
     let token_account_data = token_account_info.data.borrow();
-    let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)
-        .unwrap()
-        .base;
+    let token_account_state = Account::unpack(&token_account_data).unwrap();
     assert_eq!(&token_account_state.mint, mint_info.key);
-    assert_eq!(mint_info.owner, &spl_token_2022::ID);
+    assert_eq!(mint_info.owner, &spl_token::ID);
 
     if !owner.is_signer {
         return Err(PaladinRewardsError::OwnerNotSigner.into());
@@ -403,7 +261,7 @@ fn process_initialize_holder_rewards(
         return Err(PaladinRewardsError::SignerIsNotOwnerTokenAccount.into());
     }
 
-    // Run checks on the token account.
+    // Run checks on the pool account.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
@@ -472,7 +330,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // NB: Checks program owner & mint correctness.
     let token_account_balance =
-        get_token_account_balance_checked(mint_info.key, token_account_info, false)?;
+        get_token_account_balance_checked(mint_info.key, token_account_info)?;
 
     // Check & load the pool
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -570,7 +428,6 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let close_authority = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
 
     // Load pool & holder rewards.
@@ -594,23 +451,18 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     // Load token account info (if it's not been closed).
     let token_owner = (!token_account_info.data_is_empty())
         .then(|| {
-            assert_eq!(token_account_info.owner, &spl_token_2022::ID);
+            assert_eq!(token_account_info.owner, &spl_token::ID);
             let token_account_data = token_account_info.data.borrow();
-            let token_account_state = StateWithExtensions::<Account>::unpack(&token_account_data)
-                .unwrap()
-                .base;
+            let token_account_state = Account::unpack(&token_account_data).unwrap();
             assert_eq!(&token_account_state.mint, mint_info.key);
-            assert_eq!(mint_info.owner, &spl_token_2022::ID);
+            assert_eq!(mint_info.owner, &spl_token::ID);
 
             token_account_state.owner
         })
         .unwrap_or_default();
 
-    // Ensure close authority is either:
-    //
-    // - The owner.
-    // - OR; The sponsor AND the token balance has dropped below the initial level.
-    if close_authority.key != &token_owner {
+    // Ensure signer is the owner and can close this account
+    if !owner.is_signer || owner.key != &token_owner {
         return Err(ProgramError::MissingRequiredSignature);
     }
     drop(holder_rewards_data);
@@ -629,102 +481,45 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     Ok(())
 }
 
-/// Processes an SPL Transfer Hook Interface
-/// [ExecuteInstruction](https://docs.rs/spl-transfer-hook-interface/latest/spl_transfer_hook_interface/instruction/struct.ExecuteInstruction.html).
-fn process_spl_transfer_hook_execute(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    transfer_amount: u64,
-) -> ProgramResult {
+/// Processes a
+/// [Deposit](enum.PaladinRewardsInstruction.html)
+/// instruction.
+fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u128) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let source_token_account_info = next_account_info(accounts_iter)?;
-    let mint_info = next_account_info(accounts_iter)?;
-    let destination_token_account_info = next_account_info(accounts_iter)?;
-    let _source_owner_info = next_account_info(accounts_iter)?;
-    let _extra_metas_info = next_account_info(accounts_iter)?;
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
-    let source_holder_rewards_info = next_account_info(accounts_iter)?;
-    let destination_holder_rewards_info = next_account_info(accounts_iter)?;
-
-    let current_accumulated_rewards_per_token = {
-        check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-        let pool_data = holder_rewards_pool_info.try_borrow_data()?;
-        let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-        pool_state.accumulated_rewards_per_token
-    };
-
-    // Don't accrue rewards on self transfer as there is no effective balance
-    // change.
-    if source_token_account_info.key == destination_token_account_info.key {
-        return Ok(());
-    }
-
-    // Update the source holder rewards account.
-    //
-    // For the source - since it was just debited - the transfer amount
-    // will be added back to calculate the rewards share before the
-    // transfer.
-    update_holder_rewards_for_transfer_hook(
-        program_id,
-        mint_info.key,
-        source_token_account_info,
-        source_holder_rewards_info,
-        current_accumulated_rewards_per_token,
-        |amount| {
-            amount
-                .checked_add(transfer_amount)
-                .ok_or(ProgramError::ArithmeticOverflow)
-        },
-    )?;
-
-    // Update the destination holder rewards account.
-    //
-    // For the destination - since it was just credited - the transfer
-    // amount will be subtracted to calculate the rewards share before
-    // the transfer.
-    update_holder_rewards_for_transfer_hook(
-        program_id,
-        mint_info.key,
-        destination_token_account_info,
-        destination_holder_rewards_info,
-        current_accumulated_rewards_per_token,
-        |amount| {
-            amount
-                .checked_sub(transfer_amount)
-                .ok_or(ProgramError::ArithmeticOverflow)
-        },
-    )?;
-
+    let holder_rewards_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let owner = next_account_info(accounts_iter)?;
+    
     Ok(())
 }
 
 /// Processes a
 /// [PaladinRewardsInstruction](enum.PaladinRewardsInstruction.html).
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
-    if let Ok(TransferHookInstruction::Execute { amount }) = TransferHookInstruction::unpack(input)
-    {
-        process_spl_transfer_hook_execute(program_id, accounts, amount)
-    } else {
-        let instruction = PaladinRewardsInstruction::unpack(input)?;
-        match instruction {
-            PaladinRewardsInstruction::InitializeHolderRewardsPool => {
-                msg!("Instruction: InitializeHolderRewardsPool");
-                process_initialize_holder_rewards_pool(program_id, accounts)
-            }
-            PaladinRewardsInstruction::InitializeHolderRewards => {
-                msg!("Instruction: InitializeHolderRewards");
-                process_initialize_holder_rewards(program_id, accounts)
-            }
-            PaladinRewardsInstruction::HarvestRewards => {
-                msg!("Instruction: HarvestRewards");
-                process_harvest_rewards(program_id, accounts)
-            }
-            PaladinRewardsInstruction::CloseHolderRewards => {
-                msg!("Instruction: CloseHolderRewards");
-                process_close_holder_rewards(program_id, accounts)
-            }
+    let instruction = PaladinRewardsInstruction::unpack(input)?;
+    match instruction {
+        PaladinRewardsInstruction::InitializeHolderRewardsPool => {
+            msg!("Instruction: InitializeHolderRewardsPool");
+            process_initialize_holder_rewards_pool(program_id, accounts)
+        }
+        PaladinRewardsInstruction::InitializeHolderRewards => {
+            msg!("Instruction: InitializeHolderRewards");
+            process_initialize_holder_rewards(program_id, accounts)
+        }
+        PaladinRewardsInstruction::HarvestRewards => {
+            msg!("Instruction: HarvestRewards");
+            process_harvest_rewards(program_id, accounts)
+        }
+        PaladinRewardsInstruction::CloseHolderRewards => {
+            msg!("Instruction: CloseHolderRewards");
+            process_close_holder_rewards(program_id, accounts)
+        }
+        PaladinRewardsInstruction::Deposit { amount } => {
+            msg!("Instruction: Deposit");
+            process_deposit(program_id, accounts, amount)
         }
     }
 }

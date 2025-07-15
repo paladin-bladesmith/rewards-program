@@ -38,8 +38,8 @@ pub enum PaladinRewardsInstruction {
     #[account(
         1,
         writable,
-        name = "extra_account_metas",
-        desc = "Transfer hook extra account metas account."
+        name = "holder_rewards_pool_ata",
+        desc = "Holder rewards pool ata."
     )]
     #[account(
         2,
@@ -171,6 +171,35 @@ pub enum PaladinRewardsInstruction {
         desc = "Owner of the account.",
     )]
     CloseHolderRewards,
+    #[account(
+        0,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
+    )]
+    #[account(
+        2,
+        writable,
+        name = "token_account",
+        desc = "Token account.",
+    )]
+    #[account(
+        3,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        4,
+        name = "owner",
+        desc = "Owner of the account.",
+    )]
+    Deposit { amount: u128},
 }
 
 impl PaladinRewardsInstruction {
@@ -183,6 +212,12 @@ impl PaladinRewardsInstruction {
             PaladinRewardsInstruction::InitializeHolderRewards => vec![1],
             PaladinRewardsInstruction::HarvestRewards => vec![2],
             PaladinRewardsInstruction::CloseHolderRewards => vec![3],
+            PaladinRewardsInstruction::Deposit { amount } => {
+                let mut data = Vec::with_capacity(65);
+                data.push(4);
+                data.extend_from_slice(bytemuck::bytes_of(amount));
+                data
+            }
         }
     }
 
@@ -194,6 +229,13 @@ impl PaladinRewardsInstruction {
             Some((&1, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
             Some((&2, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
             Some((&3, _)) => Ok(PaladinRewardsInstruction::CloseHolderRewards),
+            Some((&4, rest)) => {
+                let amount = *rest
+                    .get(..64)
+                    .map(bytemuck::from_bytes)
+                    .ok_or(ProgramError::InvalidInstructionData)?;
+                Ok(PaladinRewardsInstruction::Deposit { amount })
+            }
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -204,11 +246,13 @@ impl PaladinRewardsInstruction {
 /// instruction.
 pub fn initialize_holder_rewards_pool(
     holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_ata: &Pubkey,
     extra_account_metas_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new(*holder_rewards_pool_ata, false),
         AccountMeta::new(*extra_account_metas_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
@@ -274,6 +318,27 @@ pub fn close_holder_rewards(
         AccountMeta::new(owner, false),
     ];
     let data = PaladinRewardsInstruction::CloseHolderRewards.pack();
+    Instruction::new_with_bytes(crate::id(), &data, accounts)
+}
+
+/// Creates a [CloseHolderRewards](enum.PaladinRewardsInstruction.html)
+/// instruction.
+pub fn deposit(
+    holder_rewards_pool_address: Pubkey,
+    holder_rewards_address: Pubkey,
+    token_account_address: Pubkey,
+    mint_address: Pubkey,
+    owner: Pubkey,
+    amount: u128,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new_readonly(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_address, false),
+        AccountMeta::new_readonly(token_account_address, false),
+        AccountMeta::new_readonly(mint_address, false),
+        AccountMeta::new(owner, false),
+    ];
+    let data = PaladinRewardsInstruction::Deposit { amount }.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
