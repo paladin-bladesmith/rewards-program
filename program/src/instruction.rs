@@ -135,10 +135,9 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
-        optional,
         writable,
-        name = "sponsor",
-        desc = "Sponsor of this account, required if rent_debt is non zero",
+        name = "owner",
+        desc = "owner of token account",
     )]
     HarvestRewards,
     /// Closes the provided holder rewards account.
@@ -337,12 +336,14 @@ pub fn harvest_rewards(
     holder_rewards_address: &Pubkey,
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
+    owner_address: &Pubkey,
 ) -> Instruction {
     let accounts: Vec<_> = [
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
+        AccountMeta::new(*owner_address, true),
     ]
     .into_iter()
     .collect();

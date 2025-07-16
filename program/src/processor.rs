@@ -252,10 +252,9 @@ fn calculate_rewards_to_harvest(
 }
 
 // Send the rewards to the holder's token account.
-// TODO: Confirm that we should send rewards to the token accoutn and not the owner
 fn send_rewards(
     holder_rewards_pool_info: AccountInfo,
-    token_account_info: AccountInfo,
+    owner: AccountInfo,
     pool_state: &mut HolderRewardsPool,
     rewards_to_harvest: u64,
 ) -> ProgramResult {
@@ -264,13 +263,13 @@ fn send_rewards(
         .lamports()
         .checked_sub(rewards_to_harvest)
         .ok_or(ProgramError::ArithmeticOverflow)?;
-    let new_token_account_lamports = token_account_info
+    let new_token_account_lamports = owner
         .lamports()
         .checked_add(rewards_to_harvest)
         .ok_or(ProgramError::ArithmeticOverflow)?;
 
     **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
-    **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+    **owner.try_borrow_mut_lamports()? = new_token_account_lamports;
     pool_state.lamports_last = new_holder_rewards_pool_lamports;
 
     Ok(())
@@ -291,7 +290,6 @@ fn process_initialize_holder_rewards_pool(
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Run checks on the mint.
-
     assert_eq!(mint_info.owner, &spl_token::ID);
     let mint_data = mint_info.try_borrow_data()?;
     Mint::unpack(&mint_data)?;
@@ -442,6 +440,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
+    let owner = next_account_info(accounts_iter)?;
 
     // Check & load the pool
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -469,7 +468,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     if rewards_to_harvest > 0 {
         send_rewards(
             holder_rewards_pool_info.clone(),
-            token_account_info.clone(),
+            owner.clone(),
             pool_state,
             rewards_to_harvest,
         )?;
@@ -600,7 +599,7 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     if rewards_to_harvest > 0 {
         send_rewards(
             holder_rewards_pool_info.clone(),
-            token_account_info.clone(),
+            owner.clone(),
             pool_state,
             rewards_to_harvest,
         )?;
@@ -704,7 +703,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     if rewards_to_harvest > 0 {
         send_rewards(
             holder_rewards_pool_info.clone(),
-            token_account_info.clone(),
+            owner.clone(),
             pool_state,
             rewards_to_harvest,
         )?;
