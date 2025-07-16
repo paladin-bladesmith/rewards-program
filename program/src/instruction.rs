@@ -38,8 +38,8 @@ pub enum PaladinRewardsInstruction {
     #[account(
         1,
         writable,
-        name = "holder_rewards_pool_ata",
-        desc = "Holder rewards pool ata."
+        name = "holder_rewards_pool_token_account_info",
+        desc = "Holder rewards pool token account."
     )]
     #[account(
         2,
@@ -180,26 +180,77 @@ pub enum PaladinRewardsInstruction {
     #[account(
         1,
         writable,
+        name = "holder_rewards_pool_token_account",
+        desc = "Holder rewards pool token account."
+    )]
+    #[account(
+        2,
+        writable,
         name = "holder_rewards",
         desc = "Holder rewards account.",
     )]
     #[account(
-        2,
+        3,
         writable,
         name = "token_account",
         desc = "Token account.",
     )]
     #[account(
-        3,
+        4,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        4,
+        5,
         name = "owner",
         desc = "Owner of the account.",
     )]
-    Deposit { amount: u128},
+    #[account(
+        6,
+        name = "token program",
+        desc = "token program",
+    )]
+    Deposit { amount: u64},
+     #[account(
+        0,
+        writable,
+        name = "holder_rewards_pool",
+        desc = "Holder rewards pool account."
+    )]
+    #[account(
+        1,
+        writable,
+        name = "holder_rewards_pool_token_account",
+        desc = "Holder rewards pool token account."
+    )]
+    #[account(
+        2,
+        writable,
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
+    )]
+    #[account(
+        3,
+        writable,
+        name = "token_account",
+        desc = "Token account.",
+    )]
+    #[account(
+        4,
+        name = "mint",
+        desc = "Token mint.",
+    )]
+    #[account(
+        5,
+        name = "owner",
+        desc = "Owner of the account.",
+    )]
+    #[account(
+        6,
+        name = "token program",
+        desc = "token program",
+    )]
+    Withdraw,
 }
 
 impl PaladinRewardsInstruction {
@@ -213,11 +264,12 @@ impl PaladinRewardsInstruction {
             PaladinRewardsInstruction::HarvestRewards => vec![2],
             PaladinRewardsInstruction::CloseHolderRewards => vec![3],
             PaladinRewardsInstruction::Deposit { amount } => {
-                let mut data = Vec::with_capacity(65);
+                let mut data = Vec::with_capacity(33);
                 data.push(4);
                 data.extend_from_slice(bytemuck::bytes_of(amount));
                 data
             }
+            PaladinRewardsInstruction::Withdraw => vec![5],
         }
     }
 
@@ -231,11 +283,12 @@ impl PaladinRewardsInstruction {
             Some((&3, _)) => Ok(PaladinRewardsInstruction::CloseHolderRewards),
             Some((&4, rest)) => {
                 let amount = *rest
-                    .get(..64)
+                    .get(..32)
                     .map(bytemuck::from_bytes)
                     .ok_or(ProgramError::InvalidInstructionData)?;
                 Ok(PaladinRewardsInstruction::Deposit { amount })
             }
+            Some((&5, _)) => Ok(PaladinRewardsInstruction::Withdraw),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -325,16 +378,36 @@ pub fn deposit(
     token_account_address: Pubkey,
     mint_address: Pubkey,
     owner: Pubkey,
-    amount: u128,
+    amount: u64,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new_readonly(holder_rewards_pool_address, false),
         AccountMeta::new(holder_rewards_address, false),
         AccountMeta::new_readonly(token_account_address, false),
         AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(owner, false),
+        AccountMeta::new(owner, true),
+        AccountMeta::new(spl_token::id(), false),
     ];
     let data = PaladinRewardsInstruction::Deposit { amount }.pack();
+    Instruction::new_with_bytes(crate::id(), &data, accounts)
+}
+
+pub fn withdraw(
+    holder_rewards_pool_address: Pubkey,
+    holder_rewards_address: Pubkey,
+    token_account_address: Pubkey,
+    mint_address: Pubkey,
+    owner: Pubkey,
+) -> Instruction {
+    let accounts = vec![
+        AccountMeta::new_readonly(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_address, false),
+        AccountMeta::new_readonly(token_account_address, false),
+        AccountMeta::new_readonly(mint_address, false),
+        AccountMeta::new(owner, true),
+        AccountMeta::new(spl_token::id(), false),
+    ];
+    let data = PaladinRewardsInstruction::Withdraw.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 

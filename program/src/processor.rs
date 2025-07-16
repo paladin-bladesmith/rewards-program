@@ -10,7 +10,8 @@ use {
             get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
             HolderRewards, HolderRewardsPool,
         },
-    }, solana_program::{
+    },
+    solana_program::{
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
@@ -20,7 +21,12 @@ use {
         rent::Rent,
         system_instruction, system_program,
         sysvar::Sysvar,
-    }, solana_sdk::program_pack::Pack, spl_associated_token_account::get_associated_token_address, spl_token::state::{Account, Mint}
+    },
+    solana_sdk::{program::invoke, program_pack::Pack},
+    spl_token::{
+        instruction::transfer,
+        state::{Account as TokenAccount, AccountState, Mint},
+    },
 };
 
 const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
@@ -37,7 +43,7 @@ fn get_token_account_balance_checked(
 ) -> Result<u64, ProgramError> {
     assert_eq!(token_account_info.owner, &spl_token::ID);
     let token_account_data = token_account_info.try_borrow_data()?;
-    let token_account = Account::unpack(&token_account_data)?;
+    let token_account = TokenAccount::unpack(&token_account_data)?;
 
     // Ensure the provided token account is for the mint.
     if !token_account.mint.eq(mint) {
@@ -122,7 +128,7 @@ fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, 
 fn calculate_eligible_rewards(
     current_accumulated_rewards_per_token: u128,
     last_accumulated_rewards_per_token: u128,
-    token_account_balance: u64,
+    deposited_amount: u64,
 ) -> Result<u64, ProgramError> {
     let marginal_rate =
         current_accumulated_rewards_per_token.wrapping_sub(last_accumulated_rewards_per_token);
@@ -130,7 +136,7 @@ fn calculate_eligible_rewards(
         return Ok(0);
     }
     marginal_rate
-        .checked_mul(token_account_balance as u128)
+        .checked_mul(deposited_amount as u128)
         .and_then(|product| product.checked_div(REWARDS_PER_TOKEN_SCALING_FACTOR))
         .and_then(|product| product.try_into().ok())
         .ok_or(ProgramError::ArithmeticOverflow)
@@ -159,6 +165,117 @@ fn assert_rent_exempt(account: &AccountInfo) {
     assert!(account.lamports() >= Rent::get().unwrap().minimum_balance(account.data_len()));
 }
 
+fn validate_token_account(
+    token_account_info: &AccountInfo,
+    expected_owner: &Pubkey,
+    expected_mint: &Pubkey,
+) -> ProgramResult {
+    // Check if account is owned by SPL Token program
+    if token_account_info.owner != &spl_token::id() {
+        msg!("Token account not owned by SPL Token program");
+        return Err(ProgramError::IncorrectProgramId);
+    }
+
+    // Check rent exemption
+    let rent = Rent::get()?;
+    if !rent.is_exempt(token_account_info.lamports(), token_account_info.data_len()) {
+        msg!("Token account is not rent exempt");
+        return Err(ProgramError::InsufficientFunds);
+    }
+
+    // Deserialize token account data
+    let token_account = TokenAccount::unpack(&token_account_info.data.borrow())?;
+
+    // Check if account is initialized
+    if token_account.state != AccountState::Initialized {
+        msg!("Token account is not initialized");
+        return Err(ProgramError::UninitializedAccount);
+    }
+
+    // Verify owner
+    if token_account.owner != *expected_owner {
+        msg!("Invalid token account owner");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    // Verify mint
+    if token_account.mint != *expected_mint {
+        msg!("Invalid token account mint");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    // Check if account is not frozen
+    if token_account.state == AccountState::Frozen {
+        msg!("Token account is frozen");
+        return Err(ProgramError::InvalidAccountData);
+    }
+
+    Ok(())
+}
+
+// Calculate the amount of rewards that can be harvested by the holder
+//
+// This is done by subtracting the `last_accumulated_rewards_per_token`
+// rate from the pool's current rate, then multiplying by the token account
+// balance.
+//
+// The holder should also be able to harvest any unharvested rewards.
+fn calculate_rewards_to_harvest(
+    holder_rewards_state: &mut HolderRewards,
+    pool_state: &HolderRewardsPool,
+    pool_lamports: u64,
+) -> Result<u64, ProgramError> {
+    // Calculate the eligible rewards from the marginal rate.
+    let eligible_rewards = calculate_eligible_rewards(
+        pool_state.accumulated_rewards_per_token,
+        holder_rewards_state.last_accumulated_rewards_per_token,
+        holder_rewards_state.total_deposited,
+    )?;
+
+    // Error if the pool doesn't have enough lamports to cover the rewards,
+    // This should never happen, but the check is a failsafe.
+    let pool_excess_lamports = {
+        let rent = <Rent as Sysvar>::get()?;
+        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+        pool_lamports.saturating_sub(rent_exempt_lamports)
+    };
+
+    if eligible_rewards > pool_excess_lamports {
+        return Err(PaladinRewardsError::RewardsExcessPoolBalance.into());
+    } else if eligible_rewards != 0 {
+        // Update the holder rewards state with last rewards per token
+        holder_rewards_state.last_accumulated_rewards_per_token =
+            pool_state.accumulated_rewards_per_token;
+    }
+
+    Ok(eligible_rewards)
+}
+
+// Send the rewards to the holder's token account.
+// TODO: Confirm that we should send rewards to the token accoutn and not the owner
+fn send_rewards(
+    holder_rewards_pool_info: AccountInfo,
+    token_account_info: AccountInfo,
+    pool_state: &mut HolderRewardsPool,
+    rewards_to_harvest: u64,
+) -> ProgramResult {
+    // Move the amount from the holder rewards pool to the token account.
+    let new_holder_rewards_pool_lamports = holder_rewards_pool_info
+        .lamports()
+        .checked_sub(rewards_to_harvest)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+    let new_token_account_lamports = token_account_info
+        .lamports()
+        .checked_add(rewards_to_harvest)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
+    **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+    pool_state.lamports_last = new_holder_rewards_pool_lamports;
+
+    Ok(())
+}
+
 /// Processes an
 /// [InitializeHolderRewardsPool](enum.PaladinRewardsInstruction.html)
 /// instruction.
@@ -169,16 +286,22 @@ fn process_initialize_holder_rewards_pool(
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
-    let holder_rewards_pool_ata_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Run checks on the mint.
-    {
-        assert_eq!(mint_info.owner, &spl_token::ID);
-        let mint_data = mint_info.try_borrow_data()?;
-        Mint::unpack(&mint_data)?;
-    }
+
+    assert_eq!(mint_info.owner, &spl_token::ID);
+    let mint_data = mint_info.try_borrow_data()?;
+    Mint::unpack(&mint_data)?;
+
+    // Validate pool token account
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        holder_rewards_pool_info.key,
+        &mint_info.key,
+    )?;
 
     // Initialize the holder rewards pool account.
     {
@@ -226,13 +349,6 @@ fn process_initialize_holder_rewards_pool(
             };
     }
 
-    // Assert pool ata is correct
-    {
-        let pool_ata = get_associated_token_address(holder_rewards_pool_info.key, mint_info.key);
-        assert_eq!(&pool_ata, holder_rewards_pool_ata_info.key);
-        assert_rent_exempt(holder_rewards_pool_ata_info);
-    }
-
     Ok(())
 }
 
@@ -253,17 +369,11 @@ fn process_initialize_holder_rewards(
     let _system_program = next_account_info(accounts_iter)?;
 
     // Confirm owner is signer and the token account owner
-    assert_eq!(token_account_info.owner, &spl_token::ID);
-    let token_account_data = token_account_info.data.borrow();
-    let token_account_state = Account::unpack(&token_account_data).unwrap();
-    assert_eq!(&token_account_state.mint, mint_info.key);
-    assert_eq!(mint_info.owner, &spl_token::ID);
+    validate_token_account(token_account_info, &owner.key, mint_info.key)?;
 
+    // Confirm owner is the signer
     if !owner.is_signer {
         return Err(PaladinRewardsError::OwnerNotSigner.into());
-    }
-    if &token_account_state.owner != owner.key {
-        return Err(PaladinRewardsError::SignerIsNotOwnerTokenAccount.into());
     }
 
     // Run checks on the pool account.
@@ -315,7 +425,7 @@ fn process_initialize_holder_rewards(
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
-                unharvested_rewards: 0,
+                total_deposited: 0,
                 _padding: 0,
             };
     }
@@ -333,10 +443,6 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
 
-    // NB: Checks program owner & mint correctness.
-    let token_account_balance =
-        get_token_account_balance_checked(mint_info.key, token_account_info)?;
-
     // Check & load the pool
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
@@ -346,7 +452,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     // Check & load the holder rewards.
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-    let holder_rewards_state =
+    let mut holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
@@ -354,70 +460,19 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
 
     // Determine the amount the holder can harvest.
-    //
-    // This is done by subtracting the `last_accumulated_rewards_per_token`
-    // rate from the pool's current rate, then multiplying by the token account
-    // balance.
-    //
-    // The holder should also be able to harvest any unharvested rewards.
-    let rewards_to_harvest = {
-        // Calculate the eligible rewards from the marginal rate.
-        let eligible_rewards = calculate_eligible_rewards(
-            pool_state.accumulated_rewards_per_token,
-            holder_rewards_state.last_accumulated_rewards_per_token,
-            token_account_balance,
-        )?;
-
-        if eligible_rewards != 0 {
-            // Update the holder rewards state.
-            //
-            // Temporarily update `unharvested_rewards` with the eligible rewards.
-            holder_rewards_state.last_accumulated_rewards_per_token =
-                pool_state.accumulated_rewards_per_token;
-            holder_rewards_state.unharvested_rewards = holder_rewards_state
-                .unharvested_rewards
-                .checked_add(eligible_rewards)
-                .ok_or(ProgramError::ArithmeticOverflow)?;
-        }
-
-        // If the pool doesn't have enough lamports to cover the rewards, only
-        // harvest the available lamports. This should never happen, but the check
-        // is a failsafe.
-        let pool_excess_lamports = {
-            let rent = <Rent as Sysvar>::get()?;
-            let rent_exempt_lamports =
-                rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
-            holder_rewards_pool_info
-                .lamports()
-                .saturating_sub(rent_exempt_lamports)
-        };
-
-        std::cmp::min(
-            holder_rewards_state.unharvested_rewards,
-            pool_excess_lamports,
-        )
-    };
+    let rewards_to_harvest = calculate_rewards_to_harvest(
+        &mut holder_rewards_state,
+        &pool_state,
+        holder_rewards_pool_info.lamports(),
+    )?;
 
     if rewards_to_harvest > 0 {
-        // Move the amount from the holder rewards pool to the token account.
-        let new_holder_rewards_pool_lamports = holder_rewards_pool_info
-            .lamports()
-            .checked_sub(rewards_to_harvest)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-        let new_token_account_lamports = token_account_info
-            .lamports()
-            .checked_add(rewards_to_harvest)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
-
-        **holder_rewards_pool_info.try_borrow_mut_lamports()? = new_holder_rewards_pool_lamports;
-        **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
-        pool_state.lamports_last = new_holder_rewards_pool_lamports;
-
-        // Update the holder's unharvested rewards.
-        holder_rewards_state.unharvested_rewards = holder_rewards_state
-            .unharvested_rewards
-            .checked_sub(rewards_to_harvest)
-            .ok_or(ProgramError::ArithmeticOverflow)?;
+        send_rewards(
+            holder_rewards_pool_info.clone(),
+            token_account_info.clone(),
+            pool_state,
+            rewards_to_harvest,
+        )?;
     }
 
     Ok(())
@@ -437,20 +492,27 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
-    let pool_data = holder_rewards_pool_info.try_borrow_data()?;
-    let pool_state = bytemuck::try_from_bytes::<HolderRewardsPool>(&pool_data)
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let holder_rewards_data = holder_rewards_info.try_borrow_data()?;
     let holder_rewards_state = bytemuck::try_from_bytes::<HolderRewards>(&holder_rewards_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
+    // Handle any lamports received since last harvest.
+    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+
     // Ensure holder has no unclaimed rewards.
     if holder_rewards_state.last_accumulated_rewards_per_token
         < pool_state.accumulated_rewards_per_token
-        || holder_rewards_state.unharvested_rewards > 0
     {
         return Err(PaladinRewardsError::CloseWithUnclaimedRewards.into());
+    }
+
+    // Ensure holder withdrew all tokens
+    if holder_rewards_state.total_deposited > 0 {
+        return Err(PaladinRewardsError::CloseWithDepositedTokens.into());
     }
 
     // Load token account info (if it's not been closed).
@@ -458,7 +520,7 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         .then(|| {
             assert_eq!(token_account_info.owner, &spl_token::ID);
             let token_account_data = token_account_info.data.borrow();
-            let token_account_state = Account::unpack(&token_account_data).unwrap();
+            let token_account_state = TokenAccount::unpack(&token_account_data).unwrap();
             assert_eq!(&token_account_state.mint, mint_info.key);
             assert_eq!(mint_info.owner, &spl_token::ID);
 
@@ -486,18 +548,199 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     Ok(())
 }
 
-/// Processes a
-/// [Deposit](enum.PaladinRewardsInstruction.html)
+/// Processes a [Deposit](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u128) -> ProgramResult {
+fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
-    
+    let token_program = next_account_info(accounts_iter)?;
+
+    // Validate pool token account
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        &holder_rewards_pool_info.key,
+        &mint_info.key,
+    )?;
+
+    // Validate the owner token account
+    validate_token_account(token_account_info, &owner.key, &mint_info.key)?;
+
+    // Validate user have enough tokens to deposit
+    let owner_balance = get_token_account_balance_checked(&mint_info.key, token_account_info)?;
+    assert!(owner_balance >= amount);
+
+    // Load pool & holder rewards.
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+    let mut holder_rewards_state =
+        bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Handle any lamports received since last harvest.
+    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+
+    // Calculate rewards to harvest before new deposit
+    let rewards_to_harvest = calculate_rewards_to_harvest(
+        &mut holder_rewards_state,
+        &pool_state,
+        holder_rewards_pool_info.lamports(),
+    )?;
+
+    // Send rewards to the owner
+    if rewards_to_harvest > 0 {
+        send_rewards(
+            holder_rewards_pool_info.clone(),
+            token_account_info.clone(),
+            pool_state,
+            rewards_to_harvest,
+        )?;
+    }
+
+    // Update total deposited tokens
+    holder_rewards_state.total_deposited = holder_rewards_state
+        .total_deposited
+        .checked_add(amount)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
+
+    // Transfer tokens from the owner to the holder rewards pool.
+    let transfer_ix = transfer(
+        &spl_token::ID,
+        token_account_info.key,
+        holder_rewards_pool_token_account_info.key,
+        owner.key,
+        &[&owner.key],
+        amount,
+    )?;
+
+    invoke(
+        &transfer_ix,
+        &[
+            token_account_info.clone(),
+            holder_rewards_pool_token_account_info.clone(),
+            owner.clone(),
+            token_program.clone(),
+        ],
+    )?;
+
+    Ok(())
+}
+
+/// Processes a [Withdraw](enum.PaladinRewardsInstruction.html)
+/// instruction.
+fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
+    let holder_rewards_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let owner = next_account_info(accounts_iter)?;
+    let token_program = next_account_info(accounts_iter)?;
+
+    // Validate pool token account
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        &holder_rewards_pool_info.key,
+        &mint_info.key,
+    )?;
+
+    // Validate the owner token account
+    validate_token_account(token_account_info, &owner.key, &mint_info.key)?;
+
+    // Load pool & holder rewards.
+    check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
+    let mut holder_rewards_state =
+        bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Validate that we have enough deposited tokens to withdraw
+    let pool_balance =
+        get_token_account_balance_checked(&mint_info.key, holder_rewards_pool_token_account_info)?;
+    if holder_rewards_state.total_deposited == 0 {
+        return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
+    } else if holder_rewards_state.total_deposited > pool_balance {
+        return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
+    }
+
+    // Handle any lamports received since last harvest.
+    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+
+    // Calculate rewards to harvest before withdrawal
+    let rewards_to_harvest = match calculate_rewards_to_harvest(
+        &mut holder_rewards_state,
+        &pool_state,
+        holder_rewards_pool_info.lamports(),
+    ) {
+        Ok(_) => todo!(),
+        Err(ProgramError::Custom(err)) => {
+            // If the pool does not have enough lamports to cover the rewards,
+            // we set the amount to 0
+            if err == PaladinRewardsError::RewardsExcessPoolBalance as u32 {
+                Ok(0)
+            } else {
+                return Err(ProgramError::Custom(err));
+            }
+        }
+        Err(err) => Err(err),
+    }?;
+
+    // Send rewards to the owner
+    if rewards_to_harvest > 0 {
+        send_rewards(
+            holder_rewards_pool_info.clone(),
+            token_account_info.clone(),
+            pool_state,
+            rewards_to_harvest,
+        )?;
+    }
+
+    // Update total deposited tokens
+    let transfer_amount = holder_rewards_state.total_deposited;
+    holder_rewards_state.total_deposited = 0;
+
+    // Get pool token account signer seeds.
+    let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(&mint_info.key, program_id);
+    let bump_seed = [bump_seed];
+    let holder_rewards_pool_signer_seeds =
+        collect_holder_rewards_pool_signer_seeds(mint_info.key, &bump_seed);
+
+    // Transfer tokens from the pool to the owner.
+    let transfer_ix = transfer(
+        &spl_token::ID,
+        holder_rewards_pool_token_account_info.key,
+        token_account_info.key,
+        holder_rewards_pool_info.key,
+        &[&holder_rewards_pool_info.key],
+        transfer_amount,
+    )?;
+
+    invoke_signed(
+        &transfer_ix,
+        &[
+            holder_rewards_pool_token_account_info.clone(),
+            token_account_info.clone(),
+            holder_rewards_pool_info.clone(),
+            token_program.clone(),
+        ],
+        &[&holder_rewards_pool_signer_seeds],
+    )?;
+
     Ok(())
 }
 
@@ -525,6 +768,10 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
         PaladinRewardsInstruction::Deposit { amount } => {
             msg!("Instruction: Deposit");
             process_deposit(program_id, accounts, amount)
+        }
+        PaladinRewardsInstruction::Withdraw => {
+            msg!("Instruction: Withdraw");
+            process_withdraw(program_id, accounts)
         }
     }
 }

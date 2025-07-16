@@ -46,7 +46,19 @@ pub enum PaladinRewardsError {
     OwnerNotSigner,
     /// Signer not owner of token account.
     #[error("Signer not owner of token account")]
-    SignerIsNotOwnerTokenAccount,
+    NotOwnerTokenAccount,
+    /// Rewards amount exceeds pool balance.
+    #[error("Rewards amount exceeds pool balance")]
+    RewardsExcessPoolBalance,
+    /// Holder rewards has deposited tokens.
+    #[error("Holder rewards has deposited tokens")]
+    CloseWithDepositedTokens,
+    /// Holder doesn't have any deposited tokens to withdraw.
+    #[error("Holder doesn't have any deposited tokens to withdraw")]
+    NoDepositedTokensToWithdraw,
+    /// Pool doesn't have enough balance to withdraw.
+    #[error("Pool doesn't have enough balance to withdraw")]
+    WithdrawExceedsPoolBalance,
 }
 
 impl PrintProgramError for PaladinRewardsError {

@@ -230,10 +230,8 @@ pub struct HolderRewards {
     /// Stored as a `u128`, which includes a scaling factor of `1e18` to
     /// represent the exchange rate with 18 decimal places of precision.
     pub last_accumulated_rewards_per_token: u128,
-    /// The amount of unharvested rewards currently stored in the holder
-    /// rewards account that can be harvested by the holder.
-    pub unharvested_rewards: u64,
-    /// Aligns to 32 bytes.
+    // Total amount of deposited tokens
+    pub total_deposited: u64,
     pub _padding: u64,
 }
 
