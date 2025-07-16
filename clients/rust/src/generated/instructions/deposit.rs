@@ -7,31 +7,43 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
-pub struct HarvestRewards {
+pub struct Deposit {
     /// Holder rewards pool account.
     pub holder_rewards_pool: solana_program::pubkey::Pubkey,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account: solana_program::pubkey::Pubkey,
     /// Holder rewards account.
     pub holder_rewards: solana_program::pubkey::Pubkey,
     /// Token account.
     pub token_account: solana_program::pubkey::Pubkey,
     /// Token mint.
     pub mint: solana_program::pubkey::Pubkey,
-    /// owner of token account
+    /// Owner of the account.
     pub owner: solana_program::pubkey::Pubkey,
+    /// token program
+    pub token_program: solana_program::pubkey::Pubkey,
 }
 
-impl HarvestRewards {
-    pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        self.instruction_with_remaining_accounts(&[])
+impl Deposit {
+    pub fn instruction(
+        &self,
+        args: DepositInstructionArgs,
+    ) -> solana_program::instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
+        args: DepositInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.holder_rewards_pool_token_account,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -45,11 +57,17 @@ impl HarvestRewards {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.owner, false,
         ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.token_program,
+            false,
+        ));
         accounts.extend_from_slice(remaining_accounts);
-        let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
+        let mut data = DepositInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
 
         solana_program::instruction::Instruction {
             program_id: crate::PALADIN_REWARDS_ID,
@@ -60,42 +78,54 @@ impl HarvestRewards {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct HarvestRewardsInstructionData {
+pub struct DepositInstructionData {
     discriminator: u8,
 }
 
-impl HarvestRewardsInstructionData {
+impl DepositInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 2 }
+        Self { discriminator: 4 }
     }
 }
 
-impl Default for HarvestRewardsInstructionData {
+impl Default for DepositInstructionData {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Instruction builder for `HarvestRewards`.
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DepositInstructionArgs {
+    pub amount: u64,
+}
+
+/// Instruction builder for `Deposit`.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
-///   3. `[]` mint
-///   4. `[writable]` owner
+///   1. `[writable]` holder_rewards_pool_token_account
+///   2. `[writable]` holder_rewards
+///   3. `[writable]` token_account
+///   4. `[]` mint
+///   5. `[]` owner
+///   6. `[optional]` token_program (default to
+///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
-pub struct HarvestRewardsBuilder {
+pub struct DepositBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
+    holder_rewards_pool_token_account: Option<solana_program::pubkey::Pubkey>,
     holder_rewards: Option<solana_program::pubkey::Pubkey>,
     token_account: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
     owner: Option<solana_program::pubkey::Pubkey>,
+    token_program: Option<solana_program::pubkey::Pubkey>,
+    amount: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
-impl HarvestRewardsBuilder {
+impl DepositBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -106,6 +136,15 @@ impl HarvestRewardsBuilder {
         holder_rewards_pool: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
         self.holder_rewards_pool = Some(holder_rewards_pool);
+        self
+    }
+    /// Holder rewards pool token account.
+    #[inline(always)]
+    pub fn holder_rewards_pool_token_account(
+        &mut self,
+        holder_rewards_pool_token_account: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.holder_rewards_pool_token_account = Some(holder_rewards_pool_token_account);
         self
     }
     /// Holder rewards account.
@@ -126,10 +165,22 @@ impl HarvestRewardsBuilder {
         self.mint = Some(mint);
         self
     }
-    /// owner of token account
+    /// Owner of the account.
     #[inline(always)]
     pub fn owner(&mut self, owner: solana_program::pubkey::Pubkey) -> &mut Self {
         self.owner = Some(owner);
+        self
+    }
+    /// `[optional account, default to
+    /// 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA']` token program
+    #[inline(always)]
+    pub fn token_program(&mut self, token_program: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.token_program = Some(token_program);
+        self
+    }
+    #[inline(always)]
+    pub fn amount(&mut self, amount: u64) -> &mut Self {
+        self.amount = Some(amount);
         self
     }
     /// Add an aditional account to the instruction.
@@ -152,62 +203,85 @@ impl HarvestRewardsBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        let accounts = HarvestRewards {
+        let accounts = Deposit {
             holder_rewards_pool: self
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
+            holder_rewards_pool_token_account: self
+                .holder_rewards_pool_token_account
+                .expect("holder_rewards_pool_token_account is not set"),
             holder_rewards: self.holder_rewards.expect("holder_rewards is not set"),
             token_account: self.token_account.expect("token_account is not set"),
             mint: self.mint.expect("mint is not set"),
             owner: self.owner.expect("owner is not set"),
+            token_program: self.token_program.unwrap_or(solana_program::pubkey!(
+                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+            )),
+        };
+        let args = DepositInstructionArgs {
+            amount: self.amount.clone().expect("amount is not set"),
         };
 
-        accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
-/// `harvest_rewards` CPI accounts.
-pub struct HarvestRewardsCpiAccounts<'a, 'b> {
+/// `deposit` CPI accounts.
+pub struct DepositCpiAccounts<'a, 'b> {
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token account.
     pub token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
-    /// owner of token account
+    /// Owner of the account.
     pub owner: &'b solana_program::account_info::AccountInfo<'a>,
+    /// token program
+    pub token_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
-/// `harvest_rewards` CPI instruction.
-pub struct HarvestRewardsCpi<'a, 'b> {
+/// `deposit` CPI instruction.
+pub struct DepositCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token account.
     pub token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
-    /// owner of token account
+    /// Owner of the account.
     pub owner: &'b solana_program::account_info::AccountInfo<'a>,
+    /// token program
+    pub token_program: &'b solana_program::account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
+    pub __args: DepositInstructionArgs,
 }
 
-impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
+impl<'a, 'b> DepositCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
-        accounts: HarvestRewardsCpiAccounts<'a, 'b>,
+        accounts: DepositCpiAccounts<'a, 'b>,
+        args: DepositInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
             holder_rewards_pool: accounts.holder_rewards_pool,
+            holder_rewards_pool_token_account: accounts.holder_rewards_pool_token_account,
             holder_rewards: accounts.holder_rewards,
             token_account: accounts.token_account,
             mint: accounts.mint,
             owner: accounts.owner,
+            token_program: accounts.token_program,
+            __args: args,
         }
     }
     #[inline(always)]
@@ -243,9 +317,13 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.holder_rewards_pool_token_account.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -260,8 +338,12 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
             *self.mint.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.owner.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.token_program.key,
             false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
@@ -271,20 +353,24 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
+        let mut data = DepositInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
 
         let instruction = solana_program::instruction::Instruction {
             program_id: crate::PALADIN_REWARDS_ID,
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
+        account_infos.push(self.holder_rewards_pool_token_account.clone());
         account_infos.push(self.holder_rewards.clone());
         account_infos.push(self.token_account.clone());
         account_infos.push(self.mint.clone());
         account_infos.push(self.owner.clone());
+        account_infos.push(self.token_program.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -297,29 +383,34 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `HarvestRewards` via CPI.
+/// Instruction builder for `Deposit` via CPI.
 ///
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
-///   3. `[]` mint
-///   4. `[writable]` owner
+///   1. `[writable]` holder_rewards_pool_token_account
+///   2. `[writable]` holder_rewards
+///   3. `[writable]` token_account
+///   4. `[]` mint
+///   5. `[]` owner
+///   6. `[]` token_program
 #[derive(Clone, Debug)]
-pub struct HarvestRewardsCpiBuilder<'a, 'b> {
-    instruction: Box<HarvestRewardsCpiBuilderInstruction<'a, 'b>>,
+pub struct DepositCpiBuilder<'a, 'b> {
+    instruction: Box<DepositCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
+impl<'a, 'b> DepositCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_program::account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(HarvestRewardsCpiBuilderInstruction {
+        let instruction = Box::new(DepositCpiBuilderInstruction {
             __program: program,
             holder_rewards_pool: None,
+            holder_rewards_pool_token_account: None,
             holder_rewards: None,
             token_account: None,
             mint: None,
             owner: None,
+            token_program: None,
+            amount: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -331,6 +422,16 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.holder_rewards_pool = Some(holder_rewards_pool);
+        self
+    }
+    /// Holder rewards pool token account.
+    #[inline(always)]
+    pub fn holder_rewards_pool_token_account(
+        &mut self,
+        holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.holder_rewards_pool_token_account =
+            Some(holder_rewards_pool_token_account);
         self
     }
     /// Holder rewards account.
@@ -357,10 +458,24 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         self.instruction.mint = Some(mint);
         self
     }
-    /// owner of token account
+    /// Owner of the account.
     #[inline(always)]
     pub fn owner(&mut self, owner: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.owner = Some(owner);
+        self
+    }
+    /// token program
+    #[inline(always)]
+    pub fn token_program(
+        &mut self,
+        token_program: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.token_program = Some(token_program);
+        self
+    }
+    #[inline(always)]
+    pub fn amount(&mut self, amount: u64) -> &mut Self {
+        self.instruction.amount = Some(amount);
         self
     }
     /// Add an additional account to the instruction.
@@ -405,13 +520,21 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
-        let instruction = HarvestRewardsCpi {
+        let args = DepositInstructionArgs {
+            amount: self.instruction.amount.clone().expect("amount is not set"),
+        };
+        let instruction = DepositCpi {
             __program: self.instruction.__program,
 
             holder_rewards_pool: self
                 .instruction
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
+
+            holder_rewards_pool_token_account: self
+                .instruction
+                .holder_rewards_pool_token_account
+                .expect("holder_rewards_pool_token_account is not set"),
 
             holder_rewards: self
                 .instruction
@@ -426,6 +549,12 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
             mint: self.instruction.mint.expect("mint is not set"),
 
             owner: self.instruction.owner.expect("owner is not set"),
+
+            token_program: self
+                .instruction
+                .token_program
+                .expect("token_program is not set"),
+            __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -435,13 +564,16 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct HarvestRewardsCpiBuilderInstruction<'a, 'b> {
+struct DepositCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     holder_rewards_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    holder_rewards_pool_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    token_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    amount: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

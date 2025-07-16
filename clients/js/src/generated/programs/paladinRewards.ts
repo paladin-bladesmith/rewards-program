@@ -14,9 +14,11 @@ import {
 } from '@solana/web3.js';
 import {
   type ParsedCloseHolderRewardsInstruction,
+  type ParsedDepositInstruction,
   type ParsedHarvestRewardsInstruction,
   type ParsedInitializeHolderRewardsInstruction,
   type ParsedInitializeHolderRewardsPoolInstruction,
+  type ParsedWithdrawInstruction,
 } from '../instructions';
 
 export const PALADIN_REWARDS_PROGRAM_ADDRESS =
@@ -32,6 +34,8 @@ export enum PaladinRewardsInstruction {
   InitializeHolderRewards,
   HarvestRewards,
   CloseHolderRewards,
+  Deposit,
+  Withdraw,
 }
 
 export function identifyPaladinRewardsInstruction(
@@ -49,6 +53,12 @@ export function identifyPaladinRewardsInstruction(
   }
   if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return PaladinRewardsInstruction.CloseHolderRewards;
+  }
+  if (containsBytes(data, getU8Encoder().encode(4), 0)) {
+    return PaladinRewardsInstruction.Deposit;
+  }
+  if (containsBytes(data, getU8Encoder().encode(5), 0)) {
+    return PaladinRewardsInstruction.Withdraw;
   }
   throw new Error(
     'The provided instruction could not be identified as a paladinRewards instruction.'
@@ -69,4 +79,10 @@ export type ParsedPaladinRewardsInstruction<
     } & ParsedHarvestRewardsInstruction<TProgram>)
   | ({
       instructionType: PaladinRewardsInstruction.CloseHolderRewards;
-    } & ParsedCloseHolderRewardsInstruction<TProgram>);
+    } & ParsedCloseHolderRewardsInstruction<TProgram>)
+  | ({
+      instructionType: PaladinRewardsInstruction.Deposit;
+    } & ParsedDepositInstruction<TProgram>)
+  | ({
+      instructionType: PaladinRewardsInstruction.Withdraw;
+    } & ParsedWithdrawInstruction<TProgram>);

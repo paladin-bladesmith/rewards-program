@@ -34,20 +34,20 @@ import { HolderRewardsSeeds, findHolderRewardsPda } from '../pdas';
 
 export type HolderRewards = {
   lastAccumulatedRewardsPerToken: bigint;
-  unharvestedRewards: bigint;
+  totalDeposited: bigint;
   padding: bigint;
 };
 
 export type HolderRewardsArgs = {
   lastAccumulatedRewardsPerToken: number | bigint;
-  unharvestedRewards: number | bigint;
+  totalDeposited: number | bigint;
   padding: number | bigint;
 };
 
 export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
   return getStructEncoder([
     ['lastAccumulatedRewardsPerToken', getU128Encoder()],
-    ['unharvestedRewards', getU64Encoder()],
+    ['totalDeposited', getU64Encoder()],
     ['padding', getU64Encoder()],
   ]);
 }
@@ -55,7 +55,7 @@ export function getHolderRewardsEncoder(): Encoder<HolderRewardsArgs> {
 export function getHolderRewardsDecoder(): Decoder<HolderRewards> {
   return getStructDecoder([
     ['lastAccumulatedRewardsPerToken', getU128Decoder()],
-    ['unharvestedRewards', getU64Decoder()],
+    ['totalDeposited', getU64Decoder()],
     ['padding', getU64Decoder()],
   ]);
 }

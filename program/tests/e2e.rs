@@ -7,18 +7,18 @@
 // use {
 //     paladin_rewards_program::{
 //         extra_metas::get_extra_account_metas,
-//         instruction::{harvest_rewards, initialize_holder_rewards, initialize_holder_rewards_pool},
-//         state::{
-//             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
-//             HolderRewardsPool,
+//         instruction::{harvest_rewards, initialize_holder_rewards,
+// initialize_holder_rewards_pool},         state::{
+//             get_holder_rewards_address, get_holder_rewards_pool_address,
+// HolderRewards,             HolderRewardsPool,
 //         },
 //     },
 //     setup::{setup, setup_mint, setup_token_account},
 //     solana_program_test::*,
 //     solana_sdk::{
-//         account::Account, instruction::Instruction, pubkey::Pubkey, signature::Keypair,
-//         signer::Signer, system_instruction, transaction::Transaction,
-//     },
+//         account::Account, instruction::Instruction, pubkey::Pubkey,
+// signature::Keypair,         signer::Signer, system_instruction,
+// transaction::Transaction,     },
 //     spl_associated_token_account::get_associated_token_address,
 //     spl_tlv_account_resolution::state::ExtraAccountMetaList,
 //     spl_token_2022::{
@@ -26,8 +26,8 @@
 //         state::{Account as TokenAccount, Mint},
 //     },
 //     spl_transfer_hook_interface::{
-//         get_extra_account_metas_address, offchain::add_extra_account_metas_for_execute,
-//     },
+//         get_extra_account_metas_address,
+// offchain::add_extra_account_metas_for_execute,     },
 // };
 
 // struct Pool {
@@ -43,10 +43,10 @@
 //     unharvested_rewards: u64,
 // }
 
-// async fn extra_metas_rent_exempt_lamports(context: &mut ProgramTestContext) -> u64 {
-//     let extra_metas = get_extra_account_metas();
-//     let account_size = ExtraAccountMetaList::size_of(extra_metas.len()).unwrap();
-//     context
+// async fn extra_metas_rent_exempt_lamports(context: &mut ProgramTestContext)
+// -> u64 {     let extra_metas = get_extra_account_metas();
+//     let account_size =
+// ExtraAccountMetaList::size_of(extra_metas.len()).unwrap();     context
 //         .banks_client
 //         .get_rent()
 //         .await
@@ -63,8 +63,8 @@
 //         .minimum_balance(std::mem::size_of::<HolderRewardsPool>())
 // }
 
-// async fn holder_rent_exempt_lamports(context: &mut ProgramTestContext) -> u64 {
-//     context
+// async fn holder_rent_exempt_lamports(context: &mut ProgramTestContext) -> u64
+// {     context
 //         .banks_client
 //         .get_rent()
 //         .await
@@ -111,12 +111,12 @@
 //     )
 //     .unwrap();
 
-//     // The closure required by `add_extra_account_metas_for_execute` is a pain,
-//     // so just grab the extra metas account ahead of time, since we know our
-//     // extra metas don't require account data, therefore don't require loading
-//     // any other accounts.
-//     let extra_metas_address = get_extra_account_metas_address(mint, &paladin_rewards_program::id());
-//     let extra_metas_account = context
+//     // The closure required by `add_extra_account_metas_for_execute` is a
+// pain,     // so just grab the extra metas account ahead of time, since we
+// know our     // extra metas don't require account data, therefore don't
+// require loading     // any other accounts.
+//     let extra_metas_address = get_extra_account_metas_address(mint,
+// &paladin_rewards_program::id());     let extra_metas_account = context
 //         .banks_client
 //         .get_account(extra_metas_address)
 //         .await
@@ -146,8 +146,8 @@
 //     instruction
 // }
 
-// async fn get_account(context: &mut ProgramTestContext, address: &Pubkey) -> Account {
-//     context
+// async fn get_account(context: &mut ProgramTestContext, address: &Pubkey) ->
+// Account {     context
 //         .banks_client
 //         .get_account(*address)
 //         .await
@@ -164,46 +164,52 @@
 //     // First evaluate the pool.
 //     {
 //         let mint_data = get_account(context, mint).await.data;
-//         let mint_state = StateWithExtensions::<Mint>::unpack(&mint_data).unwrap();
-//         assert_eq!(mint_state.base.supply, pool.token_supply);
+//         let mint_state =
+// StateWithExtensions::<Mint>::unpack(&mint_data).unwrap();         assert_eq!
+// (mint_state.base.supply, pool.token_supply);
 
-//         let pool_address = get_holder_rewards_pool_address(mint, &paladin_rewards_program::id());
-//         let pool_account = get_account(context, &pool_address).await;
+//         let pool_address = get_holder_rewards_pool_address(mint,
+// &paladin_rewards_program::id());         let pool_account =
+// get_account(context, &pool_address).await;
 
-//         let pool_excess_lamports = pool_account.lamports - pool_rent_exempt_lamports(context).await;
-//         assert_eq!(pool_excess_lamports, pool.pool_excess_lamports);
+//         let pool_excess_lamports = pool_account.lamports -
+// pool_rent_exempt_lamports(context).await;         assert_eq!
+// (pool_excess_lamports, pool.pool_excess_lamports);
 
-//         let pool_state = bytemuck::from_bytes::<HolderRewardsPool>(&pool_account.data);
+//         let pool_state =
+// bytemuck::from_bytes::<HolderRewardsPool>(&pool_account.data);
 //         assert_eq!(
 //             pool_state,
 //             &HolderRewardsPool {
-//                 accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
-//                 lamports_last: pool.lamports_last,
-//                 _padding: 0,
+//                 accumulated_rewards_per_token:
+// pool.accumulated_rewards_per_token,                 lamports_last:
+// pool.lamports_last,                 _padding: 0,
 //             }
 //         );
 //     }
 //     // Then evaluate the holders.
 //     for (token_account_address, checks) in holder_rewards {
-//         let token_account = get_account(context, token_account_address).await;
-//         let token_account_state =
-//             StateWithExtensions::<TokenAccount>::unpack(&token_account.data).unwrap();
+//         let token_account = get_account(context,
+// token_account_address).await;         let token_account_state =
+//             
+// StateWithExtensions::<TokenAccount>::unpack(&token_account.data).unwrap();
 //         assert_eq!(
 //             token_account_state.base.amount,
 //             checks.token_account_balance
 //         );
 
 //         let holder_rewards_address =
-//             get_holder_rewards_address(token_account_address, &paladin_rewards_program::id());
-//         let holder_rewards_account = get_account(context, &holder_rewards_address).await;
-//         let holder_rewards_state =
-//             bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
+//             get_holder_rewards_address(token_account_address,
+// &paladin_rewards_program::id());         let holder_rewards_account =
+// get_account(context, &holder_rewards_address).await;         let
+// holder_rewards_state =             
+// bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
 //         assert_eq!(
 //             holder_rewards_state,
 //             &HolderRewards {
-//                 last_accumulated_rewards_per_token: checks.last_accumulated_rewards_per_token,
-//                 unharvested_rewards: checks.unharvested_rewards,
-//                 _padding: 0,
+//                 last_accumulated_rewards_per_token:
+// checks.last_accumulated_rewards_per_token,                 
+// unharvested_rewards: checks.unharvested_rewards,                 _padding: 0,
 //             }
 //         );
 //     }
@@ -212,26 +218,32 @@
 // #[tokio::test]
 // async fn test_e2e() {
 //     let mut context = setup().start_with_context().await;
-//     let holder_rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
+//     let holder_rent_exempt_lamports = holder_rent_exempt_lamports(&mut
+// context).await;
 
 //     let mint = Pubkey::new_unique();
 //     let mint_authority = Keypair::new();
 
 //     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
-//     let pool_rent_exempt_lamports = pool_rent_exempt_lamports(&mut context).await;
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());     let pool_rent_exempt_lamports =
+// pool_rent_exempt_lamports(&mut context).await;
 
 //     let alice = Keypair::new();
-//     let alice_token_account = get_associated_token_address(&alice.pubkey(), &mint);
+//     let alice_token_account = get_associated_token_address(&alice.pubkey(),
+// &mint);
 
 //     let bob = Keypair::new();
-//     let bob_token_account = get_associated_token_address(&bob.pubkey(), &mint);
+//     let bob_token_account = get_associated_token_address(&bob.pubkey(),
+// &mint);
 
 //     let carol = Keypair::new();
-//     let carol_token_account = get_associated_token_address(&carol.pubkey(), &mint);
+//     let carol_token_account = get_associated_token_address(&carol.pubkey(),
+// &mint);
 
 //     let dave = Keypair::new();
-//     let dave_token_account = get_associated_token_address(&dave.pubkey(), &mint);
+//     let dave_token_account = get_associated_token_address(&dave.pubkey(),
+// &mint);
 
 //     let payer = context.payer.insecure_clone();
 
@@ -252,7 +264,8 @@
 //         // Setup.
 //         {
 //             // Initial pool setup.
-//             setup_mint(&mut context, &mint, 100, Some(mint_authority.pubkey())).await;
+//             setup_mint(&mut context, &mint, 100,
+// Some(mint_authority.pubkey())).await;
 
 //             // Initial holders setup.
 //             setup_token_account(
@@ -263,8 +276,8 @@
 //                 25,
 //             )
 //             .await;
-//             setup_token_account(&mut context, &bob_token_account, &bob.pubkey(), &mint, 40).await;
-//             setup_token_account(
+//             setup_token_account(&mut context, &bob_token_account,
+// &bob.pubkey(), &mint, 40).await;             setup_token_account(
 //                 &mut context,
 //                 &carol_token_account,
 //                 &carol.pubkey(),
@@ -284,8 +297,8 @@
 //                         &holder_rewards_pool,
 //                         pool_rent_exempt_lamports,
 //                     ),
-//                     initialize_holder_rewards_pool(&holder_rewards_pool, &mint),
-//                 ],
+//                     initialize_holder_rewards_pool(&holder_rewards_pool,
+// &mint),                 ],
 //                 &[&payer],
 //             )
 //             .await;
@@ -307,11 +320,12 @@
 //         // Create the holders.
 //         {
 //             let alice_holder_rewards =
-//                 get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
-//             let bob_holder_rewards =
-//                 get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
-//             let carol_holder_rewards =
-//                 get_holder_rewards_address(&carol_token_account, &paladin_rewards_program::id());
+//                 get_holder_rewards_address(&alice_token_account,
+// &paladin_rewards_program::id());             let bob_holder_rewards =
+//                 get_holder_rewards_address(&bob_token_account,
+// &paladin_rewards_program::id());             let carol_holder_rewards =
+//                 get_holder_rewards_address(&carol_token_account,
+// &paladin_rewards_program::id());
 
 //             send_transaction(
 //                 &mut context,
@@ -424,8 +438,8 @@
 //     // --> Mint 25 tokens to new holder Dave.
 //     //
 //     // When Dave's holder rewards account is created, it records the current
-//     // rewards per token rate, since Dave can't harvest rewards until new rewards
-//     // are deposited into the pool.
+//     // rewards per token rate, since Dave can't harvest rewards until new
+// rewards     // are deposited into the pool.
 //     //
 //     // Pool:   token_supply:       125         Alice:  last_seen_rate:     0
 //     //         rewards_per_token:  1                   token_balance:      25
@@ -444,10 +458,12 @@
 //     //                                                 eligible_for:       0
 //     {
 //         // Set up Dave's token account.
-//         setup_token_account(&mut context, &dave_token_account, &dave.pubkey(), &mint, 0).await;
+//         setup_token_account(&mut context, &dave_token_account,
+// &dave.pubkey(), &mint, 0).await;
 
 //         let dave_holder_rewards =
-//             get_holder_rewards_address(&dave_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&dave_token_account,
+// &paladin_rewards_program::id());
 
 //         send_transaction(
 //             &mut context,
@@ -515,8 +531,8 @@
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 25,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //             ],
@@ -545,7 +561,8 @@
 //     //                                                 eligible_for:       0
 //     {
 //         let bob_holder_rewards =
-//             get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&bob_token_account,
+// &paladin_rewards_program::id());
 
 //         send_transaction(
 //             &mut context,
@@ -581,8 +598,8 @@
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
@@ -597,8 +614,8 @@
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 25,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //             ],
@@ -608,9 +625,9 @@
 
 //     // --> Alice harvests, then burns all of her tokens.
 //     //
-//     // Although Alice has modified the token supply by burning, the pool's rate
-//     // isn't updated until the next reward distribution, so the remaining holders
-//     // can still claim rewards at the old rate.
+//     // Although Alice has modified the token supply by burning, the pool's
+// rate     // isn't updated until the next reward distribution, so the
+// remaining holders     // can still claim rewards at the old rate.
 //     //
 //     // Pool:   token_supply:       100         Alice:  last_seen_rate:     1
 //     //         rewards_per_token:  1                   token_balance:      0
@@ -629,10 +646,11 @@
 //     //                                                 eligible_for:       0
 //     {
 //         let alice_holder_rewards =
-//             get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&alice_token_account,
+// &paladin_rewards_program::id());
 
-//         let alice_starting_lamports = get_account(&mut context, &alice_token_account)
-//             .await
+//         let alice_starting_lamports = get_account(&mut context,
+// &alice_token_account)             .await
 //             .lamports;
 
 //         send_transaction(
@@ -672,16 +690,16 @@
 //                     &alice_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
@@ -696,16 +714,16 @@
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 25,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //             ],
 //         )
 //         .await;
 
-//         let alice_ending_lamports = get_account(&mut context, &alice_token_account)
-//             .await
+//         let alice_ending_lamports = get_account(&mut context,
+// &alice_token_account)             .await
 //             .lamports;
 
 //         // Alice harvested 25 rewards.
@@ -714,18 +732,18 @@
 
 //     // --> 200 rewards are deposited into the pool.
 //     //
-//     // The new rate is adjusted by calculating the rewards per token on _only_ the
-//     // newly added rewards, then adding that rate to the existing rate.
-//     //
+//     // The new rate is adjusted by calculating the rewards per token on
+// _only_ the     // newly added rewards, then adding that rate to the existing
+// rate.     //
 //     // That means the new rate is 1 + (200 / 100) = 3.
 //     //
-//     // Since the rate has now been updated, Bob becomes eligible for a portion of
-//     // the newly added rewards.
+//     // Since the rate has now been updated, Bob becomes eligible for a
+// portion of     // the newly added rewards.
 //     //
 //     // He's eligible for (3 - 1) * 40 = 80 rewards.
 //     //
-//     // Dave is now eligible for rewards as well, since he has a non-zero balance.
-//     //
+//     // Dave is now eligible for rewards as well, since he has a non-zero
+// balance.     //
 //     // He's eligible for (3 - 1) * 25 = 50 rewards.
 //     //
 //     // Pool:   token_supply:       100         Alice:  last_seen_rate:     1
@@ -738,21 +756,22 @@
 //     //
 //     //                                         Carol:  last_seen_rate:     0
 //     //                                                 token_balance:      35
-//     //                                                 eligible_for:       105
-//     //
+//     //                                                 eligible_for:
+// 105     //
 //     //                                         Dave:   last_seen_rate:     1
 //     //                                                 token_balance:      25
 //     //                                                 eligible_for:       50
 //     {
 //         // Dummy harvest to trigger lamports sync.
 //         let alice_holder_rewards =
-//             get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&alice_token_account,
+// &paladin_rewards_program::id());
 
 //         send_transaction(
 //             &mut context,
 //             &[
-//                 system_instruction::transfer(&payer.pubkey(), &holder_rewards_pool, 200),
-//                 harvest_rewards(
+//                 system_instruction::transfer(&payer.pubkey(),
+// &holder_rewards_pool, 200),                 harvest_rewards(
 //                     &holder_rewards_pool,
 //                     &alice_holder_rewards,
 //                     &alice_token_account,
@@ -777,16 +796,16 @@
 //                     &alice_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
@@ -801,8 +820,8 @@
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 25,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //             ],
@@ -813,9 +832,9 @@
 //     // --> Carol transfers all of her tokens to Dave.
 //     //
 //     // As a result of the transfer hook, Carol's eligible rewards move to her
-//     // holder rewards account's `unharvested_rewards`. Dave's eligible rewards
-//     // are also moved to his `unharvested_rewards`. Both holders have their
-//     // `last_seen_rate` updated to the current rate.
+//     // holder rewards account's `unharvested_rewards`. Dave's eligible
+// rewards     // are also moved to his `unharvested_rewards`. Both holders have
+// their     // `last_seen_rate` updated to the current rate.
 //     //
 //     // Now, when either of them go to harvest, they'll see no "new" rewards
 //     // calculated from the marginal rate, but they can harvest their
@@ -837,8 +856,8 @@
 //     //                                         Carol:  last_seen_rate:     3
 //     //                                                 token_balance:      0
 //     //                                                 eligible_for:       0
-//     //                                                 unharvested:        105
-//     //
+//     //                                                 unharvested:
+// 105     //
 //     //                                         Dave:   last_seen_rate:     3
 //     //                                                 token_balance:      60
 //     //                                                 eligible_for:       0
@@ -854,7 +873,8 @@
 //             0,
 //         )
 //         .await;
-//         send_transaction(&mut context, &[instruction], &[&payer, &carol]).await;
+//         send_transaction(&mut context, &[instruction], &[&payer,
+// &carol]).await;
 
 //         validate_state(
 //             &mut context,
@@ -870,32 +890,32 @@
 //                     &alice_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &carol_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
-//                         unharvested_rewards: 105,
+//                         last_accumulated_rewards_per_token:
+// 3_000_000_000_000_000_000,                         unharvested_rewards: 105,
 //                     },
 //                 ),
 //                 (
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 60,
-//                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
-//                         unharvested_rewards: 50,
+//                         last_accumulated_rewards_per_token:
+// 3_000_000_000_000_000_000,                         unharvested_rewards: 50,
 //                     },
 //                 ),
 //             ],
@@ -922,28 +942,29 @@
 //     //
 //     //                                         Bob:    last_seen_rate:     1
 //     //                                                 token_balance:      40
-//     //                                                 eligible_for:       200
-//     //                                                 unharvested:        0
-//     //
+//     //                                                 eligible_for:
+// 200     //                                                 unharvested:
+// 0     //
 //     //                                         Carol:  last_seen_rate:     3
 //     //                                                 token_balance:      0
 //     //                                                 eligible_for:       0
-//     //                                                 unharvested:        105
-//     //
+//     //                                                 unharvested:
+// 105     //
 //     //                                         Dave:   last_seen_rate:     3
 //     //                                                 token_balance:      60
-//     //                                                 eligible_for:       180
-//     //                                                 unharvested:        50
-//     {
+//     //                                                 eligible_for:
+// 180     //                                                 unharvested:
+// 50     {
 //         // Dummy harvest to trigger lamports sync.
 //         let alice_holder_rewards =
-//             get_holder_rewards_address(&alice_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&alice_token_account,
+// &paladin_rewards_program::id());
 
 //         send_transaction(
 //             &mut context,
 //             &[
-//                 system_instruction::transfer(&payer.pubkey(), &holder_rewards_pool, 300),
-//                 harvest_rewards(
+//                 system_instruction::transfer(&payer.pubkey(),
+// &holder_rewards_pool, 300),                 harvest_rewards(
 //                     &holder_rewards_pool,
 //                     &alice_holder_rewards,
 //                     &alice_token_account,
@@ -968,32 +989,32 @@
 //                     &alice_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &carol_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
-//                         unharvested_rewards: 105,
+//                         last_accumulated_rewards_per_token:
+// 3_000_000_000_000_000_000,                         unharvested_rewards: 105,
 //                     },
 //                 ),
 //                 (
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 60,
-//                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
-//                         unharvested_rewards: 50,
+//                         last_accumulated_rewards_per_token:
+// 3_000_000_000_000_000_000,                         unharvested_rewards: 50,
 //                     },
 //                 ),
 //             ],
@@ -1024,18 +1045,19 @@
 //     //                                                 unharvested:        0
 //     {
 //         let bob_holder_rewards =
-//             get_holder_rewards_address(&bob_token_account, &paladin_rewards_program::id());
-//         let carol_holder_rewards =
-//             get_holder_rewards_address(&carol_token_account, &paladin_rewards_program::id());
-//         let dave_holder_rewards =
-//             get_holder_rewards_address(&dave_token_account, &paladin_rewards_program::id());
+//             get_holder_rewards_address(&bob_token_account,
+// &paladin_rewards_program::id());         let carol_holder_rewards =
+//             get_holder_rewards_address(&carol_token_account,
+// &paladin_rewards_program::id());         let dave_holder_rewards =
+//             get_holder_rewards_address(&dave_token_account,
+// &paladin_rewards_program::id());
 
-//         let bob_starting_lamports = get_account(&mut context, &bob_token_account).await.lamports;
-//         let carol_starting_lamports = get_account(&mut context, &carol_token_account)
-//             .await
+//         let bob_starting_lamports = get_account(&mut context,
+// &bob_token_account).await.lamports;         let carol_starting_lamports =
+// get_account(&mut context, &carol_token_account)             .await
 //             .lamports;
-//         let dave_starting_lamports = get_account(&mut context, &dave_token_account)
-//             .await
+//         let dave_starting_lamports = get_account(&mut context,
+// &dave_token_account)             .await
 //             .lamports;
 
 //         send_transaction(
@@ -1078,44 +1100,44 @@
 //                     &alice_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 1_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &bob_token_account,
 //                     Holder {
 //                         token_account_balance: 40,
-//                         last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 6_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &carol_token_account,
 //                     Holder {
 //                         token_account_balance: 0,
-//                         last_accumulated_rewards_per_token: 3_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 3_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //                 (
 //                     &dave_token_account,
 //                     Holder {
 //                         token_account_balance: 60,
-//                         last_accumulated_rewards_per_token: 6_000_000_000_000_000_000,
-//                         unharvested_rewards: 0,
+//                         last_accumulated_rewards_per_token:
+// 6_000_000_000_000_000_000,                         unharvested_rewards: 0,
 //                     },
 //                 ),
 //             ],
 //         )
 //         .await;
 
-//         let bob_ending_lamports = get_account(&mut context, &bob_token_account).await.lamports;
-//         let carol_ending_lamports = get_account(&mut context, &carol_token_account)
-//             .await
+//         let bob_ending_lamports = get_account(&mut context,
+// &bob_token_account).await.lamports;         let carol_ending_lamports =
+// get_account(&mut context, &carol_token_account)             .await
 //             .lamports;
-//         let dave_ending_lamports = get_account(&mut context, &dave_token_account)
-//             .await
+//         let dave_ending_lamports = get_account(&mut context,
+// &dave_token_account)             .await
 //             .lamports;
 
 //         // Bob harvested 200 rewards.

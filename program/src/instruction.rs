@@ -298,12 +298,12 @@ impl PaladinRewardsInstruction {
 /// instruction.
 pub fn initialize_holder_rewards_pool(
     holder_rewards_pool_address: &Pubkey,
-    holder_rewards_pool_ata: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
-        AccountMeta::new(*holder_rewards_pool_ata, false),
+        AccountMeta::new(*holder_rewards_pool_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];

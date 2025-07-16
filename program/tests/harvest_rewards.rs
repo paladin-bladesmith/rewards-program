@@ -6,11 +6,11 @@
 //     paladin_rewards_program::{
 //         error::PaladinRewardsError,
 //         instruction::harvest_rewards,
-//         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
-//     },
+//         state::{get_holder_rewards_address, get_holder_rewards_pool_address,
+// HolderRewards},     },
 //     setup::{
-//         setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_mint,
-//         setup_token_account,
+//         setup, setup_holder_rewards_account,
+// setup_holder_rewards_pool_account, setup_mint,         setup_token_account,
 //     },
 //     solana_program_test::*,
 //     solana_sdk::{
@@ -33,9 +33,10 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 
@@ -43,12 +44,13 @@
 //     {
 //         context.set_account(
 //             &token_account,
-//             &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-//                 .unwrap(),
+//             &AccountSharedData::new_data(100_000_000, &vec![5; 165],
+// &spl_token_2022::id())                 .unwrap(),
 //         );
 //     }
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -66,8 +68,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountData)     );
 // }
 
 // #[tokio::test]
@@ -76,9 +78,10 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 //     setup_token_account(
@@ -90,7 +93,8 @@
 //     )
 //     .await;
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -110,8 +114,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::TokenAccountMintMismatch as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::TokenAccountMintMismatch as
+// u32)         )
 //     );
 // }
 
@@ -121,23 +126,26 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 //     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_token_account(&mut context, &token_account, &owner, &mint,
+// 0).await;
 
 //     // Setup holder rewards pool account with incorrect owner.
 //     {
 //         context.set_account(
 //             &holder_rewards_pool,
-//             &AccountSharedData::new_data(100_000_000, &vec![5; 8], &system_program::id()).unwrap(),
-//         );
+//             &AccountSharedData::new_data(100_000_000, &vec![5; 8],
+// &system_program::id()).unwrap(),         );
 //     }
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -155,8 +163,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountOwner)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountOwner)     );
 // }
 
 // #[tokio::test]
@@ -165,15 +173,18 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+// Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_holder_rewards_account(&mut context, &holder_rewards, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -193,8 +204,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsPoolAddress as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsPoolAddress
+// as u32)         )
 //     );
 // }
 
@@ -204,12 +216,14 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_token_account(&mut context, &token_account, &owner, &mint,
+// 0).await;
 
 //     // Setup holder rewards pool account with invalid data.
 //     {
@@ -224,7 +238,8 @@
 //         );
 //     }
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -242,8 +257,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountData)     );
 // }
 
 // #[tokio::test]
@@ -252,23 +267,26 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;
 
 //     // Setup holder rewards account with incorrect owner.
 //     {
 //         context.set_account(
 //             &holder_rewards,
-//             &AccountSharedData::new_data(100_000_000, &vec![5; 16], &system_program::id()).unwrap(),
-//         );
+//             &AccountSharedData::new_data(100_000_000, &vec![5; 16],
+// &system_program::id()).unwrap(),         );
 //     }
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -286,8 +304,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountOwner)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountOwner)     );
 // }
 
 // #[tokio::test]
@@ -296,16 +314,19 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = Pubkey::new_unique(); // Incorrect holder rewards address.
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = Pubkey::new_unique(); // Incorrect holder rewards
+// address.     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_holder_rewards_account(&mut context, &holder_rewards, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_holder_rewards_account(&mut context, &holder_rewards, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -325,8 +346,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsAddress as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsAddress
+// as u32)         )
 //     );
 // }
 
@@ -336,13 +358,15 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;
 
 //     // Setup holder rewards account with invalid data.
 //     {
@@ -357,7 +381,8 @@
 //         );
 //     }
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -375,8 +400,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountData)     );
 // }
 
 // struct Pool {
@@ -407,12 +432,12 @@
 // #[test_case(
 //     Pool {
 //         excess_lamports: 1_000_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 100,
-//         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//         unharvested_rewards: 0,
+//         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1
+// reward per token.         unharvested_rewards: 0,
 //     },
 //     0,
 //     0;
@@ -421,22 +446,22 @@
 // #[test_case(
 //     Pool {
 //         excess_lamports: 1_000_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 100,
-//         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//         unharvested_rewards: 500_000,
+//         last_accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1
+// reward per token.         unharvested_rewards: 500_000,
 //     },
 //     500_000, // Unharvested.
 //     0;
-//     "Last harvested 1.0 rate, rate unchanged, some unharvested, receive unharvested"
-// )]
+//     "Last harvested 1.0 rate, rate unchanged, some unharvested, receive
+// unharvested" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 50_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 100_000,
 //         last_accumulated_rewards_per_token: 0,
@@ -444,13 +469,13 @@
 //     },
 //     50_000, // Pool excess.
 //     50_000;
-//     "No last harvested rate, eligible for 1 rate, pool is underfunded, receive pool excess"
-// )]
+//     "No last harvested rate, eligible for 1 rate, pool is underfunded,
+// receive pool excess" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 1_000_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
 //         last_accumulated_rewards_per_token: 0,
@@ -458,13 +483,13 @@
 //     },
 //     10_000,
 //     0;
-//     "No last harvested rate, eligible for 1 rate, pool has enough, receive share"
-// )]
+//     "No last harvested rate, eligible for 1 rate, pool has enough, receive
+// share" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 1_000_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
 //         last_accumulated_rewards_per_token: 0,
@@ -472,27 +497,27 @@
 //     },
 //     20_000, // 10_000 share + 10_000 unharvested
 //     0;
-//     "No last harvested rate, some unharvested, eligible for 1 rate, pool has enough, receive share + unharvested"
-// )]
+//     "No last harvested rate, some unharvested, eligible for 1 rate, pool has
+// enough, receive share + unharvested" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
-//         unharvested_rewards: 0,
+//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5
+// rewards per token.         unharvested_rewards: 0,
 //     },
 //     5_000, // (1 - 0.5) * 10_000
 //     0;
-//     "Last harvested 0.5 rate, eligible for 0.5 rate, pool has enough, receive share"
-// )]
+//     "Last harvested 0.5 rate, eligible for 0.5 rate, pool has enough, receive
+// share" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just below 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just
+// below 1 reward per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
 //         last_accumulated_rewards_per_token: u128::MAX, // Maximum rate.
@@ -500,83 +525,83 @@
 //     },
 //     10_000, // 1 * 10_000
 //     0;
-//     "Last harvested maximum rate, eligible for 1 rate, pool has enough, receive share"
-// )]
+//     "Last harvested maximum rate, eligible for 1 rate, pool has enough,
+// receive share" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
-//         unharvested_rewards: 1_000,
+//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5
+// rewards per token.         unharvested_rewards: 1_000,
 //     },
 //     6_000, // (1 - 0.5) * 10_000 = 5_000 share + 1_000 unharvested
 //     0;
-//     "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool has enough, receive share + unharvested"
-// )]
+//     "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool
+// has enough, receive share + unharvested" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
-//         unharvested_rewards: 8_000,
+//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5
+// rewards per token.         unharvested_rewards: 8_000,
 //     },
 //     10_000, // Pool excess.
-//     3_000;  // 10_000 pool excess - [(1 - 0.5) * 10_000 = 5_000 share + 8_000 unharvested]
-//     "Last harvested 0.5 rate, some unharvested, eligible for 0.5 rate, pool underfunded, receive pool excess"
-// )]
+//     3_000;  // 10_000 pool excess - [(1 - 0.5) * 10_000 = 5_000 share + 8_000
+// unharvested]     "Last harvested 0.5 rate, some unharvested, eligible for 0.5
+// rate, pool underfunded, receive pool excess" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
-//         unharvested_rewards: 0,
+//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25
+// rewards per token.         unharvested_rewards: 0,
 //     },
 //     7_500, // (1 - 0.25) * 10_000
 //     0;
-//     "Last harvested 0.25 rate, eligible for 0.75 rate, pool has enough, receive share"
-// )]
+//     "Last harvested 0.25 rate, eligible for 0.75 rate, pool has enough,
+// receive share" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
-//         unharvested_rewards: 1_000,
+//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25
+// rewards per token.         unharvested_rewards: 1_000,
 //     },
 //     8_500, // (1 - 0.25) * 10_000 = 7_500 share + 1_000 unharvested
 //     0;
-//     "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool has enough, receive share + unharvested"
-// )]
+//     "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool
+// has enough, receive share + unharvested" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25 rewards per token.
-//         unharvested_rewards: 4_000,
+//         last_accumulated_rewards_per_token: 250_000_000_000_000_000, // 0.25
+// rewards per token.         unharvested_rewards: 4_000,
 //     },
 //     10_000, // Pool excess.
 //     1_500;
-//     "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool underfunded, receive pool excess"
-// )]
+//     "Last harvested 0.25 rate, some unharvested, eligible for 0.75 rate, pool
+// underfunded, receive pool excess" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 11_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just below 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000 - 1, // Just
+// below 1 reward per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
 //         last_accumulated_rewards_per_token: u128::MAX, // Maximum rate.
@@ -584,17 +609,17 @@
 //     },
 //     11_000, // 1 * 10_000 = 10_000 share + 1_000 unharvested
 //     0;
-//     "Last harvested maximum rate, some unharvested, eligible for 1 rate, pool has enough, receive share + unharvested"
-// )]
+//     "Last harvested maximum rate, some unharvested, eligible for 1 rate, pool
+// has enough, receive share + unharvested" )]
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
-//         unharvested_rewards: 0,
+//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5
+// rewards per token.         unharvested_rewards: 0,
 //     },
 //     2_500, // (1 - 0.5) * 10_000 * 50%
 //     0;
@@ -603,8 +628,8 @@
 // #[test_case(
 //     Pool {
 //         excess_lamports: HOLDER_REWARDS_RENT * 10,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: HOLDER_REWARDS_RENT * 10,
 //         last_accumulated_rewards_per_token: 0,
@@ -638,9 +663,10 @@
 //     setup_mint(&mut context, &mint, token_account_balance, None).await;
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     // Sponsor details.
 //     let rent = context.banks_client.get_rent().await.unwrap();
@@ -686,7 +712,8 @@
 //         .unwrap()
 //         .lamports;
 
-//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//     let instruction = harvest_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -711,9 +738,9 @@
 //     assert_eq!(
 //         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
 //         &HolderRewards {
-//             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
-//             unharvested_rewards: expected_unharvested_rewards,
-//             _padding: 0,
+//             last_accumulated_rewards_per_token:
+// accumulated_rewards_per_token,             unharvested_rewards:
+// expected_unharvested_rewards,             _padding: 0,
 //         }
 //     );
 

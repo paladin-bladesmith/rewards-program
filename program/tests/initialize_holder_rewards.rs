@@ -7,12 +7,12 @@
 //         error::PaladinRewardsError,
 //         instruction::initialize_holder_rewards,
 //         state::{
-//             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
-//             HolderRewardsPool,
+//             get_holder_rewards_address, get_holder_rewards_pool_address,
+// HolderRewards,             HolderRewardsPool,
 //         },
 //     },
-//     setup::{setup, setup_holder_rewards_pool_account, setup_mint, setup_token_account},
-//     solana_program_test::*,
+//     setup::{setup, setup_holder_rewards_pool_account, setup_mint,
+// setup_token_account},     solana_program_test::*,
 //     solana_sdk::{
 //         account::{Account, AccountSharedData},
 //         instruction::InstructionError,
@@ -30,9 +30,10 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 //     setup_mint(&mut context, &mint, 0, None).await;
@@ -41,13 +42,14 @@
 //     {
 //         context.set_account(
 //             &token_account,
-//             &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-//                 .unwrap(),
+//             &AccountSharedData::new_data(100_000_000, &vec![5; 165],
+// &spl_token_2022::id())                 .unwrap(),
 //         );
 //     }
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -65,8 +67,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountData)     );
 // }
 
 // #[tokio::test]
@@ -75,9 +77,10 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 //     setup_token_account(
@@ -91,7 +94,8 @@
 //     setup_mint(&mut context, &mint, 0, None).await;
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -111,8 +115,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::TokenAccountMintMismatch as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::TokenAccountMintMismatch as
+// u32)         )
 //     );
 // }
 
@@ -122,24 +127,26 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-//     setup_mint(&mut context, &mint, 0, None).await;
+//     setup_token_account(&mut context, &token_account, &owner, &mint,
+// 0).await;     setup_mint(&mut context, &mint, 0, None).await;
 
 //     // Set up a holder rewards pool account with incorrect owner.
 //     {
 //         context.set_account(
 //             &holder_rewards_pool,
-//             &AccountSharedData::new_data(100_000_000, &vec![5; 8], &Pubkey::new_unique()).unwrap(),
-//         );
+//             &AccountSharedData::new_data(100_000_000, &vec![5; 8],
+// &Pubkey::new_unique()).unwrap(),         );
 //     }
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -157,8 +164,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountOwner)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountOwner)     );
 // }
 
 // #[tokio::test]
@@ -167,16 +174,18 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+// Pubkey::new_unique(); // Incorrect holder rewards pool address.
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-//     setup_mint(&mut context, &mint, 0, None).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;     setup_mint(&mut context, &mint, 0, None).await;
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -196,8 +205,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsPoolAddress as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsPoolAddress
+// as u32)         )
 //     );
 // }
 
@@ -207,13 +217,14 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-//     setup_mint(&mut context, &mint, 0, None).await;
+//     setup_token_account(&mut context, &token_account, &owner, &mint,
+// 0).await;     setup_mint(&mut context, &mint, 0, None).await;
 
 //     // Set up a holder rewards pool account with invalid data.
 //     {
@@ -229,7 +240,8 @@
 //     }
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -247,8 +259,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::InvalidAccountData)     );
 // }
 
 // #[tokio::test]
@@ -257,17 +269,19 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = Pubkey::new_unique(); // Incorrect holder reward address.
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = Pubkey::new_unique(); // Incorrect holder reward
+// address.     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-//     setup_mint(&mut context, &mint, 0, None).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;     setup_mint(&mut context, &mint, 0, None).await;
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -287,8 +301,9 @@
 //         err,
 //         TransactionError::InstructionError(
 //             0,
-//             InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsAddress as u32)
-//         )
+//             
+// InstructionError::Custom(PaladinRewardsError::IncorrectHolderRewardsAddress
+// as u32)         )
 //     );
 // }
 
@@ -298,14 +313,15 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
-//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-//     setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
-//     setup_mint(&mut context, &mint, 0, None).await;
+//     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0,
+// 0).await;     setup_token_account(&mut context, &token_account, &owner,
+// &mint, 0).await;     setup_mint(&mut context, &mint, 0, None).await;
 
 //     // Set up an already (arbitrarily) initialized holder rewards account.
 //     {
@@ -321,7 +337,8 @@
 //     }
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -339,8 +356,8 @@
 
 //     assert_eq!(
 //         err,
-//         TransactionError::InstructionError(0, InstructionError::AccountAlreadyInitialized)
-//     );
+//         TransactionError::InstructionError(0,
+// InstructionError::AccountAlreadyInitialized)     );
 // }
 
 // #[tokio::test]
@@ -353,9 +370,10 @@
 //     let mint = Pubkey::new_unique();
 
 //     let token_account = get_associated_token_address(&owner, &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     let mut context = setup().start_with_context().await;
 //     setup_holder_rewards_pool_account(
@@ -384,15 +402,16 @@
 //     // Fund the holder rewards account.
 //     {
 //         let rent = context.banks_client.get_rent().await.unwrap();
-//         let lamports = rent.minimum_balance(std::mem::size_of::<HolderRewards>());
-//         context.set_account(
-//             &holder_rewards,
+//         let lamports =
+// rent.minimum_balance(std::mem::size_of::<HolderRewards>());         context.
+// set_account(             &holder_rewards,
 //             &AccountSharedData::new(lamports, 0, &system_program::id()),
 //         );
 //     }
 
 //     let instruction =
-//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards, &token_account, &mint);
+//         initialize_holder_rewards(&holder_rewards_pool, &holder_rewards,
+// &token_account, &mint);
 
 //     let transaction = Transaction::new_signed_with_payer(
 //         &[instruction],
@@ -414,12 +433,13 @@
 //         .await
 //         .unwrap()
 //         .unwrap();
-//     let holder_rewards_state = bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
+//     let holder_rewards_state =
+// bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
 //     assert_eq!(
 //         holder_rewards_state,
 //         &HolderRewards {
-//             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
-//             unharvested_rewards: 0,
+//             last_accumulated_rewards_per_token:
+// accumulated_rewards_per_token,             unharvested_rewards: 0,
 //             _padding: 0,
 //         }
 //     );
@@ -432,8 +452,8 @@
 //         .unwrap()
 //         .unwrap();
 //     let holder_rewards_pool_state =
-//         bytemuck::from_bytes::<HolderRewardsPool>(&holder_rewards_pool_account.data);
-//     assert_eq!(
+//         bytemuck::from_bytes::<HolderRewardsPool>(&
+// holder_rewards_pool_account.data);     assert_eq!(
 //         holder_rewards_pool_state,
 //         &HolderRewardsPool {
 //             accumulated_rewards_per_token,

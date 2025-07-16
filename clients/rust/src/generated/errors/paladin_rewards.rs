@@ -40,7 +40,19 @@ pub enum PaladinRewardsError {
     OwnerNotSigner = 0x9,
     /// 10 - Signer not owner of token account
     #[error("Signer not owner of token account")]
-    SignerIsNotOwnerTokenAccount = 0xA,
+    NotOwnerTokenAccount = 0xA,
+    /// 11 - Rewards amount exceeds pool balance
+    #[error("Rewards amount exceeds pool balance")]
+    RewardsExcessPoolBalance = 0xB,
+    /// 12 - Holder rewards has deposited tokens
+    #[error("Holder rewards has deposited tokens")]
+    CloseWithDepositedTokens = 0xC,
+    /// 13 - Holder doesn't have any deposited tokens to withdraw
+    #[error("Holder doesn't have any deposited tokens to withdraw")]
+    NoDepositedTokensToWithdraw = 0xD,
+    /// 14 - Pool doesn't have enough balance to withdraw
+    #[error("Pool doesn't have enough balance to withdraw")]
+    WithdrawExceedsPoolBalance = 0xE,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

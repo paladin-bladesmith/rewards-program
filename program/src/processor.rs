@@ -298,7 +298,7 @@ fn process_initialize_holder_rewards_pool(
     validate_token_account(
         holder_rewards_pool_token_account_info,
         holder_rewards_pool_info.key,
-        &mint_info.key,
+        mint_info.key,
     )?;
 
     // Initialize the holder rewards pool account.
@@ -367,7 +367,7 @@ fn process_initialize_holder_rewards(
     let _system_program = next_account_info(accounts_iter)?;
 
     // Confirm owner is signer and the token account owner
-    validate_token_account(token_account_info, &owner.key, mint_info.key)?;
+    validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Confirm owner is the signer
     if !owner.is_signer {
@@ -451,7 +451,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     // Check & load the holder rewards.
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-    let mut holder_rewards_state =
+    let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
@@ -460,8 +460,8 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
 
     // Determine the amount the holder can harvest.
     let rewards_to_harvest = calculate_rewards_to_harvest(
-        &mut holder_rewards_state,
-        &pool_state,
+        holder_rewards_state,
+        pool_state,
         holder_rewards_pool_info.lamports(),
     )?;
 
@@ -563,15 +563,15 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     // Validate pool token account
     validate_token_account(
         holder_rewards_pool_token_account_info,
-        &holder_rewards_pool_info.key,
-        &mint_info.key,
+        holder_rewards_pool_info.key,
+        mint_info.key,
     )?;
 
     // Validate the owner token account
-    validate_token_account(token_account_info, &owner.key, &mint_info.key)?;
+    validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Validate user have enough tokens to deposit
-    let owner_balance = get_token_account_balance_checked(&mint_info.key, token_account_info)?;
+    let owner_balance = get_token_account_balance_checked(mint_info.key, token_account_info)?;
     assert!(owner_balance >= amount);
 
     // Load pool & holder rewards.
@@ -581,7 +581,7 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
         .map_err(|_| ProgramError::InvalidAccountData)?;
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-    let mut holder_rewards_state =
+    let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
@@ -590,8 +590,8 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
 
     // Calculate rewards to harvest before new deposit
     let rewards_to_harvest = calculate_rewards_to_harvest(
-        &mut holder_rewards_state,
-        &pool_state,
+        holder_rewards_state,
+        pool_state,
         holder_rewards_pool_info.lamports(),
     )?;
 
@@ -617,7 +617,7 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
         token_account_info.key,
         holder_rewards_pool_token_account_info.key,
         owner.key,
-        &[&owner.key],
+        &[owner.key],
         amount,
     )?;
 
@@ -650,12 +650,12 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Validate pool token account
     validate_token_account(
         holder_rewards_pool_token_account_info,
-        &holder_rewards_pool_info.key,
-        &mint_info.key,
+        holder_rewards_pool_info.key,
+        mint_info.key,
     )?;
 
     // Validate the owner token account
-    validate_token_account(token_account_info, &owner.key, &mint_info.key)?;
+    validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -664,13 +664,13 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         .map_err(|_| ProgramError::InvalidAccountData)?;
     check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
-    let mut holder_rewards_state =
+    let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Validate that we have enough deposited tokens to withdraw
     let pool_balance =
-        get_token_account_balance_checked(&mint_info.key, holder_rewards_pool_token_account_info)?;
+        get_token_account_balance_checked(mint_info.key, holder_rewards_pool_token_account_info)?;
     if holder_rewards_state.total_deposited == 0 {
         return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
     } else if holder_rewards_state.total_deposited > pool_balance {
@@ -682,8 +682,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 
     // Calculate rewards to harvest before withdrawal
     let rewards_to_harvest = match calculate_rewards_to_harvest(
-        &mut holder_rewards_state,
-        &pool_state,
+        holder_rewards_state,
+        pool_state,
         holder_rewards_pool_info.lamports(),
     ) {
         Ok(_) => todo!(),
@@ -714,7 +714,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     holder_rewards_state.total_deposited = 0;
 
     // Get pool token account signer seeds.
-    let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(&mint_info.key, program_id);
+    let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(mint_info.key, program_id);
     let bump_seed = [bump_seed];
     let holder_rewards_pool_signer_seeds =
         collect_holder_rewards_pool_signer_seeds(mint_info.key, &bump_seed);
@@ -725,7 +725,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         holder_rewards_pool_token_account_info.key,
         token_account_info.key,
         holder_rewards_pool_info.key,
-        &[&holder_rewards_pool_info.key],
+        &[holder_rewards_pool_info.key],
         transfer_amount,
     )?;
 

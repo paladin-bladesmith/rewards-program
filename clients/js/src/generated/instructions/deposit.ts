@@ -10,6 +10,8 @@ import {
   combineCodec,
   getStructDecoder,
   getStructEncoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
@@ -27,13 +29,19 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export type HarvestRewardsInstruction<
+export type DepositInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountHolderRewardsPoolTokenAccount extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
+  TAccountTokenProgram extends
+    | string
+    | IAccountMeta<string> = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -42,6 +50,9 @@ export type HarvestRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountHolderRewardsPoolTokenAccount extends string
+        ? WritableAccount<TAccountHolderRewardsPoolTokenAccount>
+        : TAccountHolderRewardsPoolTokenAccount,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
@@ -52,77 +63,99 @@ export type HarvestRewardsInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountOwner extends string
-        ? WritableAccount<TAccountOwner>
+        ? ReadonlyAccount<TAccountOwner>
         : TAccountOwner,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
 
-export type HarvestRewardsInstructionData = { discriminator: number };
+export type DepositInstructionData = { discriminator: number; amount: bigint };
 
-export type HarvestRewardsInstructionDataArgs = {};
+export type DepositInstructionDataArgs = { amount: number | bigint };
 
-export function getHarvestRewardsInstructionDataEncoder(): Encoder<HarvestRewardsInstructionDataArgs> {
+export function getDepositInstructionDataEncoder(): Encoder<DepositInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 2 })
+    getStructEncoder([
+      ['discriminator', getU8Encoder()],
+      ['amount', getU64Encoder()],
+    ]),
+    (value) => ({ ...value, discriminator: 4 })
   );
 }
 
-export function getHarvestRewardsInstructionDataDecoder(): Decoder<HarvestRewardsInstructionData> {
-  return getStructDecoder([['discriminator', getU8Decoder()]]);
+export function getDepositInstructionDataDecoder(): Decoder<DepositInstructionData> {
+  return getStructDecoder([
+    ['discriminator', getU8Decoder()],
+    ['amount', getU64Decoder()],
+  ]);
 }
 
-export function getHarvestRewardsInstructionDataCodec(): Codec<
-  HarvestRewardsInstructionDataArgs,
-  HarvestRewardsInstructionData
+export function getDepositInstructionDataCodec(): Codec<
+  DepositInstructionDataArgs,
+  DepositInstructionData
 > {
   return combineCodec(
-    getHarvestRewardsInstructionDataEncoder(),
-    getHarvestRewardsInstructionDataDecoder()
+    getDepositInstructionDataEncoder(),
+    getDepositInstructionDataDecoder()
   );
 }
 
-export type HarvestRewardsInput<
+export type DepositInput<
   TAccountHolderRewardsPool extends string = string,
+  TAccountHolderRewardsPoolTokenAccount extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountOwner extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Holder rewards pool token account. */
+  holderRewardsPoolTokenAccount: Address<TAccountHolderRewardsPoolTokenAccount>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
   /** Token account. */
   tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
-  /** owner of token account */
+  /** Owner of the account. */
   owner: Address<TAccountOwner>;
+  /** token program */
+  tokenProgram?: Address<TAccountTokenProgram>;
+  amount: DepositInstructionDataArgs['amount'];
 };
 
-export function getHarvestRewardsInstruction<
+export function getDepositInstruction<
   TAccountHolderRewardsPool extends string,
+  TAccountHolderRewardsPoolTokenAccount extends string,
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountOwner extends string,
+  TAccountTokenProgram extends string,
 >(
-  input: HarvestRewardsInput<
+  input: DepositInput<
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountOwner
+    TAccountOwner,
+    TAccountTokenProgram
   >
-): HarvestRewardsInstruction<
+): DepositInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
+  TAccountHolderRewardsPoolTokenAccount,
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint,
-  TAccountOwner
+  TAccountOwner,
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
@@ -133,40 +166,60 @@ export function getHarvestRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
+    holderRewardsPoolTokenAccount: {
+      value: input.holderRewardsPoolTokenAccount ?? null,
+      isWritable: true,
+    },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
-    owner: { value: input.owner ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
+  // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
+  }
+
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccount),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.owner),
+      getAccountMeta(accounts.tokenProgram),
     ],
     programAddress,
-    data: getHarvestRewardsInstructionDataEncoder().encode({}),
-  } as HarvestRewardsInstruction<
+    data: getDepositInstructionDataEncoder().encode(
+      args as DepositInstructionDataArgs
+    ),
+  } as DepositInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountOwner
+    TAccountOwner,
+    TAccountTokenProgram
   >;
 
   return instruction;
 }
 
-export type ParsedHarvestRewardsInstruction<
+export type ParsedDepositInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -174,27 +227,31 @@ export type ParsedHarvestRewardsInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
+    /** Holder rewards pool token account. */
+    holderRewardsPoolTokenAccount: TAccountMetas[1];
     /** Holder rewards account. */
-    holderRewards: TAccountMetas[1];
+    holderRewards: TAccountMetas[2];
     /** Token account. */
-    tokenAccount: TAccountMetas[2];
+    tokenAccount: TAccountMetas[3];
     /** Token mint. */
-    mint: TAccountMetas[3];
-    /** owner of token account */
-    owner: TAccountMetas[4];
+    mint: TAccountMetas[4];
+    /** Owner of the account. */
+    owner: TAccountMetas[5];
+    /** token program */
+    tokenProgram: TAccountMetas[6];
   };
-  data: HarvestRewardsInstructionData;
+  data: DepositInstructionData;
 };
 
-export function parseHarvestRewardsInstruction<
+export function parseDepositInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedHarvestRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedDepositInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -208,11 +265,13 @@ export function parseHarvestRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
+      holderRewardsPoolTokenAccount: getNextAccount(),
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),
       owner: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
-    data: getHarvestRewardsInstructionDataDecoder().decode(instruction.data),
+    data: getDepositInstructionDataDecoder().decode(instruction.data),
   };
 }

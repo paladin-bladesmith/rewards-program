@@ -34,10 +34,19 @@ export const PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE = 0x7; // 7
 export const PALADIN_REWARDS_ERROR__INVALID_EXTENSION = 0x8; // 8
 /** OwnerNotSigner: Owner is not the signer */
 export const PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER = 0x9; // 9
-/** SignerIsNotOwnerTokenAccount: Signer not owner of token account */
-export const PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT = 0xa; // 10
+/** NotOwnerTokenAccount: Signer not owner of token account */
+export const PALADIN_REWARDS_ERROR__NOT_OWNER_TOKEN_ACCOUNT = 0xa; // 10
+/** RewardsExcessPoolBalance: Rewards amount exceeds pool balance */
+export const PALADIN_REWARDS_ERROR__REWARDS_EXCESS_POOL_BALANCE = 0xb; // 11
+/** CloseWithDepositedTokens: Holder rewards has deposited tokens */
+export const PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS = 0xc; // 12
+/** NoDepositedTokensToWithdraw: Holder doesn't have any deposited tokens to withdraw */
+export const PALADIN_REWARDS_ERROR__NO_DEPOSITED_TOKENS_TO_WITHDRAW = 0xd; // 13
+/** WithdrawExceedsPoolBalance: Pool doesn't have enough balance to withdraw */
+export const PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_POOL_BALANCE = 0xe; // 14
 
 export type PaladinRewardsError =
+  | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_EXTRA_METAS_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS
@@ -46,15 +55,19 @@ export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID
   | typeof PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE
   | typeof PALADIN_REWARDS_ERROR__INVALID_EXTENSION
+  | typeof PALADIN_REWARDS_ERROR__NO_DEPOSITED_TOKENS_TO_WITHDRAW
+  | typeof PALADIN_REWARDS_ERROR__NOT_OWNER_TOKEN_ACCOUNT
   | typeof PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER
-  | typeof PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT
-  | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH;
+  | typeof PALADIN_REWARDS_ERROR__REWARDS_EXCESS_POOL_BALANCE
+  | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH
+  | typeof PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_POOL_BALANCE;
 
 let paladinRewardsErrorMessages:
   | Record<PaladinRewardsError, string>
   | undefined;
 if (process.env.NODE_ENV !== 'production') {
   paladinRewardsErrorMessages = {
+    [PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS]: `Holder rewards has deposited tokens`,
     [PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS]: `Holder rewards has unclaimed rewards`,
     [PALADIN_REWARDS_ERROR__INCORRECT_EXTRA_METAS_ADDRESS]: `Incorrect extra metas address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS]: `Incorrect holder rewards address`,
@@ -63,9 +76,12 @@ if (process.env.NODE_ENV !== 'production') {
     [PALADIN_REWARDS_ERROR__INCORRECT_TRANSFER_HOOK_PROGRAM_ID]: `Incorrect transfer hook program ID`,
     [PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE]: `Cannot close holder rewards with current balance`,
     [PALADIN_REWARDS_ERROR__INVALID_EXTENSION]: `Invalid extension`,
+    [PALADIN_REWARDS_ERROR__NO_DEPOSITED_TOKENS_TO_WITHDRAW]: `Holder doesn't have any deposited tokens to withdraw`,
+    [PALADIN_REWARDS_ERROR__NOT_OWNER_TOKEN_ACCOUNT]: `Signer not owner of token account`,
     [PALADIN_REWARDS_ERROR__OWNER_NOT_SIGNER]: `Owner is not the signer`,
-    [PALADIN_REWARDS_ERROR__SIGNER_IS_NOT_OWNER_TOKEN_ACCOUNT]: `Signer not owner of token account`,
+    [PALADIN_REWARDS_ERROR__REWARDS_EXCESS_POOL_BALANCE]: `Rewards amount exceeds pool balance`,
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH]: `Token account mint mismatch`,
+    [PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_POOL_BALANCE]: `Pool doesn't have enough balance to withdraw`,
   };
 }
 

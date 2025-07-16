@@ -27,13 +27,19 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
-export type HarvestRewardsInstruction<
+export type WithdrawInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountHolderRewardsPoolTokenAccount extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
+  TAccountTokenProgram extends
+    | string
+    | IAccountMeta<string> = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
@@ -42,6 +48,9 @@ export type HarvestRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountHolderRewardsPoolTokenAccount extends string
+        ? WritableAccount<TAccountHolderRewardsPoolTokenAccount>
+        : TAccountHolderRewardsPoolTokenAccount,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
@@ -52,77 +61,92 @@ export type HarvestRewardsInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountOwner extends string
-        ? WritableAccount<TAccountOwner>
+        ? ReadonlyAccount<TAccountOwner>
         : TAccountOwner,
+      TAccountTokenProgram extends string
+        ? ReadonlyAccount<TAccountTokenProgram>
+        : TAccountTokenProgram,
       ...TRemainingAccounts,
     ]
   >;
 
-export type HarvestRewardsInstructionData = { discriminator: number };
+export type WithdrawInstructionData = { discriminator: number };
 
-export type HarvestRewardsInstructionDataArgs = {};
+export type WithdrawInstructionDataArgs = {};
 
-export function getHarvestRewardsInstructionDataEncoder(): Encoder<HarvestRewardsInstructionDataArgs> {
+export function getWithdrawInstructionDataEncoder(): Encoder<WithdrawInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 2 })
+    (value) => ({ ...value, discriminator: 5 })
   );
 }
 
-export function getHarvestRewardsInstructionDataDecoder(): Decoder<HarvestRewardsInstructionData> {
+export function getWithdrawInstructionDataDecoder(): Decoder<WithdrawInstructionData> {
   return getStructDecoder([['discriminator', getU8Decoder()]]);
 }
 
-export function getHarvestRewardsInstructionDataCodec(): Codec<
-  HarvestRewardsInstructionDataArgs,
-  HarvestRewardsInstructionData
+export function getWithdrawInstructionDataCodec(): Codec<
+  WithdrawInstructionDataArgs,
+  WithdrawInstructionData
 > {
   return combineCodec(
-    getHarvestRewardsInstructionDataEncoder(),
-    getHarvestRewardsInstructionDataDecoder()
+    getWithdrawInstructionDataEncoder(),
+    getWithdrawInstructionDataDecoder()
   );
 }
 
-export type HarvestRewardsInput<
+export type WithdrawInput<
   TAccountHolderRewardsPool extends string = string,
+  TAccountHolderRewardsPoolTokenAccount extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountOwner extends string = string,
+  TAccountTokenProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Holder rewards pool token account. */
+  holderRewardsPoolTokenAccount: Address<TAccountHolderRewardsPoolTokenAccount>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
   /** Token account. */
   tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
-  /** owner of token account */
+  /** Owner of the account. */
   owner: Address<TAccountOwner>;
+  /** token program */
+  tokenProgram?: Address<TAccountTokenProgram>;
 };
 
-export function getHarvestRewardsInstruction<
+export function getWithdrawInstruction<
   TAccountHolderRewardsPool extends string,
+  TAccountHolderRewardsPoolTokenAccount extends string,
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountOwner extends string,
+  TAccountTokenProgram extends string,
 >(
-  input: HarvestRewardsInput<
+  input: WithdrawInput<
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountOwner
+    TAccountOwner,
+    TAccountTokenProgram
   >
-): HarvestRewardsInstruction<
+): WithdrawInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
+  TAccountHolderRewardsPoolTokenAccount,
   TAccountHolderRewards,
   TAccountTokenAccount,
   TAccountMint,
-  TAccountOwner
+  TAccountOwner,
+  TAccountTokenProgram
 > {
   // Program address.
   const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
@@ -133,40 +157,55 @@ export function getHarvestRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
+    holderRewardsPoolTokenAccount: {
+      value: input.holderRewardsPoolTokenAccount ?? null,
+      isWritable: true,
+    },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
-    owner: { value: input.owner ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isWritable: false },
+    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
 
+  // Resolve default values.
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
+  }
+
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccount),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.owner),
+      getAccountMeta(accounts.tokenProgram),
     ],
     programAddress,
-    data: getHarvestRewardsInstructionDataEncoder().encode({}),
-  } as HarvestRewardsInstruction<
+    data: getWithdrawInstructionDataEncoder().encode({}),
+  } as WithdrawInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
     TAccountTokenAccount,
     TAccountMint,
-    TAccountOwner
+    TAccountOwner,
+    TAccountTokenProgram
   >;
 
   return instruction;
 }
 
-export type ParsedHarvestRewardsInstruction<
+export type ParsedWithdrawInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
@@ -174,27 +213,31 @@ export type ParsedHarvestRewardsInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
+    /** Holder rewards pool token account. */
+    holderRewardsPoolTokenAccount: TAccountMetas[1];
     /** Holder rewards account. */
-    holderRewards: TAccountMetas[1];
+    holderRewards: TAccountMetas[2];
     /** Token account. */
-    tokenAccount: TAccountMetas[2];
+    tokenAccount: TAccountMetas[3];
     /** Token mint. */
-    mint: TAccountMetas[3];
-    /** owner of token account */
-    owner: TAccountMetas[4];
+    mint: TAccountMetas[4];
+    /** Owner of the account. */
+    owner: TAccountMetas[5];
+    /** token program */
+    tokenProgram: TAccountMetas[6];
   };
-  data: HarvestRewardsInstructionData;
+  data: WithdrawInstructionData;
 };
 
-export function parseHarvestRewardsInstruction<
+export function parseWithdrawInstruction<
   TProgram extends string,
   TAccountMetas extends readonly IAccountMeta[],
 >(
   instruction: IInstruction<TProgram> &
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
-): ParsedHarvestRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedWithdrawInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -208,11 +251,13 @@ export function parseHarvestRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
+      holderRewardsPoolTokenAccount: getNextAccount(),
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),
       mint: getNextAccount(),
       owner: getNextAccount(),
+      tokenProgram: getNextAccount(),
     },
-    data: getHarvestRewardsInstructionDataDecoder().decode(instruction.data),
+    data: getWithdrawInstructionDataDecoder().decode(instruction.data),
   };
 }

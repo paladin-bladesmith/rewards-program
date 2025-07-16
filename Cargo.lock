@@ -2692,7 +2692,6 @@ dependencies = [
  "solana-sdk",
  "spl-associated-token-account",
  "spl-pod",
- "spl-tlv-account-resolution",
  "spl-token 4.0.2",
  "spl-type-length-value",
  "test-case",

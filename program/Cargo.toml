@@ -16,7 +16,6 @@ shank = "0.4.2"
 solana-program = "2.1.4"
 solana-sdk = "2.1.4"
 spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
-spl-tlv-account-resolution = "0.7.0"
 spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
 thiserror = "1.0"
 
