@@ -14,33 +14,21 @@ use {
 // Note: Shank does not export the type when we use `spl_program_error`.
 #[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinRewardsError {
-    /// Incorrect transfer hook program ID.
-    #[error("Incorrect transfer hook program ID")]
-    IncorrectTransferHookProgramId,
     /// Incorrect holder rewards pool address.
     #[error("Incorrect holder rewards pool address")]
     IncorrectHolderRewardsPoolAddress,
-    /// Incorrect extra metas address.
-    #[error("Incorrect extra metas address")]
-    IncorrectExtraMetasAddress,
     /// Incorrect holder rewards address.
     #[error("Incorrect holder rewards address")]
     IncorrectHolderRewardsAddress,
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
-    /// Provided sponsor account did not match expected sponsor.
-    #[error("Holder rewards sponsor account mismatch")]
-    IncorrectSponsorAddress,
     /// Attempted to close a holder rewards account that had unclaimed rewards.
     #[error("Holder rewards has unclaimed rewards")]
     CloseWithUnclaimedRewards,
     /// Cannot close holder rewards with current balance.
     #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance,
-    /// Invalid extension.
-    #[error("Invalid extension")]
-    InvalidExtension,
     /// Owner is not the signer.
     #[error("Owner is not the signer")]
     OwnerNotSigner,
@@ -59,6 +47,12 @@ pub enum PaladinRewardsError {
     /// Pool doesn't have enough balance to withdraw.
     #[error("Pool doesn't have enough balance to withdraw")]
     WithdrawExceedsPoolBalance,
+    /// Token account owner mismatch.
+    #[error("Token account owner mismatch")]
+    TokenAccountOwnerMissmatch,
+    /// Token account is frozen.
+    #[error("Token account is frozen")]
+    TokenAccountFrozen,
 }
 
 impl PrintProgramError for PaladinRewardsError {

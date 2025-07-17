@@ -2682,6 +2682,7 @@ dependencies = [
 name = "paladin-rewards-program"
 version = "0.0.1"
 dependencies = [
+ "arrayref",
  "bytemuck",
  "num-derive 0.3.3",
  "num-traits",

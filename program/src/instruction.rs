@@ -1,6 +1,7 @@
 //! Program instruction types.
 
 use {
+    arrayref::array_ref,
     shank::ShankInstruction,
     solana_program::{
         instruction::{AccountMeta, Instruction},
@@ -37,7 +38,6 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         1,
-        writable,
         name = "holder_rewards_pool_token_account_info",
         desc = "Holder rewards pool token account."
     )]
@@ -73,28 +73,33 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         1,
+        name = "holder_rewards_pool_token_account_info",
+        desc = "Holder rewards pool token account."
+    )]
+    #[account(
+        2,
         writable,
         name = "owner",
         desc = "Token account owner.",
     )]
     #[account(
-        2,
+        3,
         writable,
         name = "holder_rewards",
         desc = "Holder rewards account.",
     )]
     #[account(
-        3,
+        4,
         name = "token_account",
         desc = "Token account.",
     )]
     #[account(
-        4,
+        5,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        5,
+        6,
         name = "system_program",
         desc = "System program.",
     )]
@@ -118,15 +123,14 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         1,
-        writable,
-        name = "holder_rewards",
-        desc = "Holder rewards account.",
+        name = "holder_rewards_pool_token_account_info",
+        desc = "Holder rewards pool token account."
     )]
     #[account(
         2,
         writable,
-        name = "token_account",
-        desc = "Token account.",
+        name = "holder_rewards",
+        desc = "Holder rewards account.",
     )]
     #[account(
         3,
@@ -150,21 +154,27 @@ pub enum PaladinRewardsInstruction {
     #[account(
         1,
         writable,
+        name = "holder_rewards_pool_token_account_info",
+        desc = "Holder rewards pool token account."
+    )]
+    #[account(
+        2,
+        writable,
         name = "holder_rewards",
         desc = "Holder rewards account.",
     )]
     #[account(
-        2,
+        3,
         name = "token_account",
         desc = "Token account.",
     )]
     #[account(
-        3,
+        4,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        4,
+        5,
         writable,
         name = "owner",
         desc = "Owner of the account.",
@@ -178,7 +188,6 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         1,
-        writable,
         name = "holder_rewards_pool_token_account",
         desc = "Holder rewards pool token account."
     )]
@@ -263,9 +272,9 @@ impl PaladinRewardsInstruction {
             PaladinRewardsInstruction::HarvestRewards => vec![2],
             PaladinRewardsInstruction::CloseHolderRewards => vec![3],
             PaladinRewardsInstruction::Deposit { amount } => {
-                let mut data = Vec::with_capacity(33);
+                let mut data = Vec::with_capacity(9);
                 data.push(4);
-                data.extend_from_slice(bytemuck::bytes_of(amount));
+                data.extend_from_slice(&amount.to_le_bytes());
                 data
             }
             PaladinRewardsInstruction::Withdraw => vec![5],
@@ -280,11 +289,9 @@ impl PaladinRewardsInstruction {
             Some((&1, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
             Some((&2, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
             Some((&3, _)) => Ok(PaladinRewardsInstruction::CloseHolderRewards),
-            Some((&4, rest)) => {
-                let amount = *rest
-                    .get(..32)
-                    .map(bytemuck::from_bytes)
-                    .ok_or(ProgramError::InvalidInstructionData)?;
+            Some((&4, rest)) if rest.len() == 8 => {
+                let amount = u64::from_le_bytes(*array_ref![rest, 0, 8]);
+
                 Ok(PaladinRewardsInstruction::Deposit { amount })
             }
             Some((&5, _)) => Ok(PaladinRewardsInstruction::Withdraw),
@@ -315,6 +322,7 @@ pub fn initialize_holder_rewards_pool(
 /// instruction.
 pub fn initialize_holder_rewards(
     holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
     holder_rewards_address: &Pubkey,
     owner: &Pubkey,
     token_account_address: &Pubkey,
@@ -322,6 +330,7 @@ pub fn initialize_holder_rewards(
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*holder_rewards_pool_token_account_address, false),
         AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*owner, true),
         AccountMeta::new_readonly(*token_account_address, false),
@@ -335,15 +344,15 @@ pub fn initialize_holder_rewards(
 /// Creates a [HarvestRewards](enum.PaladinRewardsInstruction.html) instruction.
 pub fn harvest_rewards(
     holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
     holder_rewards_address: &Pubkey,
-    token_account_address: &Pubkey,
     mint_address: &Pubkey,
     owner_address: &Pubkey,
 ) -> Instruction {
     let accounts: Vec<_> = [
         AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*holder_rewards_pool_token_account_address, false),
         AccountMeta::new(*holder_rewards_address, false),
-        AccountMeta::new(*token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new(*owner_address, true),
     ]
@@ -377,6 +386,7 @@ pub fn close_holder_rewards(
 /// instruction.
 pub fn deposit(
     holder_rewards_pool_address: Pubkey,
+    holder_rewards_pool_token_account_address: Pubkey,
     holder_rewards_address: Pubkey,
     token_account_address: Pubkey,
     mint_address: Pubkey,
@@ -384,12 +394,13 @@ pub fn deposit(
     amount: u64,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_pool_token_account_address, false),
         AccountMeta::new(holder_rewards_address, false),
-        AccountMeta::new_readonly(token_account_address, false),
+        AccountMeta::new(token_account_address, false),
         AccountMeta::new_readonly(mint_address, false),
         AccountMeta::new(owner, true),
-        AccountMeta::new(spl_token::id(), false),
+        AccountMeta::new_readonly(spl_token::id(), false),
     ];
     let data = PaladinRewardsInstruction::Deposit { amount }.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
@@ -445,6 +456,22 @@ mod tests {
     #[test]
     fn test_pack_unpack_close_holder_rewards() {
         let original = PaladinRewardsInstruction::CloseHolderRewards;
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
+
+    #[test]
+    fn test_pack_unpack_deposit() {
+        let original = PaladinRewardsInstruction::Deposit { amount: 1000 };
+        let packed = original.pack();
+        let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
+        assert_eq!(original, unpacked);
+    }
+
+    #[test]
+    fn test_pack_unpack_withdraw() {
+        let original = PaladinRewardsInstruction::Withdraw;
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

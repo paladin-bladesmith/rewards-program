@@ -5,9 +5,10 @@ use {
     paladin_rewards_program::state::{HolderRewards, HolderRewardsPool},
     solana_program_test::*,
     solana_sdk::{
-        account::{Account, AccountSharedData},
+        account::{Account, AccountSharedData, ReadableAccount},
         program_pack::Pack,
         pubkey::Pubkey,
+        signer::Signer,
         system_program,
     },
     spl_token::state::{Account as TokenAccount, AccountState, Mint},
@@ -52,7 +53,7 @@ pub async fn setup_mint(
     );
 }
 
-async fn setup_token_account_common(
+pub async fn setup_token_account(
     context: &mut ProgramTestContext,
     token_account: &Pubkey,
     owner: &Pubkey,
@@ -85,16 +86,6 @@ async fn setup_token_account_common(
     );
 }
 
-pub async fn setup_token_account(
-    context: &mut ProgramTestContext,
-    token_account: &Pubkey,
-    owner: &Pubkey,
-    mint: &Pubkey,
-    amount: u64,
-) {
-    setup_token_account_common(context, token_account, owner, mint, amount).await;
-}
-
 pub async fn setup_rent_exempt_account(
     context: &mut ProgramTestContext,
     address: &Pubkey,
@@ -116,7 +107,7 @@ pub async fn setup_system_account(
     setup_rent_exempt_account(context, address, excess_lamports, &system_program::id()).await;
 }
 
-#[allow(clippy::arithmetic_side_effects)]
+// #[allow(clippy::arithmetic_side_effects)]
 pub async fn setup_holder_rewards_pool_account(
     context: &mut ProgramTestContext,
     holder_rewards_pool_address: &Pubkey,
@@ -141,6 +132,33 @@ pub async fn setup_holder_rewards_pool_account(
             ..Account::default()
         }),
     );
+}
+
+pub async fn setup_holder_rewards_pool_account_with_token_account(
+    context: &mut ProgramTestContext,
+    mint: &Pubkey,
+    holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
+    excess_lamports: u64,
+    accumulated_rewards_per_token: u128,
+    token_balance: u64,
+) {
+    setup_holder_rewards_pool_account(
+        context,
+        holder_rewards_pool_address,
+        excess_lamports,
+        accumulated_rewards_per_token,
+    )
+    .await;
+
+    setup_token_account(
+        context,
+        &holder_rewards_pool_token_account_address,
+        holder_rewards_pool_address,
+        mint,
+        token_balance,
+    )
+    .await;
 }
 
 #[allow(clippy::arithmetic_side_effects)]
@@ -170,3 +188,42 @@ pub async fn setup_holder_rewards_account(
         }),
     );
 }
+
+pub async fn setup_holder_rewards_account_with_token_account(
+    context: &mut ProgramTestContext,
+    mint: &Pubkey,
+    owner: &Pubkey,
+    holder_rewards: &Pubkey,
+    owner_token_account: &Pubkey,
+    total_deposited: u64,
+    last_accumulated_rewards_per_token: u128,
+    token_balance: u64,
+) {
+    setup_holder_rewards_account(
+        context,
+        holder_rewards,
+        total_deposited,
+        last_accumulated_rewards_per_token,
+    )
+    .await;
+
+    setup_token_account(context, owner_token_account, owner, mint, token_balance).await;
+}
+
+/// Send lamports to an account
+pub async fn send_rewards_to_pool(
+    context: &mut ProgramTestContext,
+    pool_address: &Pubkey,
+    lamport_amount: u64,
+) {
+    let mut pool_account = context
+        .banks_client
+        .get_account(*pool_address)
+        .await
+        .unwrap()
+        .unwrap();
+    pool_account.lamports += lamport_amount;
+    context.set_account(pool_address, &AccountSharedData::from(pool_account));
+}
+// 3000009446581457
+// 3000009453987217

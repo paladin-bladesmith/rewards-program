@@ -15,14 +15,14 @@ use {
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
-        program::invoke_signed,
+        program::{invoke, invoke_signed},
         program_error::ProgramError,
+        program_pack::Pack,
         pubkey::Pubkey,
         rent::Rent,
         system_instruction, system_program,
         sysvar::Sysvar,
     },
-    solana_sdk::{program::invoke, program_pack::Pack},
     spl_token::{
         instruction::transfer,
         state::{Account as TokenAccount, AccountState, Mint},
@@ -30,12 +30,6 @@ use {
 };
 
 const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
-
-fn get_token_supply(mint_info: &AccountInfo) -> Result<u64, ProgramError> {
-    let mint_data = mint_info.try_borrow_data()?;
-    let mint = Mint::unpack(&mint_data)?;
-    Ok(mint.supply)
-}
 
 fn get_token_account_balance_checked(
     mint: &Pubkey,
@@ -75,7 +69,7 @@ fn check_pool(
 
 fn check_holder_rewards(
     program_id: &Pubkey,
-    token_account_key: &Pubkey,
+    owner_address: &Pubkey,
     holder_rewards_info: &AccountInfo,
 ) -> ProgramResult {
     // Ensure the holder rewards account is owned by the Paladin Rewards
@@ -86,7 +80,7 @@ fn check_holder_rewards(
 
     // Ensure the provided holder rewards address is the correct address
     // derived from the token account.
-    if holder_rewards_info.key != &get_holder_rewards_address(token_account_key, program_id) {
+    if holder_rewards_info.key != &get_holder_rewards_address(owner_address, program_id) {
         return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
     }
 
@@ -102,13 +96,13 @@ fn check_holder_rewards(
 // supply, since the scaling to `u128` prevents multiplication from breaking
 // the `u64::MAX` ceiling, and the `token_supply == 0` check prevents
 // `checked_div` returning `None` from a zero denominator.
-fn calculate_rewards_per_token(rewards: u64, token_supply: u64) -> Result<u128, ProgramError> {
-    if token_supply == 0 {
+fn calculate_rewards_per_token(rewards: u64, total_deposited: u64) -> Result<u128, ProgramError> {
+    if total_deposited == 0 {
         return Ok(0);
     }
     (rewards as u128)
         .checked_mul(REWARDS_PER_TOKEN_SCALING_FACTOR)
-        .and_then(|product| product.checked_div(token_supply as u128))
+        .and_then(|product| product.checked_div(total_deposited as u128))
         .ok_or(ProgramError::ArithmeticOverflow)
 }
 
@@ -145,14 +139,18 @@ fn calculate_eligible_rewards(
 fn update_accumulated_rewards_per_token(
     mint_info: &AccountInfo,
     holder_rewards_pool_info: &AccountInfo,
+    pool_token_account: &AccountInfo,
     pool_state: &mut HolderRewardsPool,
 ) -> ProgramResult {
+    let total_deposited = get_token_account_balance_checked(mint_info.key, pool_token_account)?;
     let latest_lamports = holder_rewards_pool_info.lamports();
+
     let additional_lamports = latest_lamports
         .checked_sub(pool_state.lamports_last)
         .ok_or(ProgramError::ArithmeticOverflow)?;
-    let marginal_rate =
-        calculate_rewards_per_token(additional_lamports, get_token_supply(mint_info)?)?;
+
+    let marginal_rate = calculate_rewards_per_token(additional_lamports, total_deposited)?;
+
     pool_state.accumulated_rewards_per_token = pool_state
         .accumulated_rewards_per_token
         .wrapping_add(marginal_rate);
@@ -195,19 +193,19 @@ fn validate_token_account(
     // Verify owner
     if token_account.owner != *expected_owner {
         msg!("Invalid token account owner");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(PaladinRewardsError::TokenAccountOwnerMissmatch.into());
     }
 
     // Verify mint
     if token_account.mint != *expected_mint {
         msg!("Invalid token account mint");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(PaladinRewardsError::TokenAccountMintMismatch.into());
     }
 
     // Check if account is not frozen
     if token_account.state == AccountState::Frozen {
         msg!("Token account is frozen");
-        return Err(ProgramError::InvalidAccountData);
+        return Err(PaladinRewardsError::TokenAccountFrozen.into());
     }
 
     Ok(())
@@ -360,13 +358,18 @@ fn process_initialize_holder_rewards(
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program = next_account_info(accounts_iter)?;
 
-    // Confirm owner is signer and the token account owner
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        holder_rewards_pool_info.key,
+        mint_info.key,
+    )?;
     validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Confirm owner is the signer
@@ -381,15 +384,20 @@ fn process_initialize_holder_rewards(
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Process any received lamports.
-    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    update_accumulated_rewards_per_token(
+        mint_info,
+        holder_rewards_pool_info,
+        holder_rewards_pool_token_account_info,
+        pool_state,
+    )?;
 
     // Initialize the holder rewards account.
     {
         let (holder_rewards_address, bump_seed) =
-            get_holder_rewards_address_and_bump_seed(token_account_info.key, program_id);
+            get_holder_rewards_address_and_bump_seed(owner.key, program_id);
         let bump_seed = [bump_seed];
         let holder_rewards_signer_seeds =
-            collect_holder_rewards_signer_seeds(token_account_info.key, &bump_seed);
+            collect_holder_rewards_signer_seeds(owner.key, &bump_seed);
 
         // Ensure the provided holder rewards address is the correct address
         // derived from the token account.
@@ -437,10 +445,16 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
-    let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
+
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        holder_rewards_pool_info.key,
+        mint_info.key,
+    )?;
 
     // Check & load the pool
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -449,14 +463,19 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Check & load the holder rewards.
-    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    check_holder_rewards(program_id, owner.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Handle any lamports received since last harvest.
-    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    update_accumulated_rewards_per_token(
+        mint_info,
+        holder_rewards_pool_info,
+        holder_rewards_pool_token_account_info,
+        pool_state,
+    )?;
 
     // Determine the amount the holder can harvest.
     let rewards_to_harvest = calculate_rewards_to_harvest(
@@ -484,23 +503,36 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
+    let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
+
+    validate_token_account(
+        holder_rewards_pool_token_account_info,
+        holder_rewards_pool_info.key,
+        mint_info.key,
+    )?;
+    validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
-    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    check_holder_rewards(program_id, owner.key, holder_rewards_info)?;
     let holder_rewards_data = holder_rewards_info.try_borrow_data()?;
     let holder_rewards_state = bytemuck::try_from_bytes::<HolderRewards>(&holder_rewards_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Handle any lamports received since last harvest.
-    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    update_accumulated_rewards_per_token(
+        mint_info,
+        holder_rewards_pool_info,
+        holder_rewards_pool_token_account_info,
+        pool_state,
+    )?;
 
     // Ensure holder has no unclaimed rewards.
     if holder_rewards_state.last_accumulated_rewards_per_token
@@ -579,14 +611,19 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
-    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    check_holder_rewards(program_id, owner.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Handle any lamports received since last harvest.
-    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    update_accumulated_rewards_per_token(
+        mint_info,
+        holder_rewards_pool_info,
+        holder_rewards_pool_token_account_info,
+        pool_state,
+    )?;
 
     // Calculate rewards to harvest before new deposit
     let rewards_to_harvest = calculate_rewards_to_harvest(
@@ -594,16 +631,6 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
         pool_state,
         holder_rewards_pool_info.lamports(),
     )?;
-
-    // Send rewards to the owner
-    if rewards_to_harvest > 0 {
-        send_rewards(
-            holder_rewards_pool_info.clone(),
-            owner.clone(),
-            pool_state,
-            rewards_to_harvest,
-        )?;
-    }
 
     // Update total deposited tokens
     holder_rewards_state.total_deposited = holder_rewards_state
@@ -630,6 +657,16 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
             token_program.clone(),
         ],
     )?;
+
+    // Send rewards to the owner
+    if rewards_to_harvest > 0 {
+        send_rewards(
+            holder_rewards_pool_info.clone(),
+            owner.clone(),
+            pool_state,
+            rewards_to_harvest,
+        )?;
+    }
 
     Ok(())
 }
@@ -662,7 +699,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
-    check_holder_rewards(program_id, token_account_info.key, holder_rewards_info)?;
+    check_holder_rewards(program_id, owner.key, holder_rewards_info)?;
     let mut holder_rewards_data = holder_rewards_info.try_borrow_mut_data()?;
     let holder_rewards_state =
         bytemuck::try_from_bytes_mut::<HolderRewards>(&mut holder_rewards_data)
@@ -678,7 +715,12 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     }
 
     // Handle any lamports received since last harvest.
-    update_accumulated_rewards_per_token(mint_info, holder_rewards_pool_info, pool_state)?;
+    update_accumulated_rewards_per_token(
+        mint_info,
+        holder_rewards_pool_info,
+        holder_rewards_pool_token_account_info,
+        pool_state,
+    )?;
 
     // Calculate rewards to harvest before withdrawal
     let rewards_to_harvest = match calculate_rewards_to_harvest(
@@ -698,16 +740,6 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         }
         Err(err) => Err(err),
     }?;
-
-    // Send rewards to the owner
-    if rewards_to_harvest > 0 {
-        send_rewards(
-            holder_rewards_pool_info.clone(),
-            owner.clone(),
-            pool_state,
-            rewards_to_harvest,
-        )?;
-    }
 
     // Update total deposited tokens
     let transfer_amount = holder_rewards_state.total_deposited;
@@ -739,6 +771,16 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         ],
         &[&holder_rewards_pool_signer_seeds],
     )?;
+
+    // Send rewards to the owner
+    if rewards_to_harvest > 0 {
+        send_rewards(
+            holder_rewards_pool_info.clone(),
+            owner.clone(),
+            pool_state,
+            rewards_to_harvest,
+        )?;
+    }
 
     Ok(())
 }
