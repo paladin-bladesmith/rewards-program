@@ -5,14 +5,16 @@ use {
     paladin_rewards_program::state::{HolderRewards, HolderRewardsPool},
     solana_program_test::*,
     solana_sdk::{
-        account::{Account, AccountSharedData, ReadableAccount},
+        account::{Account, AccountSharedData},
         program_pack::Pack,
         pubkey::Pubkey,
-        signer::Signer,
         system_program,
     },
     spl_token::state::{Account as TokenAccount, AccountState, Mint},
 };
+
+pub const DEPOSIT_AMOUNT: u64 = 250_000_000;
+pub const INITIAL_OWNER_BALANCE: u64 = 1_000_000_000;
 
 pub fn setup() -> ProgramTest {
     ProgramTest::new(

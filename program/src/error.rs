@@ -53,6 +53,9 @@ pub enum PaladinRewardsError {
     /// Token account is frozen.
     #[error("Token account is frozen")]
     TokenAccountFrozen,
+    /// Owner doesn'thave enough tokens to deposit.
+    #[error("Owner doesn'thave enough tokens to deposit")]
+    NotEnoughTokenToDeposit,
 }
 
 impl PrintProgramError for PaladinRewardsError {

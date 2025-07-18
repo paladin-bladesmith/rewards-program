@@ -1,8 +1,10 @@
 #![cfg(feature = "test-sbf")]
 
+mod execute_utils;
 mod setup;
 
 use {
+    crate::execute_utils::{execute_with_payer, execute_with_payer_err},
     paladin_rewards_program::{
         error::PaladinRewardsError,
         instruction::initialize_holder_rewards,
@@ -20,7 +22,7 @@ use {
         signature::Keypair,
         signer::Signer,
         system_program,
-        transaction::{Transaction, TransactionError},
+        transaction::TransactionError,
     },
     spl_associated_token_account::get_associated_token_address,
 };
@@ -63,19 +65,7 @@ async fn fail_token_account_invalid_data() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -123,19 +113,7 @@ async fn fail_token_account_mint_mismatch() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -187,19 +165,7 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -240,19 +206,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -279,14 +233,7 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
-    setup_token_account(
-        &mut context,
-        &pool_token_account,
-        &rand,
-        &mint,
-        0,
-    )
-    .await;
+    setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
@@ -298,19 +245,7 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -367,19 +302,7 @@ async fn fail_holder_rewards_pool_invalid_data() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -420,19 +343,7 @@ async fn fail_holder_rewards_incorrect_address() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -490,19 +401,7 @@ async fn fail_holder_rewards_account_initialized() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -578,18 +477,7 @@ async fn success() {
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
-        context.last_blockhash,
-    );
-
-    context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap();
+    execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert - Check the holder rewards account.
     let holder_rewards_account = context

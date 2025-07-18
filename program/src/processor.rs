@@ -29,7 +29,7 @@ use {
     },
 };
 
-const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
+pub const REWARDS_PER_TOKEN_SCALING_FACTOR: u128 = 1_000_000_000_000_000_000; // 1e18
 
 fn get_token_account_balance_checked(
     mint: &Pubkey,
@@ -126,6 +126,7 @@ fn calculate_eligible_rewards(
 ) -> Result<u64, ProgramError> {
     let marginal_rate =
         current_accumulated_rewards_per_token.wrapping_sub(last_accumulated_rewards_per_token);
+
     if marginal_rate == 0 {
         return Ok(0);
     }
@@ -604,7 +605,9 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
 
     // Validate user have enough tokens to deposit
     let owner_balance = get_token_account_balance_checked(mint_info.key, token_account_info)?;
-    assert!(owner_balance >= amount);
+    if owner_balance < amount {
+        return Err(PaladinRewardsError::NotEnoughTokenToDeposit.into());
+    }
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -728,7 +731,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         pool_state,
         holder_rewards_pool_info.lamports(),
     ) {
-        Ok(_) => todo!(),
+        Ok(rewards) => Ok(rewards),
         Err(ProgramError::Custom(err)) => {
             // If the pool does not have enough lamports to cover the rewards,
             // we set the amount to 0
@@ -761,6 +764,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         transfer_amount,
     )?;
 
+    drop(pool_data);
     invoke_signed(
         &transfer_ix,
         &[
@@ -771,6 +775,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         ],
         &[&holder_rewards_pool_signer_seeds],
     )?;
+
+    // re-borrow the pool data to use in `send_rewards`
+    let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
+    let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Send rewards to the owner
     if rewards_to_harvest > 0 {

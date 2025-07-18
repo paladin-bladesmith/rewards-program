@@ -405,16 +405,16 @@
 // InstructionError::InvalidAccountData)     );
 // }
 
-struct Pool {
-    excess_lamports: u64,
-    accumulated_rewards_per_token: u128,
-}
+// struct Pool {
+//     excess_lamports: u64,
+//     accumulated_rewards_per_token: u128,
+// }
 
-struct Holder {
-    token_account_balance: u64,
-    last_accumulated_rewards_per_token: u128,
-    total_deposited: u64,
-}
+// struct Holder {
+//     token_account_balance: u64,
+//     last_accumulated_rewards_per_token: u128,
+//     total_deposited: u64,
+// }
 
 // #[test_case(
 //     Pool {

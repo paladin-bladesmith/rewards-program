@@ -408,15 +408,17 @@ pub fn deposit(
 
 pub fn withdraw(
     holder_rewards_pool_address: Pubkey,
+    holder_rewards_pool_token_account_address: Pubkey,
     holder_rewards_address: Pubkey,
     token_account_address: Pubkey,
     mint_address: Pubkey,
     owner: Pubkey,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_pool_address, false),
+        AccountMeta::new(holder_rewards_pool_token_account_address, false),
         AccountMeta::new(holder_rewards_address, false),
-        AccountMeta::new_readonly(token_account_address, false),
+        AccountMeta::new(token_account_address, false),
         AccountMeta::new_readonly(mint_address, false),
         AccountMeta::new(owner, true),
         AccountMeta::new(spl_token::id(), false),
