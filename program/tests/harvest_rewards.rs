@@ -6,11 +6,11 @@
 //     paladin_rewards_program::{
 //         error::PaladinRewardsError,
 //         instruction::harvest_rewards,
-//         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
-//     },
+//         state::{get_holder_rewards_address, get_holder_rewards_pool_address,
+// HolderRewards},     },
 //     setup::{
-//         setup, setup_holder_rewards_account, setup_holder_rewards_pool_account, setup_mint,
-//         setup_token_account,
+//         setup, setup_holder_rewards_account,
+// setup_holder_rewards_pool_account, setup_mint,         setup_token_account,
 //     },
 //     solana_program_test::*,
 //     solana_sdk::{
@@ -615,12 +615,12 @@
 // #[test_case(
 //     Pool {
 //         excess_lamports: 10_000,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: 10_000,
-//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5 rewards per token.
-//         unharvested_rewards: 0,
+//         last_accumulated_rewards_per_token: 500_000_000_000_000_000, // 0.5
+// rewards per token.         unharvested_rewards: 0,
 //     },
 //     2_500, // (1 - 0.5) * 10_000 * 50%
 //     0;
@@ -630,8 +630,8 @@
 // #[test_case(
 //     Pool {
 //         excess_lamports: HOLDER_REWARDS_RENT * 10,
-//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward per token.     
-//     },
+//         accumulated_rewards_per_token: 1_000_000_000_000_000_000, // 1 reward
+// per token.     },
 //     Holder {
 //         token_account_balance: HOLDER_REWARDS_RENT * 10,
 //         last_accumulated_rewards_per_token: 0,
@@ -665,9 +665,10 @@
 //     setup_mint(&mut context, &mint, token_account_balance, None).await;
 
 //     let token_account = get_associated_token_address(&owner.pubkey(), &mint);
-//     let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
-//     let holder_rewards_pool =
-//         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+//     let holder_rewards = get_holder_rewards_address(&token_account,
+// &paladin_rewards_program::id());     let holder_rewards_pool =
+//         get_holder_rewards_pool_address(&mint,
+// &paladin_rewards_program::id());
 
 //     // Sponsor details.
 //     let rent = context.banks_client.get_rent().await.unwrap();
@@ -744,9 +745,9 @@
 //     assert_eq!(
 //         bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data),
 //         &HolderRewards {
-//             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
-//             total_deposited: expected_unharvested_rewards,
-//             _padding: 0,
+//             last_accumulated_rewards_per_token:
+// accumulated_rewards_per_token,             total_deposited:
+// expected_unharvested_rewards,             _padding: 0,
 //         }
 //     );
 

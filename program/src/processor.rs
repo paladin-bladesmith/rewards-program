@@ -455,7 +455,7 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     if !owner.is_signer {
         return Err(PaladinRewardsError::OwnerNotSigner.into());
     }
-    
+
     validate_token_account(
         holder_rewards_pool_token_account_info,
         holder_rewards_pool_info.key,

@@ -46,7 +46,7 @@ export type InitializeHolderRewardsPoolInstruction<
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
       TAccountHolderRewardsPoolTokenAccountInfo extends string
-        ? WritableAccount<TAccountHolderRewardsPoolTokenAccountInfo>
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
         : TAccountHolderRewardsPoolTokenAccountInfo,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
@@ -131,7 +131,7 @@ export function getInitializeHolderRewardsPoolInstruction<
     },
     holderRewardsPoolTokenAccountInfo: {
       value: input.holderRewardsPoolTokenAccountInfo ?? null,
-      isWritable: true,
+      isWritable: false,
     },
     mint: { value: input.mint ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },

@@ -254,7 +254,8 @@ async fn success_without_rewards() {
         &holder_rewards_pool,
         &pool_token,
         1_000_000,
-        REWARDS_PER_TOKEN_SCALING_FACTOR.checked_mul(10).unwrap(), // unaccounted rewards more then current lamport
+        REWARDS_PER_TOKEN_SCALING_FACTOR.checked_mul(10).unwrap(), /* unaccounted rewards more
+                                                                    * then current lamport */
         DEPOSIT_AMOUNT,
     )
     .await;

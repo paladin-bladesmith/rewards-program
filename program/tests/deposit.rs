@@ -7,7 +7,9 @@ use {
     crate::{
         execute_utils::{execute_with_payer, execute_with_payer_err},
         setup::{
-            send_rewards_to_pool, setup_holder_rewards_account_with_token_account, setup_holder_rewards_pool_account_with_token_account, DEPOSIT_AMOUNT, INITIAL_OWNER_BALANCE
+            send_rewards_to_pool, setup_holder_rewards_account_with_token_account,
+            setup_holder_rewards_pool_account_with_token_account, DEPOSIT_AMOUNT,
+            INITIAL_OWNER_BALANCE,
         },
     },
     paladin_rewards_program::{

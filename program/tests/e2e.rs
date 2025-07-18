@@ -191,7 +191,7 @@
 //     for (token_account_address, checks) in holder_rewards {
 //         let token_account = get_account(context,
 // token_account_address).await;         let token_account_state =
-//             
+//
 // StateWithExtensions::<TokenAccount>::unpack(&token_account.data).unwrap();
 //         assert_eq!(
 //             token_account_state.base.amount,
@@ -202,13 +202,13 @@
 //             get_holder_rewards_address(token_account_address,
 // &paladin_rewards_program::id());         let holder_rewards_account =
 // get_account(context, &holder_rewards_address).await;         let
-// holder_rewards_state =             
+// holder_rewards_state =
 // bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data);
 //         assert_eq!(
 //             holder_rewards_state,
 //             &HolderRewards {
 //                 last_accumulated_rewards_per_token:
-// checks.last_accumulated_rewards_per_token,                 
+// checks.last_accumulated_rewards_per_token,
 // unharvested_rewards: checks.unharvested_rewards,                 _padding: 0,
 //             }
 //         );

@@ -51,7 +51,7 @@ export type DepositInstruction<
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
       TAccountHolderRewardsPoolTokenAccount extends string
-        ? WritableAccount<TAccountHolderRewardsPoolTokenAccount>
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccount>
         : TAccountHolderRewardsPoolTokenAccount,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
@@ -168,7 +168,7 @@ export function getDepositInstruction<
     },
     holderRewardsPoolTokenAccount: {
       value: input.holderRewardsPoolTokenAccount ?? null,
-      isWritable: true,
+      isWritable: false,
     },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },

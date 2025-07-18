@@ -42,7 +42,7 @@ impl Deposit {
             self.holder_rewards_pool,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.holder_rewards_pool_token_account,
             false,
         ));
@@ -105,7 +105,7 @@ pub struct DepositInstructionArgs {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards_pool_token_account
+///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
@@ -322,7 +322,7 @@ impl<'a, 'b> DepositCpi<'a, 'b> {
             *self.holder_rewards_pool.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.holder_rewards_pool_token_account.key,
             false,
         ));
@@ -388,7 +388,7 @@ impl<'a, 'b> DepositCpi<'a, 'b> {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards_pool_token_account
+///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint

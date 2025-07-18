@@ -32,7 +32,7 @@ impl InitializeHolderRewardsPool {
             self.holder_rewards_pool,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.holder_rewards_pool_token_account_info,
             false,
         ));
@@ -78,7 +78,7 @@ impl Default for InitializeHolderRewardsPoolInstructionData {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards_pool_token_account_info
+///   1. `[]` holder_rewards_pool_token_account_info
 ///   2. `[]` mint
 ///   3. `[optional]` system_program (default to
 ///      `11111111111111111111111111111111`)
@@ -240,7 +240,7 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
             *self.holder_rewards_pool.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.holder_rewards_pool_token_account_info.key,
             false,
         ));
@@ -291,7 +291,7 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards_pool_token_account_info
+///   1. `[]` holder_rewards_pool_token_account_info
 ///   2. `[]` mint
 ///   3. `[]` system_program
 #[derive(Clone, Debug)]

@@ -30,8 +30,10 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export type HarvestRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
-  TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
@@ -42,12 +44,12 @@ export type HarvestRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountHolderRewardsPoolTokenAccountInfo extends string
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
+        : TAccountHolderRewardsPoolTokenAccountInfo,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
-      TAccountTokenAccount extends string
-        ? WritableAccount<TAccountTokenAccount>
-        : TAccountTokenAccount,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
@@ -85,17 +87,17 @@ export function getHarvestRewardsInstructionDataCodec(): Codec<
 
 export type HarvestRewardsInput<
   TAccountHolderRewardsPool extends string = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
   TAccountHolderRewards extends string = string,
-  TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountOwner extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Holder rewards pool token account. */
+  holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
-  /** Token account. */
-  tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** owner of token account */
@@ -104,23 +106,23 @@ export type HarvestRewardsInput<
 
 export function getHarvestRewardsInstruction<
   TAccountHolderRewardsPool extends string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string,
   TAccountHolderRewards extends string,
-  TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountOwner extends string,
 >(
   input: HarvestRewardsInput<
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountOwner
   >
 ): HarvestRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
+  TAccountHolderRewardsPoolTokenAccountInfo,
   TAccountHolderRewards,
-  TAccountTokenAccount,
   TAccountMint,
   TAccountOwner
 > {
@@ -133,8 +135,11 @@ export function getHarvestRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
+    holderRewardsPoolTokenAccountInfo: {
+      value: input.holderRewardsPoolTokenAccountInfo ?? null,
+      isWritable: false,
+    },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
-    tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
     owner: { value: input.owner ?? null, isWritable: true },
   };
@@ -147,8 +152,8 @@ export function getHarvestRewardsInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
       getAccountMeta(accounts.holderRewards),
-      getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.owner),
     ],
@@ -157,8 +162,8 @@ export function getHarvestRewardsInstruction<
   } as HarvestRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountOwner
   >;
@@ -174,10 +179,10 @@ export type ParsedHarvestRewardsInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
+    /** Holder rewards pool token account. */
+    holderRewardsPoolTokenAccountInfo: TAccountMetas[1];
     /** Holder rewards account. */
-    holderRewards: TAccountMetas[1];
-    /** Token account. */
-    tokenAccount: TAccountMetas[2];
+    holderRewards: TAccountMetas[2];
     /** Token mint. */
     mint: TAccountMetas[3];
     /** owner of token account */
@@ -208,8 +213,8 @@ export function parseHarvestRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
+      holderRewardsPoolTokenAccountInfo: getNextAccount(),
       holderRewards: getNextAccount(),
-      tokenAccount: getNextAccount(),
       mint: getNextAccount(),
       owner: getNextAccount(),
     },
