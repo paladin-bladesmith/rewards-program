@@ -365,18 +365,18 @@ pub fn harvest_rewards(
 /// Creates a [CloseHolderRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 pub fn close_holder_rewards(
-    holder_rewards_pool_address: Pubkey,
-    holder_rewards_address: Pubkey,
-    token_account_address: Pubkey,
-    mint_address: Pubkey,
-    owner: Pubkey,
+    holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
+    holder_rewards_address: &Pubkey,
+    mint_address: &Pubkey,
+    owner_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(holder_rewards_pool_address, false),
-        AccountMeta::new(holder_rewards_address, false),
-        AccountMeta::new_readonly(token_account_address, false),
-        AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(owner, false),
+        AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new_readonly(*holder_rewards_pool_token_account_address, false),
+        AccountMeta::new(*holder_rewards_address, false),
+        AccountMeta::new_readonly(*mint_address, false),
+        AccountMeta::new(*owner_address, true),
     ];
     let data = PaladinRewardsInstruction::CloseHolderRewards.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
@@ -385,21 +385,21 @@ pub fn close_holder_rewards(
 /// Creates a [CloseHolderRewards](enum.PaladinRewardsInstruction.html)
 /// instruction.
 pub fn deposit(
-    holder_rewards_pool_address: Pubkey,
-    holder_rewards_pool_token_account_address: Pubkey,
-    holder_rewards_address: Pubkey,
-    token_account_address: Pubkey,
-    mint_address: Pubkey,
-    owner: Pubkey,
+    holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
+    holder_rewards_address: &Pubkey,
+    token_account_address: &Pubkey,
+    mint_address: &Pubkey,
+    owner: &Pubkey,
     amount: u64,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new(holder_rewards_pool_address, false),
-        AccountMeta::new(holder_rewards_pool_token_account_address, false),
-        AccountMeta::new(holder_rewards_address, false),
-        AccountMeta::new(token_account_address, false),
-        AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(owner, true),
+        AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new(*holder_rewards_pool_token_account_address, false),
+        AccountMeta::new(*holder_rewards_address, false),
+        AccountMeta::new(*token_account_address, false),
+        AccountMeta::new_readonly(*mint_address, false),
+        AccountMeta::new(*owner, true),
         AccountMeta::new_readonly(spl_token::id(), false),
     ];
     let data = PaladinRewardsInstruction::Deposit { amount }.pack();
@@ -407,20 +407,20 @@ pub fn deposit(
 }
 
 pub fn withdraw(
-    holder_rewards_pool_address: Pubkey,
-    holder_rewards_pool_token_account_address: Pubkey,
-    holder_rewards_address: Pubkey,
-    token_account_address: Pubkey,
-    mint_address: Pubkey,
-    owner: Pubkey,
+    holder_rewards_pool_address: &Pubkey,
+    holder_rewards_pool_token_account_address: &Pubkey,
+    holder_rewards_address: &Pubkey,
+    token_account_address: &Pubkey,
+    mint_address: &Pubkey,
+    owner: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
-        AccountMeta::new(holder_rewards_pool_address, false),
-        AccountMeta::new(holder_rewards_pool_token_account_address, false),
-        AccountMeta::new(holder_rewards_address, false),
-        AccountMeta::new(token_account_address, false),
-        AccountMeta::new_readonly(mint_address, false),
-        AccountMeta::new(owner, true),
+        AccountMeta::new(*holder_rewards_pool_address, false),
+        AccountMeta::new(*holder_rewards_pool_token_account_address, false),
+        AccountMeta::new(*holder_rewards_address, false),
+        AccountMeta::new(*token_account_address, false),
+        AccountMeta::new_readonly(*mint_address, false),
+        AccountMeta::new(*owner, true),
         AccountMeta::new(spl_token::id(), false),
     ];
     let data = PaladinRewardsInstruction::Withdraw.pack();

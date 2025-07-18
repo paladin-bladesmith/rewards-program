@@ -451,6 +451,11 @@ fn process_harvest_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
 
+    // Ensure signer is the owner and can close this account
+    if !owner.is_signer {
+        return Err(PaladinRewardsError::OwnerNotSigner.into());
+    }
+    
     validate_token_account(
         holder_rewards_pool_token_account_info,
         holder_rewards_pool_info.key,
@@ -506,7 +511,6 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
     let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
-    let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
 
@@ -515,7 +519,11 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         holder_rewards_pool_info.key,
         mint_info.key,
     )?;
-    validate_token_account(token_account_info, owner.key, mint_info.key)?;
+
+    // Ensure signer is the owner and can close this account
+    if !owner.is_signer {
+        return Err(PaladinRewardsError::OwnerNotSigner.into());
+    }
 
     // Load pool & holder rewards.
     check_pool(program_id, mint_info.key, holder_rewards_pool_info)?;
@@ -547,23 +555,6 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
         return Err(PaladinRewardsError::CloseWithDepositedTokens.into());
     }
 
-    // Load token account info (if it's not been closed).
-    let token_owner = (!token_account_info.data_is_empty())
-        .then(|| {
-            assert_eq!(token_account_info.owner, &spl_token::ID);
-            let token_account_data = token_account_info.data.borrow();
-            let token_account_state = TokenAccount::unpack(&token_account_data).unwrap();
-            assert_eq!(&token_account_state.mint, mint_info.key);
-            assert_eq!(mint_info.owner, &spl_token::ID);
-
-            token_account_state.owner
-        })
-        .unwrap_or_default();
-
-    // Ensure signer is the owner and can close this account
-    if !owner.is_signer || owner.key != &token_owner {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
     drop(holder_rewards_data);
 
     // NB: If this overflows then the runtime will catch it.
@@ -592,6 +583,11 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
     let token_program = next_account_info(accounts_iter)?;
+
+    // Ensure signer is the owner and can close this account
+    if !owner.is_signer {
+        return Err(PaladinRewardsError::OwnerNotSigner.into());
+    }
 
     // Validate pool token account
     validate_token_account(
@@ -686,6 +682,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let mint_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
     let token_program = next_account_info(accounts_iter)?;
+
+    // Ensure signer is the owner and can close this account
+    if !owner.is_signer {
+        return Err(PaladinRewardsError::OwnerNotSigner.into());
+    }
 
     // Validate pool token account
     validate_token_account(

@@ -69,12 +69,12 @@ async fn fail_pool_doesnt_have_enough_rewards() {
     .await;
 
     let instruction = deposit(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
         DEPOSIT_AMOUNT,
     );
 
@@ -129,12 +129,12 @@ async fn fail_not_enough_tokens_to_deposit() {
     .await;
 
     let instruction = deposit(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
         INITIAL_OWNER_BALANCE,
     );
 
@@ -189,15 +189,14 @@ async fn success() {
     .await;
 
     let instruction = deposit(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
         DEPOSIT_AMOUNT,
     );
-
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is DEPOSIT_AMOUNT.
@@ -259,12 +258,12 @@ async fn success() {
 
     // Deposit again to check if rewards are being sent
     let instruction = deposit(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
         DEPOSIT_AMOUNT / 2,
     );
     execute_with_payer(&mut context, instruction, Some(&owner)).await;

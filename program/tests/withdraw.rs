@@ -71,12 +71,12 @@ async fn fail_empty_pool() {
 
     // Should fail as the user have more deposited tokens than the pool owns
     let instruction = withdraw(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
     );
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -130,12 +130,12 @@ async fn fail_no_deposited_tokens() {
 
     // Should fail as there are no tokens deposited in the pool by this user
     let instruction = withdraw(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
     );
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -192,12 +192,12 @@ async fn success_with_rewards() {
 
     // Do withdraw
     let instruction = withdraw(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
     );
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
@@ -226,13 +226,13 @@ async fn success_with_rewards() {
     assert_eq!(owner_token_account_balance, INITIAL_OWNER_BALANCE);
 
     // Get owner account lamports
-    let owner_account = context
+    let owner_lamports = context
         .banks_client
         .get_account(owner.pubkey())
         .await
         .unwrap()
-        .unwrap();
-    let owner_lamports = owner_account.lamports;
+        .unwrap()
+        .lamports;
     assert_eq!(owner_lamports, REWARDS_AMOUNT);
 }
 
@@ -277,12 +277,12 @@ async fn success_without_rewards() {
 
     // Do wihthdraw
     let instruction = withdraw(
-        holder_rewards_pool,
-        pool_token,
-        holder_rewards,
-        owner_token,
-        mint,
-        owner.pubkey(),
+        &holder_rewards_pool,
+        &pool_token,
+        &holder_rewards,
+        &owner_token,
+        &mint,
+        &owner.pubkey(),
     );
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
