@@ -491,7 +491,7 @@ async fn success() {
         holder_rewards_state,
         &HolderRewards {
             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
-            total_deposited: 0,
+            deposited: 0,
             _padding: 0,
         }
     );

@@ -228,7 +228,7 @@ fn calculate_rewards_to_harvest(
     let eligible_rewards = calculate_eligible_rewards(
         pool_state.accumulated_rewards_per_token,
         holder_rewards_state.last_accumulated_rewards_per_token,
-        holder_rewards_state.total_deposited,
+        holder_rewards_state.deposited,
     )?;
 
     // Error if the pool doesn't have enough lamports to cover the rewards,
@@ -432,7 +432,7 @@ fn process_initialize_holder_rewards(
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
-                total_deposited: 0,
+                deposited: 0,
                 _padding: 0,
             };
     }
@@ -551,7 +551,7 @@ fn process_close_holder_rewards(program_id: &Pubkey, accounts: &[AccountInfo]) -
     }
 
     // Ensure holder withdrew all tokens
-    if holder_rewards_state.total_deposited > 0 {
+    if holder_rewards_state.deposited > 0 {
         return Err(PaladinRewardsError::CloseWithDepositedTokens.into());
     }
 
@@ -632,8 +632,8 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     )?;
 
     // Update total deposited tokens
-    holder_rewards_state.total_deposited = holder_rewards_state
-        .total_deposited
+    holder_rewards_state.deposited = holder_rewards_state
+        .deposited
         .checked_add(amount)
         .ok_or(ProgramError::ArithmeticOverflow)?;
 
@@ -712,9 +712,9 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Validate that we have enough deposited tokens to withdraw
     let pool_balance =
         get_token_account_balance_checked(mint_info.key, holder_rewards_pool_token_account_info)?;
-    if holder_rewards_state.total_deposited == 0 {
+    if holder_rewards_state.deposited == 0 {
         return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
-    } else if holder_rewards_state.total_deposited > pool_balance {
+    } else if holder_rewards_state.deposited > pool_balance {
         return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
     }
 
@@ -746,8 +746,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     }?;
 
     // Update total deposited tokens
-    let transfer_amount = holder_rewards_state.total_deposited;
-    holder_rewards_state.total_deposited = 0;
+    let transfer_amount = holder_rewards_state.deposited;
+    holder_rewards_state.deposited = 0;
 
     // Get pool token account signer seeds.
     let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(mint_info.key, program_id);

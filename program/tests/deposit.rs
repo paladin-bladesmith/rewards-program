@@ -235,7 +235,7 @@ async fn success() {
         .unwrap()
         .unwrap();
     let holder_deposited =
-        bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data).total_deposited;
+        bytemuck::from_bytes::<HolderRewards>(&holder_rewards_account.data).deposited;
     assert_eq!(holder_deposited, DEPOSIT_AMOUNT);
 
     // Confirm that rewards are being sent on 2nd deposit.

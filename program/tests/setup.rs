@@ -167,12 +167,12 @@ pub async fn setup_holder_rewards_pool_account_with_token_account(
 pub async fn setup_holder_rewards_account(
     context: &mut ProgramTestContext,
     holder_rewards: &Pubkey,
-    total_deposited: u64,
+    deposited: u64,
     last_accumulated_rewards_per_token: u128,
 ) {
     let state = HolderRewards {
         last_accumulated_rewards_per_token,
-        total_deposited,
+        deposited,
         _padding: 0,
     };
     let data = bytemuck::bytes_of(&state).to_vec();
@@ -197,14 +197,14 @@ pub async fn setup_holder_rewards_account_with_token_account(
     owner: &Pubkey,
     holder_rewards: &Pubkey,
     owner_token_account: &Pubkey,
-    total_deposited: u64,
+    deposited: u64,
     last_accumulated_rewards_per_token: u128,
     token_balance: u64,
 ) {
     setup_holder_rewards_account(
         context,
         holder_rewards,
-        total_deposited,
+        deposited,
         last_accumulated_rewards_per_token,
     )
     .await;

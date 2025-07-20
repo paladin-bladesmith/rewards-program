@@ -228,7 +228,7 @@ pub struct HolderRewards {
     /// represent the exchange rate with 18 decimal places of precision.
     pub last_accumulated_rewards_per_token: u128,
     // Total amount of deposited tokens
-    pub total_deposited: u64,
+    pub deposited: u64,
     pub _padding: u64,
 }
 
