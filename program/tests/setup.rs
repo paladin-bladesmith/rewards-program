@@ -212,7 +212,7 @@ pub async fn setup_holder_rewards_account_with_token_account(
     setup_token_account(context, owner_token_account, owner, mint, token_balance).await;
 }
 
-/// Send lamports to an account
+/// Send lamports to the pool
 pub async fn send_rewards_to_pool(
     context: &mut ProgramTestContext,
     pool_address: &Pubkey,
@@ -225,7 +225,19 @@ pub async fn send_rewards_to_pool(
         .unwrap()
         .unwrap();
     pool_account.lamports += lamport_amount;
-    context.set_account(pool_address, &AccountSharedData::from(pool_account));
+    context.set_account(pool_address, &pool_account.into());
 }
-// 3000009446581457
-// 3000009453987217
+
+pub async fn setup_owner(context: &mut ProgramTestContext, owner: &Pubkey) {
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(std::mem::size_of::<Account>());
+
+    context.set_account(
+        owner,
+        &AccountSharedData::from(Account {
+            lamports,
+            data: vec![],
+            ..Account::default()
+        }),
+    );
+}

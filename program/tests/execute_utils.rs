@@ -7,21 +7,29 @@ use {
     },
 };
 
+fn get_transaction(
+    context: &mut ProgramTestContext,
+    instruction: Instruction,
+    signer: Option<&Keypair>,
+) -> Transaction {
+    let signers = match signer {
+        Some(signer) => vec![&context.payer, signer],
+        None => vec![&context.payer],
+    };
+    Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &signers,
+        context.last_blockhash,
+    )
+}
+
 pub async fn execute_with_payer(
     context: &mut ProgramTestContext,
     instruction: Instruction,
     signer: Option<&Keypair>,
 ) {
-    let signers = match signer {
-        Some(signer) => vec![&context.payer, signer],
-        None => vec![&context.payer],
-    };
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &signers,
-        context.last_blockhash,
-    );
+    let transaction = get_transaction(context, instruction, signer);
 
     context
         .banks_client
@@ -35,16 +43,7 @@ pub async fn execute_with_payer_err(
     instruction: Instruction,
     signer: Option<&Keypair>,
 ) -> TransactionError {
-    let signers = match signer {
-        Some(signer) => vec![&context.payer, signer],
-        None => vec![&context.payer],
-    };
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &signers,
-        context.last_blockhash,
-    );
+    let transaction = get_transaction(context, instruction, signer);
 
     context
         .banks_client

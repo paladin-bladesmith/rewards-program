@@ -235,13 +235,13 @@ fn calculate_rewards_to_harvest(
     // This should never happen, but the check is a failsafe.
     let pool_excess_lamports = {
         let rent = <Rent as Sysvar>::get()?;
-        let rent_exempt_lamports = rent.minimum_balance(std::mem::size_of::<HolderRewardsPool>());
+        let rent_exempt_lamports = rent.minimum_balance(HolderRewardsPool::LEN);
         pool_lamports.saturating_sub(rent_exempt_lamports)
     };
 
     if eligible_rewards > pool_excess_lamports {
         return Err(PaladinRewardsError::RewardsExcessPoolBalance.into());
-    } else if eligible_rewards != 0 {
+    } else {
         // Update the holder rewards state with last rewards per token
         holder_rewards_state.last_accumulated_rewards_per_token =
             pool_state.accumulated_rewards_per_token;
@@ -324,7 +324,7 @@ fn process_initialize_holder_rewards_pool(
         invoke_signed(
             &system_instruction::allocate(
                 &holder_rewards_pool_address,
-                std::mem::size_of::<HolderRewardsPool>() as u64,
+                HolderRewardsPool::LEN as u64,
             ),
             &[holder_rewards_pool_info.clone()],
             &[&holder_rewards_pool_signer_seeds],
@@ -413,10 +413,7 @@ fn process_initialize_holder_rewards(
 
         // Allocate & assign.
         invoke_signed(
-            &system_instruction::allocate(
-                &holder_rewards_address,
-                std::mem::size_of::<HolderRewards>() as u64,
-            ),
+            &system_instruction::allocate(&holder_rewards_address, HolderRewards::LEN as u64),
             &[holder_rewards_info.clone()],
             &[&holder_rewards_signer_seeds],
         )?;
