@@ -963,14 +963,16 @@ async fn test_e2e() {
 
     let wallet_rent_exempt_lamports = wallet_rent_exempt_lamports(&mut context).await;
 
-    // assert bob have correct lamports ammount (rewards + new rewards + closed account lamports)
+    // assert bob have correct lamports ammount (rewards + new rewards + closed
+    // account lamports)
     let bob_lamports = get_account(&mut context, &bob.pubkey()).await.lamports;
     assert_eq!(
         bob_lamports,
         250 + 100 + wallet_rent_exempt_lamports + (holder_rent_exempt_lamports * 2)
     ); // Bob closed his account twice
 
-    // assert dave have correct lamports ammount (rewards + new rewards + closed account lamports)
+    // assert dave have correct lamports ammount (rewards + new rewards + closed
+    // account lamports)
     let dave_lamports = get_account(&mut context, &dave.pubkey()).await.lamports;
     assert_eq!(
         dave_lamports,

@@ -5,21 +5,26 @@ mod setup;
 
 use {
     crate::{
-        execute_utils::execute_with_payer_err, setup::{
+        execute_utils::execute_with_payer_err,
+        setup::{
             setup_holder_rewards_account_with_token_account,
-            setup_holder_rewards_pool_account_with_token_account,
-            DEPOSIT_AMOUNT,
-        }
+            setup_holder_rewards_pool_account_with_token_account, DEPOSIT_AMOUNT,
+        },
     },
     paladin_rewards_program::{
-        error::PaladinRewardsError, instruction::harvest_rewards, processor::REWARDS_PER_TOKEN_SCALING_FACTOR, state::{
-            get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
-        }
+        error::PaladinRewardsError,
+        instruction::harvest_rewards,
+        processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
+        state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
     },
     setup::setup,
     solana_program_test::*,
     solana_sdk::{
-        instruction::InstructionError, pubkey::Pubkey, signature::Keypair, signer::Signer, transaction::{Transaction, TransactionError}
+        instruction::InstructionError,
+        pubkey::Pubkey,
+        signature::Keypair,
+        signer::Signer,
+        transaction::{Transaction, TransactionError},
     },
     spl_associated_token_account::get_associated_token_address,
     test_case::test_case,
@@ -42,9 +47,9 @@ async fn fail_not_enough_lamports() {
         &mint,
         &holder_rewards_pool,
         &pool_token,
-        DEPOSIT_AMOUNT / 25,                // Not enough rewards (expected DEPOSIT_AMOUNT / 50)
-        REWARDS_PER_TOKEN_SCALING_FACTOR,   // accumalated per token
-        DEPOSIT_AMOUNT,                     // pool balance (total deposited by all users)
+        DEPOSIT_AMOUNT / 25, // Not enough rewards (expected DEPOSIT_AMOUNT / 50)
+        REWARDS_PER_TOKEN_SCALING_FACTOR, // accumalated per token
+        DEPOSIT_AMOUNT,      // pool balance (total deposited by all users)
     )
     .await;
 
@@ -58,9 +63,9 @@ async fn fail_not_enough_lamports() {
         &owner.pubkey(),
         &holder_rewards,
         &owner_token,
-        DEPOSIT_AMOUNT,                         // total deposited for holder
-        REWARDS_PER_TOKEN_SCALING_FACTOR / 50,  // last rewards per token
-        0, // token balance
+        DEPOSIT_AMOUNT,                        // total deposited for holder
+        REWARDS_PER_TOKEN_SCALING_FACTOR / 50, // last rewards per token
+        0,                                     // token balance
     )
     .await;
 
@@ -169,7 +174,7 @@ struct Holder {
         last_accumulated_rewards_per_token: 0,
         deposited: DEPOSIT_AMOUNT,
     },
-    DEPOSIT_AMOUNT; 
+    DEPOSIT_AMOUNT;
     "Confirm rounding over" 
 )]
 #[test_case(
@@ -182,14 +187,14 @@ struct Holder {
         last_accumulated_rewards_per_token: 0,
         deposited: DEPOSIT_AMOUNT,
     },
-    DEPOSIT_AMOUNT - 1; 
+    DEPOSIT_AMOUNT - 1;
     "Confirm rounding under" 
 )]
 #[test_case(
     Pool {
         excess_lamports: DEPOSIT_AMOUNT,
         accumulated_rewards_per_token: REWARDS_PER_TOKEN_SCALING_FACTOR, // 1 reward per token.  
-        total_deposited: 0,   
+        total_deposited: 0,
     },
     Holder {
         last_accumulated_rewards_per_token: 0,
@@ -199,11 +204,7 @@ struct Holder {
     "Harvet repay all rewards"
 )]
 #[tokio::test]
-async fn success(
-    pool: Pool,
-    holder: Holder,
-    expected_harvested_rewards: u64,
-) {
+async fn success(pool: Pool, holder: Holder, expected_harvested_rewards: u64) {
     let Pool {
         excess_lamports,
         accumulated_rewards_per_token,
@@ -211,7 +212,7 @@ async fn success(
     } = pool;
     let Holder {
         last_accumulated_rewards_per_token,
-        deposited, 
+        deposited,
     } = holder;
 
     let owner = Keypair::new();
@@ -327,7 +328,8 @@ async fn success(
             .banks_client
             .get_account(owner.pubkey())
             .await
-            .unwrap().is_none());
+            .unwrap()
+            .is_none());
 
         0
     };

@@ -13,7 +13,7 @@ use {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HolderRewards {
     pub last_accumulated_rewards_per_token: u128,
-    pub total_deposited: u64,
+    pub deposited: u64,
     pub padding: u64,
 }
 
