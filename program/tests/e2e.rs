@@ -11,35 +11,25 @@ use {
         setup::{
             send_rewards_to_pool, setup_holder_rewards_account,
             setup_holder_rewards_account_with_token_account,
-            setup_holder_rewards_pool_account_with_token_account, setup_owner, DEPOSIT_AMOUNT,
+            setup_holder_rewards_pool_account_with_token_account, setup_owner,
             INITIAL_OWNER_BALANCE,
         },
     },
     paladin_rewards_program::{
-        instruction::{
-            close_holder_rewards, deposit, harvest_rewards, initialize_holder_rewards,
-            initialize_holder_rewards_pool, withdraw,
-        },
+        instruction::{close_holder_rewards, deposit, harvest_rewards, withdraw},
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{
             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
             HolderRewardsPool,
         },
     },
-    setup::{setup, setup_mint, setup_token_account},
+    setup::{setup, setup_mint},
     solana_program_test::*,
     solana_sdk::{
-        account::{Account, AccountSharedData},
-        instruction::Instruction,
-        program_pack::Pack,
-        pubkey::Pubkey,
-        signature::Keypair,
-        signer::Signer,
-        system_instruction,
-        transaction::Transaction,
+        account::Account, program_pack::Pack, pubkey::Pubkey, signature::Keypair, signer::Signer,
     },
     spl_associated_token_account::get_associated_token_address,
-    spl_token::state::{Account as TokenAccount, Mint},
+    spl_token::state::Account as TokenAccount,
 };
 
 struct Pool {
