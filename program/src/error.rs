@@ -14,39 +14,48 @@ use {
 // Note: Shank does not export the type when we use `spl_program_error`.
 #[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinRewardsError {
-    /// Incorrect transfer hook program ID.
-    #[error("Incorrect transfer hook program ID")]
-    IncorrectTransferHookProgramId,
     /// Incorrect holder rewards pool address.
     #[error("Incorrect holder rewards pool address")]
     IncorrectHolderRewardsPoolAddress,
-    /// Incorrect extra metas address.
-    #[error("Incorrect extra metas address")]
-    IncorrectExtraMetasAddress,
     /// Incorrect holder rewards address.
     #[error("Incorrect holder rewards address")]
     IncorrectHolderRewardsAddress,
     /// Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
-    /// Provided sponsor account did not match expected sponsor.
-    #[error("Holder rewards sponsor account mismatch")]
-    IncorrectSponsorAddress,
     /// Attempted to close a holder rewards account that had unclaimed rewards.
     #[error("Holder rewards has unclaimed rewards")]
     CloseWithUnclaimedRewards,
     /// Cannot close holder rewards with current balance.
     #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance,
-    /// Invalid extension.
-    #[error("Invalid extension")]
-    InvalidExtension,
     /// Owner is not the signer.
     #[error("Owner is not the signer")]
     OwnerNotSigner,
     /// Signer not owner of token account.
     #[error("Signer not owner of token account")]
-    SignerIsNotOwnerTokenAccount,
+    NotOwnerTokenAccount,
+    /// Rewards amount exceeds pool balance.
+    #[error("Rewards amount exceeds pool balance")]
+    RewardsExcessPoolBalance,
+    /// Holder rewards has deposited tokens.
+    #[error("Holder rewards has deposited tokens")]
+    CloseWithDepositedTokens,
+    /// Holder doesn't have any deposited tokens to withdraw.
+    #[error("Holder doesn't have any deposited tokens to withdraw")]
+    NoDepositedTokensToWithdraw,
+    /// Pool doesn't have enough balance to withdraw.
+    #[error("Pool doesn't have enough balance to withdraw")]
+    WithdrawExceedsPoolBalance,
+    /// Token account owner mismatch.
+    #[error("Token account owner mismatch")]
+    TokenAccountOwnerMissmatch,
+    /// Token account is frozen.
+    #[error("Token account is frozen")]
+    TokenAccountFrozen,
+    /// Owner doesn'thave enough tokens to deposit.
+    #[error("Owner doesn'thave enough tokens to deposit")]
+    NotEnoughTokenToDeposit,
 }
 
 impl PrintProgramError for PaladinRewardsError {

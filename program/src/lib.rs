@@ -8,7 +8,6 @@
 #[cfg(all(target_os = "solana", feature = "bpf-entrypoint"))]
 mod entrypoint;
 pub mod error;
-pub mod extra_metas;
 pub mod instruction;
 pub mod processor;
 pub mod state;

@@ -162,19 +162,16 @@ pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 pub const SEED_PREFIX_HOLDER_REWARDS_POOL: &[u8] = b"holder_pool";
 
 /// Derive the address of a holder rewards account.
-pub fn get_holder_rewards_address(token_account_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
-    get_holder_rewards_address_and_bump_seed(token_account_address, program_id).0
+pub fn get_holder_rewards_address(owner_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
+    get_holder_rewards_address_and_bump_seed(owner_address, program_id).0
 }
 
 /// Derive the address of a holder rewards account, with bump seed.
 pub fn get_holder_rewards_address_and_bump_seed(
-    token_account_address: &Pubkey,
+    owner_address: &Pubkey,
     program_id: &Pubkey,
 ) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &collect_holder_rewards_seeds(token_account_address),
-        program_id,
-    )
+    Pubkey::find_program_address(&collect_holder_rewards_seeds(owner_address), program_id)
 }
 
 pub(crate) fn collect_holder_rewards_seeds(token_account_address: &Pubkey) -> [&[u8]; 2] {
@@ -182,12 +179,12 @@ pub(crate) fn collect_holder_rewards_seeds(token_account_address: &Pubkey) -> [&
 }
 
 pub(crate) fn collect_holder_rewards_signer_seeds<'a>(
-    token_account_address: &'a Pubkey,
+    owner_address: &'a Pubkey,
     bump_seed: &'a [u8],
 ) -> [&'a [u8]; 3] {
     [
         SEED_PREFIX_HOLDER_REWARDS,
-        token_account_address.as_ref(),
+        owner_address.as_ref(),
         bump_seed,
     ]
 }
@@ -230,10 +227,8 @@ pub struct HolderRewards {
     /// Stored as a `u128`, which includes a scaling factor of `1e18` to
     /// represent the exchange rate with 18 decimal places of precision.
     pub last_accumulated_rewards_per_token: u128,
-    /// The amount of unharvested rewards currently stored in the holder
-    /// rewards account that can be harvested by the holder.
-    pub unharvested_rewards: u64,
-    /// Aligns to 32 bytes.
+    // Total amount of deposited tokens
+    pub deposited: u64,
     pub _padding: u64,
 }
 

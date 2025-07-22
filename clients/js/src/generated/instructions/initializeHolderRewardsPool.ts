@@ -30,7 +30,9 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export type InitializeHolderRewardsPoolInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
-  TAccountExtraAccountMetas extends string | IAccountMeta<string> = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
@@ -43,9 +45,9 @@ export type InitializeHolderRewardsPoolInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
-      TAccountExtraAccountMetas extends string
-        ? WritableAccount<TAccountExtraAccountMetas>
-        : TAccountExtraAccountMetas,
+      TAccountHolderRewardsPoolTokenAccountInfo extends string
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
+        : TAccountHolderRewardsPoolTokenAccountInfo,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
@@ -85,14 +87,14 @@ export function getInitializeHolderRewardsPoolInstructionDataCodec(): Codec<
 
 export type InitializeHolderRewardsPoolInput<
   TAccountHolderRewardsPool extends string = string,
-  TAccountExtraAccountMetas extends string = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
   TAccountMint extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
-  /** Transfer hook extra account metas account. */
-  extraAccountMetas: Address<TAccountExtraAccountMetas>;
+  /** Holder rewards pool token account. */
+  holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** System program. */
@@ -101,20 +103,20 @@ export type InitializeHolderRewardsPoolInput<
 
 export function getInitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool extends string,
-  TAccountExtraAccountMetas extends string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string,
   TAccountMint extends string,
   TAccountSystemProgram extends string,
 >(
   input: InitializeHolderRewardsPoolInput<
     TAccountHolderRewardsPool,
-    TAccountExtraAccountMetas,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountMint,
     TAccountSystemProgram
   >
 ): InitializeHolderRewardsPoolInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
-  TAccountExtraAccountMetas,
+  TAccountHolderRewardsPoolTokenAccountInfo,
   TAccountMint,
   TAccountSystemProgram
 > {
@@ -127,9 +129,9 @@ export function getInitializeHolderRewardsPoolInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
-    extraAccountMetas: {
-      value: input.extraAccountMetas ?? null,
-      isWritable: true,
+    holderRewardsPoolTokenAccountInfo: {
+      value: input.holderRewardsPoolTokenAccountInfo ?? null,
+      isWritable: false,
     },
     mint: { value: input.mint ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
@@ -149,7 +151,7 @@ export function getInitializeHolderRewardsPoolInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
-      getAccountMeta(accounts.extraAccountMetas),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.systemProgram),
     ],
@@ -158,7 +160,7 @@ export function getInitializeHolderRewardsPoolInstruction<
   } as InitializeHolderRewardsPoolInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
-    TAccountExtraAccountMetas,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountMint,
     TAccountSystemProgram
   >;
@@ -174,8 +176,8 @@ export type ParsedInitializeHolderRewardsPoolInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
-    /** Transfer hook extra account metas account. */
-    extraAccountMetas: TAccountMetas[1];
+    /** Holder rewards pool token account. */
+    holderRewardsPoolTokenAccountInfo: TAccountMetas[1];
     /** Token mint. */
     mint: TAccountMetas[2];
     /** System program. */
@@ -206,7 +208,7 @@ export function parseInitializeHolderRewardsPoolInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
-      extraAccountMetas: getNextAccount(),
+      holderRewardsPoolTokenAccountInfo: getNextAccount(),
       mint: getNextAccount(),
       systemProgram: getNextAccount(),
     },

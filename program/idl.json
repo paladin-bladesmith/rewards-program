@@ -14,11 +14,11 @@
           ]
         },
         {
-          "name": "extraAccountMetas",
-          "isMut": true,
+          "name": "holderRewardsPoolTokenAccountInfo",
+          "isMut": false,
           "isSigner": false,
           "docs": [
-            "Transfer hook extra account metas account."
+            "Holder rewards pool token account."
           ]
         },
         {
@@ -53,6 +53,14 @@
           "isSigner": false,
           "docs": [
             "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewardsPoolTokenAccountInfo",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool token account."
           ]
         },
         {
@@ -114,19 +122,19 @@
           ]
         },
         {
+          "name": "holderRewardsPoolTokenAccountInfo",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool token account."
+          ]
+        },
+        {
           "name": "holderRewards",
           "isMut": true,
           "isSigner": false,
           "docs": [
             "Holder rewards account."
-          ]
-        },
-        {
-          "name": "tokenAccount",
-          "isMut": true,
-          "isSigner": false,
-          "docs": [
-            "Token account."
           ]
         },
         {
@@ -138,12 +146,11 @@
           ]
         },
         {
-          "name": "sponsor",
+          "name": "owner",
           "isMut": true,
           "isSigner": false,
-          "isOptional": true,
           "docs": [
-            "Sponsor of this account, required if rent_debt is non zero"
+            "owner of token account"
           ]
         }
       ],
@@ -162,6 +169,14 @@
           "isSigner": false,
           "docs": [
             "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewardsPoolTokenAccountInfo",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool token account."
           ]
         },
         {
@@ -202,6 +217,143 @@
         "type": "u8",
         "value": 3
       }
+    },
+    {
+      "name": "Deposit",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewardsPoolTokenAccount",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool token account."
+          ]
+        },
+        {
+          "name": "holderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards account."
+          ]
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "owner",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Owner of the account."
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "token program"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
+    },
+    {
+      "name": "Withdraw",
+      "accounts": [
+        {
+          "name": "holderRewardsPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool account."
+          ]
+        },
+        {
+          "name": "holderRewardsPoolTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards pool token account."
+          ]
+        },
+        {
+          "name": "holderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Holder rewards account."
+          ]
+        },
+        {
+          "name": "tokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token account."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "owner",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Owner of the account."
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "token program"
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
+      }
     }
   ],
   "accounts": [
@@ -215,7 +367,7 @@
             "type": "u128"
           },
           {
-            "name": "unharvestedRewards",
+            "name": "deposited",
             "type": "u64"
           },
           {
@@ -249,58 +401,73 @@
   "errors": [
     {
       "code": 0,
-      "name": "IncorrectTransferHookProgramId",
-      "msg": "Incorrect transfer hook program ID"
-    },
-    {
-      "code": 1,
       "name": "IncorrectHolderRewardsPoolAddress",
       "msg": "Incorrect holder rewards pool address"
     },
     {
-      "code": 2,
-      "name": "IncorrectExtraMetasAddress",
-      "msg": "Incorrect extra metas address"
-    },
-    {
-      "code": 3,
+      "code": 1,
       "name": "IncorrectHolderRewardsAddress",
       "msg": "Incorrect holder rewards address"
     },
     {
-      "code": 4,
+      "code": 2,
       "name": "TokenAccountMintMismatch",
       "msg": "Token account mint mismatch"
     },
     {
-      "code": 5,
-      "name": "IncorrectSponsorAddress",
-      "msg": "Holder rewards sponsor account mismatch"
-    },
-    {
-      "code": 6,
+      "code": 3,
       "name": "CloseWithUnclaimedRewards",
       "msg": "Holder rewards has unclaimed rewards"
     },
     {
-      "code": 7,
+      "code": 4,
       "name": "InvalidClosingBalance",
       "msg": "Cannot close holder rewards with current balance"
     },
     {
-      "code": 8,
-      "name": "InvalidExtension",
-      "msg": "Invalid extension"
-    },
-    {
-      "code": 9,
+      "code": 5,
       "name": "OwnerNotSigner",
       "msg": "Owner is not the signer"
     },
     {
-      "code": 10,
-      "name": "SignerIsNotOwnerTokenAccount",
+      "code": 6,
+      "name": "NotOwnerTokenAccount",
       "msg": "Signer not owner of token account"
+    },
+    {
+      "code": 7,
+      "name": "RewardsExcessPoolBalance",
+      "msg": "Rewards amount exceeds pool balance"
+    },
+    {
+      "code": 8,
+      "name": "CloseWithDepositedTokens",
+      "msg": "Holder rewards has deposited tokens"
+    },
+    {
+      "code": 9,
+      "name": "NoDepositedTokensToWithdraw",
+      "msg": "Holder doesn't have any deposited tokens to withdraw"
+    },
+    {
+      "code": 10,
+      "name": "WithdrawExceedsPoolBalance",
+      "msg": "Pool doesn't have enough balance to withdraw"
+    },
+    {
+      "code": 11,
+      "name": "TokenAccountOwnerMissmatch",
+      "msg": "Token account owner mismatch"
+    },
+    {
+      "code": 12,
+      "name": "TokenAccountFrozen",
+      "msg": "Token account is frozen"
+    },
+    {
+      "code": 13,
+      "name": "NotEnoughTokenToDeposit",
+      "msg": "Owner doesn'thave enough tokens to deposit"
     }
   ],
   "metadata": {

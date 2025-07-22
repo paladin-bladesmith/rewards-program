@@ -8,39 +8,48 @@ use {num_derive::FromPrimitive, thiserror::Error};
 
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
 pub enum PaladinRewardsError {
-    /// 0 - Incorrect transfer hook program ID
-    #[error("Incorrect transfer hook program ID")]
-    IncorrectTransferHookProgramId = 0x0,
-    /// 1 - Incorrect holder rewards pool address
+    /// 0 - Incorrect holder rewards pool address
     #[error("Incorrect holder rewards pool address")]
-    IncorrectHolderRewardsPoolAddress = 0x1,
-    /// 2 - Incorrect extra metas address
-    #[error("Incorrect extra metas address")]
-    IncorrectExtraMetasAddress = 0x2,
-    /// 3 - Incorrect holder rewards address
+    IncorrectHolderRewardsPoolAddress = 0x0,
+    /// 1 - Incorrect holder rewards address
     #[error("Incorrect holder rewards address")]
-    IncorrectHolderRewardsAddress = 0x3,
-    /// 4 - Token account mint mismatch
+    IncorrectHolderRewardsAddress = 0x1,
+    /// 2 - Token account mint mismatch
     #[error("Token account mint mismatch")]
-    TokenAccountMintMismatch = 0x4,
-    /// 5 - Holder rewards sponsor account mismatch
-    #[error("Holder rewards sponsor account mismatch")]
-    IncorrectSponsorAddress = 0x5,
-    /// 6 - Holder rewards has unclaimed rewards
+    TokenAccountMintMismatch = 0x2,
+    /// 3 - Holder rewards has unclaimed rewards
     #[error("Holder rewards has unclaimed rewards")]
-    CloseWithUnclaimedRewards = 0x6,
-    /// 7 - Cannot close holder rewards with current balance
+    CloseWithUnclaimedRewards = 0x3,
+    /// 4 - Cannot close holder rewards with current balance
     #[error("Cannot close holder rewards with current balance")]
-    InvalidClosingBalance = 0x7,
-    /// 8 - Invalid extension
-    #[error("Invalid extension")]
-    InvalidExtension = 0x8,
-    /// 9 - Owner is not the signer
+    InvalidClosingBalance = 0x4,
+    /// 5 - Owner is not the signer
     #[error("Owner is not the signer")]
-    OwnerNotSigner = 0x9,
-    /// 10 - Signer not owner of token account
+    OwnerNotSigner = 0x5,
+    /// 6 - Signer not owner of token account
     #[error("Signer not owner of token account")]
-    SignerIsNotOwnerTokenAccount = 0xA,
+    NotOwnerTokenAccount = 0x6,
+    /// 7 - Rewards amount exceeds pool balance
+    #[error("Rewards amount exceeds pool balance")]
+    RewardsExcessPoolBalance = 0x7,
+    /// 8 - Holder rewards has deposited tokens
+    #[error("Holder rewards has deposited tokens")]
+    CloseWithDepositedTokens = 0x8,
+    /// 9 - Holder doesn't have any deposited tokens to withdraw
+    #[error("Holder doesn't have any deposited tokens to withdraw")]
+    NoDepositedTokensToWithdraw = 0x9,
+    /// 10 - Pool doesn't have enough balance to withdraw
+    #[error("Pool doesn't have enough balance to withdraw")]
+    WithdrawExceedsPoolBalance = 0xA,
+    /// 11 - Token account owner mismatch
+    #[error("Token account owner mismatch")]
+    TokenAccountOwnerMissmatch = 0xB,
+    /// 12 - Token account is frozen
+    #[error("Token account is frozen")]
+    TokenAccountFrozen = 0xC,
+    /// 13 - Owner doesn'thave enough tokens to deposit
+    #[error("Owner doesn'thave enough tokens to deposit")]
+    NotEnoughTokenToDeposit = 0xD,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

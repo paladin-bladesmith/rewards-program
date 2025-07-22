@@ -1,8 +1,10 @@
 #![cfg(feature = "test-sbf")]
 
+mod execute_utils;
 mod setup;
 
 use {
+    crate::execute_utils::{execute_with_payer, execute_with_payer_err},
     paladin_rewards_program::{
         error::PaladinRewardsError,
         instruction::initialize_holder_rewards,
@@ -17,56 +19,53 @@ use {
         account::{Account, AccountSharedData},
         instruction::InstructionError,
         pubkey::Pubkey,
+        signature::Keypair,
         signer::Signer,
         system_program,
-        transaction::{Transaction, TransactionError},
+        transaction::TransactionError,
     },
     spl_associated_token_account::get_associated_token_address,
 };
 
 #[tokio::test]
 async fn fail_token_account_invalid_data() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_mint(&mut context, &mint, 0, None).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
 
     // Set up a token account with invalid data.
-    {
-        context.set_account(
-            &token_account,
-            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
-                .unwrap(),
-        );
-    }
+    context.set_account(
+        &token_account,
+        &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token::id()).unwrap(),
+    );
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -76,20 +75,30 @@ async fn fail_token_account_invalid_data() {
 
 #[tokio::test]
 async fn fail_token_account_mint_mismatch() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_token_account(
         &mut context,
         &token_account,
-        &owner,
+        &owner.pubkey(),
         &Pubkey::new_unique(), // Incorrect mint.
+        0,
+    )
+    .await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
         0,
     )
     .await;
@@ -97,25 +106,14 @@ async fn fail_token_account_mint_mismatch() {
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -128,16 +126,26 @@ async fn fail_token_account_mint_mismatch() {
 
 #[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_owner() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up a holder rewards pool account with incorrect owner.
@@ -150,25 +158,14 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -178,39 +175,38 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
 
 #[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_address() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool = Pubkey::new_unique(); // Incorrect holder rewards pool address.
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -222,17 +218,66 @@ async fn fail_holder_rewards_pool_incorrect_address() {
 }
 
 #[tokio::test]
-async fn fail_holder_rewards_pool_invalid_data() {
-    let owner = Pubkey::new_unique();
+async fn fail_holder_rewards_pool_token_incorrect_address() {
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
+    let rand = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&rand, &mint); // Incorrect token account address.
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
+    setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
+
+    let instruction = initialize_holder_rewards(
+        &holder_rewards_pool,
+        &pool_token_account,
+        &holder_rewards,
+        &owner.pubkey(),
+        &token_account,
+        &mint,
+    );
+
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinRewardsError::TokenAccountOwnerMissmatch as u32)
+        )
+    );
+}
+
+#[tokio::test]
+async fn fail_holder_rewards_pool_invalid_data() {
+    let owner = Keypair::new();
+    let mint = Pubkey::new_unique();
+
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
+
+    let mut context = setup().start_with_context().await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up a holder rewards pool account with invalid data.
@@ -250,25 +295,14 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -278,40 +312,38 @@ async fn fail_holder_rewards_pool_invalid_data() {
 
 #[tokio::test]
 async fn fail_holder_rewards_incorrect_address() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
     let holder_rewards = Pubkey::new_unique(); // Incorrect holder reward address.
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -324,17 +356,27 @@ async fn fail_holder_rewards_incorrect_address() {
 
 #[tokio::test]
 async fn fail_holder_rewards_account_initialized() {
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
-    setup_token_account(&mut context, &token_account, &owner, &mint, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
     // Set up an already (arbitrarily) initialized holder rewards account.
@@ -352,25 +394,14 @@ async fn fail_holder_rewards_account_initialized() {
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
         err,
@@ -384,13 +415,15 @@ async fn success() {
     // new holder account records the current pool values.
     let accumulated_rewards_per_token = 500_000_000;
 
-    let owner = Pubkey::new_unique();
+    let owner = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let token_account = get_associated_token_address(&owner, &mint);
-    let holder_rewards = get_holder_rewards_address(&token_account, &paladin_rewards_program::id());
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
     let holder_rewards_pool =
         get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
     setup_holder_rewards_pool_account(
@@ -402,8 +435,17 @@ async fn success() {
     .await;
     setup_token_account(
         &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+
+    setup_token_account(
+        &mut context,
         &token_account,
-        &owner,
+        &owner.pubkey(),
         &mint,
         100, // Token account balance (not used here).
     )
@@ -428,24 +470,14 @@ async fn success() {
 
     let instruction = initialize_holder_rewards(
         &holder_rewards_pool,
+        &pool_token_account,
         &holder_rewards,
-        &owner,
+        &owner.pubkey(),
         &token_account,
         &mint,
     );
 
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap();
+    execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert - Check the holder rewards account.
     let holder_rewards_account = context
@@ -459,7 +491,7 @@ async fn success() {
         holder_rewards_state,
         &HolderRewards {
             last_accumulated_rewards_per_token: accumulated_rewards_per_token,
-            unharvested_rewards: 0,
+            deposited: 0,
             _padding: 0,
         }
     );

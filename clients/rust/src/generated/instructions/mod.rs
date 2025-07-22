@@ -5,11 +5,13 @@
 //! <https://github.com/kinobi-so/kinobi>
 
 pub(crate) mod r#close_holder_rewards;
+pub(crate) mod r#deposit;
 pub(crate) mod r#harvest_rewards;
 pub(crate) mod r#initialize_holder_rewards;
 pub(crate) mod r#initialize_holder_rewards_pool;
+pub(crate) mod r#withdraw;
 
 pub use self::{
-    r#close_holder_rewards::*, r#harvest_rewards::*, r#initialize_holder_rewards::*,
-    r#initialize_holder_rewards_pool::*,
+    r#close_holder_rewards::*, r#deposit::*, r#harvest_rewards::*, r#initialize_holder_rewards::*,
+    r#initialize_holder_rewards_pool::*, r#withdraw::*,
 };

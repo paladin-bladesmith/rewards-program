@@ -30,6 +30,9 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export type InitializeHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends
+    | string
+    | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountTokenAccount extends string | IAccountMeta<string> = string,
@@ -45,6 +48,9 @@ export type InitializeHolderRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
+      TAccountHolderRewardsPoolTokenAccountInfo extends string
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
+        : TAccountHolderRewardsPoolTokenAccountInfo,
       TAccountOwner extends string
         ? WritableAccount<TAccountOwner>
         : TAccountOwner,
@@ -91,6 +97,7 @@ export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
 
 export type InitializeHolderRewardsInput<
   TAccountHolderRewardsPool extends string = string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
   TAccountOwner extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountTokenAccount extends string = string,
@@ -99,6 +106,8 @@ export type InitializeHolderRewardsInput<
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
+  /** Holder rewards pool token account. */
+  holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
   /** Token account owner. */
   owner: Address<TAccountOwner>;
   /** Holder rewards account. */
@@ -113,6 +122,7 @@ export type InitializeHolderRewardsInput<
 
 export function getInitializeHolderRewardsInstruction<
   TAccountHolderRewardsPool extends string,
+  TAccountHolderRewardsPoolTokenAccountInfo extends string,
   TAccountOwner extends string,
   TAccountHolderRewards extends string,
   TAccountTokenAccount extends string,
@@ -121,6 +131,7 @@ export function getInitializeHolderRewardsInstruction<
 >(
   input: InitializeHolderRewardsInput<
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountOwner,
     TAccountHolderRewards,
     TAccountTokenAccount,
@@ -130,6 +141,7 @@ export function getInitializeHolderRewardsInstruction<
 ): InitializeHolderRewardsInstruction<
   typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool,
+  TAccountHolderRewardsPoolTokenAccountInfo,
   TAccountOwner,
   TAccountHolderRewards,
   TAccountTokenAccount,
@@ -144,6 +156,10 @@ export function getInitializeHolderRewardsInstruction<
     holderRewardsPool: {
       value: input.holderRewardsPool ?? null,
       isWritable: true,
+    },
+    holderRewardsPoolTokenAccountInfo: {
+      value: input.holderRewardsPoolTokenAccountInfo ?? null,
+      isWritable: false,
     },
     owner: { value: input.owner ?? null, isWritable: true },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
@@ -166,6 +182,7 @@ export function getInitializeHolderRewardsInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.tokenAccount),
@@ -177,6 +194,7 @@ export function getInitializeHolderRewardsInstruction<
   } as InitializeHolderRewardsInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,
+    TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountOwner,
     TAccountHolderRewards,
     TAccountTokenAccount,
@@ -195,16 +213,18 @@ export type ParsedInitializeHolderRewardsInstruction<
   accounts: {
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
+    /** Holder rewards pool token account. */
+    holderRewardsPoolTokenAccountInfo: TAccountMetas[1];
     /** Token account owner. */
-    owner: TAccountMetas[1];
+    owner: TAccountMetas[2];
     /** Holder rewards account. */
-    holderRewards: TAccountMetas[2];
+    holderRewards: TAccountMetas[3];
     /** Token account. */
-    tokenAccount: TAccountMetas[3];
+    tokenAccount: TAccountMetas[4];
     /** Token mint. */
-    mint: TAccountMetas[4];
+    mint: TAccountMetas[5];
     /** System program. */
-    systemProgram: TAccountMetas[5];
+    systemProgram: TAccountMetas[6];
   };
   data: InitializeHolderRewardsInstructionData;
 };
@@ -217,7 +237,7 @@ export function parseInitializeHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -231,6 +251,7 @@ export function parseInitializeHolderRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
+      holderRewardsPoolTokenAccountInfo: getNextAccount(),
       owner: getNextAccount(),
       holderRewards: getNextAccount(),
       tokenAccount: getNextAccount(),

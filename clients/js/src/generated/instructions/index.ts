@@ -7,6 +7,8 @@
  */
 
 export * from './closeHolderRewards';
+export * from './deposit';
 export * from './harvestRewards';
 export * from './initializeHolderRewards';
 export * from './initializeHolderRewardsPool';
+export * from './withdraw';

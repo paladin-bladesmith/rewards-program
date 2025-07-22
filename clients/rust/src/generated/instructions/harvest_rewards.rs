@@ -10,14 +10,14 @@ use borsh::{BorshDeserialize, BorshSerialize};
 pub struct HarvestRewards {
     /// Holder rewards pool account.
     pub holder_rewards_pool: solana_program::pubkey::Pubkey,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account_info: solana_program::pubkey::Pubkey,
     /// Holder rewards account.
     pub holder_rewards: solana_program::pubkey::Pubkey,
-    /// Token account.
-    pub token_account: solana_program::pubkey::Pubkey,
     /// Token mint.
     pub mint: solana_program::pubkey::Pubkey,
-    /// Sponsor of this account, required if rent_debt is non zero
-    pub sponsor: Option<solana_program::pubkey::Pubkey>,
+    /// owner of token account
+    pub owner: solana_program::pubkey::Pubkey,
 }
 
 impl HarvestRewards {
@@ -34,27 +34,20 @@ impl HarvestRewards {
             self.holder_rewards_pool,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            self.holder_rewards,
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.holder_rewards_pool_token_account_info,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.token_account,
+            self.holder_rewards,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
         ));
-        if let Some(sponsor) = self.sponsor {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                sponsor, false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::PALADIN_REWARDS_ID,
-                false,
-            ));
-        }
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.owner, false,
+        ));
         accounts.extend_from_slice(remaining_accounts);
         let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
 
@@ -88,17 +81,17 @@ impl Default for HarvestRewardsInstructionData {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
+///   1. `[]` holder_rewards_pool_token_account_info
+///   2. `[writable]` holder_rewards
 ///   3. `[]` mint
-///   4. `[writable, optional]` sponsor
+///   4. `[writable]` owner
 #[derive(Clone, Debug, Default)]
 pub struct HarvestRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
+    holder_rewards_pool_token_account_info: Option<solana_program::pubkey::Pubkey>,
     holder_rewards: Option<solana_program::pubkey::Pubkey>,
-    token_account: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
-    sponsor: Option<solana_program::pubkey::Pubkey>,
+    owner: Option<solana_program::pubkey::Pubkey>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -115,16 +108,19 @@ impl HarvestRewardsBuilder {
         self.holder_rewards_pool = Some(holder_rewards_pool);
         self
     }
+    /// Holder rewards pool token account.
+    #[inline(always)]
+    pub fn holder_rewards_pool_token_account_info(
+        &mut self,
+        holder_rewards_pool_token_account_info: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.holder_rewards_pool_token_account_info = Some(holder_rewards_pool_token_account_info);
+        self
+    }
     /// Holder rewards account.
     #[inline(always)]
     pub fn holder_rewards(&mut self, holder_rewards: solana_program::pubkey::Pubkey) -> &mut Self {
         self.holder_rewards = Some(holder_rewards);
-        self
-    }
-    /// Token account.
-    #[inline(always)]
-    pub fn token_account(&mut self, token_account: solana_program::pubkey::Pubkey) -> &mut Self {
-        self.token_account = Some(token_account);
         self
     }
     /// Token mint.
@@ -133,11 +129,10 @@ impl HarvestRewardsBuilder {
         self.mint = Some(mint);
         self
     }
-    /// `[optional account]`
-    /// Sponsor of this account, required if rent_debt is non zero
+    /// owner of token account
     #[inline(always)]
-    pub fn sponsor(&mut self, sponsor: Option<solana_program::pubkey::Pubkey>) -> &mut Self {
-        self.sponsor = sponsor;
+    pub fn owner(&mut self, owner: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.owner = Some(owner);
         self
     }
     /// Add an aditional account to the instruction.
@@ -164,10 +159,12 @@ impl HarvestRewardsBuilder {
             holder_rewards_pool: self
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
+            holder_rewards_pool_token_account_info: self
+                .holder_rewards_pool_token_account_info
+                .expect("holder_rewards_pool_token_account_info is not set"),
             holder_rewards: self.holder_rewards.expect("holder_rewards is not set"),
-            token_account: self.token_account.expect("token_account is not set"),
             mint: self.mint.expect("mint is not set"),
-            sponsor: self.sponsor,
+            owner: self.owner.expect("owner is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
@@ -178,14 +175,14 @@ impl HarvestRewardsBuilder {
 pub struct HarvestRewardsCpiAccounts<'a, 'b> {
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
-    /// Token account.
-    pub token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
-    /// Sponsor of this account, required if rent_debt is non zero
-    pub sponsor: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    /// owner of token account
+    pub owner: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 /// `harvest_rewards` CPI instruction.
@@ -194,14 +191,14 @@ pub struct HarvestRewardsCpi<'a, 'b> {
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Holder rewards pool token account.
+    pub holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
-    /// Token account.
-    pub token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
-    /// Sponsor of this account, required if rent_debt is non zero
-    pub sponsor: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    /// owner of token account
+    pub owner: &'b solana_program::account_info::AccountInfo<'a>,
 }
 
 impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
@@ -212,10 +209,10 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
         Self {
             __program: program,
             holder_rewards_pool: accounts.holder_rewards_pool,
+            holder_rewards_pool_token_account_info: accounts.holder_rewards_pool_token_account_info,
             holder_rewards: accounts.holder_rewards,
-            token_account: accounts.token_account,
             mint: accounts.mint,
-            sponsor: accounts.sponsor,
+            owner: accounts.owner,
         }
     }
     #[inline(always)]
@@ -256,29 +253,22 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
             *self.holder_rewards_pool.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.holder_rewards.key,
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.holder_rewards_pool_token_account_info.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            *self.token_account.key,
+            *self.holder_rewards.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.mint.key,
             false,
         ));
-        if let Some(sponsor) = self.sponsor {
-            accounts.push(solana_program::instruction::AccountMeta::new(
-                *sponsor.key,
-                false,
-            ));
-        } else {
-            accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-                crate::PALADIN_REWARDS_ID,
-                false,
-            ));
-        }
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.owner.key,
+            false,
+        ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
                 pubkey: *remaining_account.0.key,
@@ -296,12 +286,10 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
         let mut account_infos = Vec::with_capacity(5 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
+        account_infos.push(self.holder_rewards_pool_token_account_info.clone());
         account_infos.push(self.holder_rewards.clone());
-        account_infos.push(self.token_account.clone());
         account_infos.push(self.mint.clone());
-        if let Some(sponsor) = self.sponsor {
-            account_infos.push(sponsor.clone());
-        }
+        account_infos.push(self.owner.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -319,10 +307,10 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[writable]` holder_rewards
-///   2. `[writable]` token_account
+///   1. `[]` holder_rewards_pool_token_account_info
+///   2. `[writable]` holder_rewards
 ///   3. `[]` mint
-///   4. `[writable, optional]` sponsor
+///   4. `[writable]` owner
 #[derive(Clone, Debug)]
 pub struct HarvestRewardsCpiBuilder<'a, 'b> {
     instruction: Box<HarvestRewardsCpiBuilderInstruction<'a, 'b>>,
@@ -333,10 +321,10 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         let instruction = Box::new(HarvestRewardsCpiBuilderInstruction {
             __program: program,
             holder_rewards_pool: None,
+            holder_rewards_pool_token_account_info: None,
             holder_rewards: None,
-            token_account: None,
             mint: None,
-            sponsor: None,
+            owner: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -350,6 +338,16 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         self.instruction.holder_rewards_pool = Some(holder_rewards_pool);
         self
     }
+    /// Holder rewards pool token account.
+    #[inline(always)]
+    pub fn holder_rewards_pool_token_account_info(
+        &mut self,
+        holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.holder_rewards_pool_token_account_info =
+            Some(holder_rewards_pool_token_account_info);
+        self
+    }
     /// Holder rewards account.
     #[inline(always)]
     pub fn holder_rewards(
@@ -359,29 +357,16 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
         self.instruction.holder_rewards = Some(holder_rewards);
         self
     }
-    /// Token account.
-    #[inline(always)]
-    pub fn token_account(
-        &mut self,
-        token_account: &'b solana_program::account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.token_account = Some(token_account);
-        self
-    }
     /// Token mint.
     #[inline(always)]
     pub fn mint(&mut self, mint: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.mint = Some(mint);
         self
     }
-    /// `[optional account]`
-    /// Sponsor of this account, required if rent_debt is non zero
+    /// owner of token account
     #[inline(always)]
-    pub fn sponsor(
-        &mut self,
-        sponsor: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    ) -> &mut Self {
-        self.instruction.sponsor = sponsor;
+    pub fn owner(&mut self, owner: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
+        self.instruction.owner = Some(owner);
         self
     }
     /// Add an additional account to the instruction.
@@ -434,19 +419,19 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
 
+            holder_rewards_pool_token_account_info: self
+                .instruction
+                .holder_rewards_pool_token_account_info
+                .expect("holder_rewards_pool_token_account_info is not set"),
+
             holder_rewards: self
                 .instruction
                 .holder_rewards
                 .expect("holder_rewards is not set"),
 
-            token_account: self
-                .instruction
-                .token_account
-                .expect("token_account is not set"),
-
             mint: self.instruction.mint.expect("mint is not set"),
 
-            sponsor: self.instruction.sponsor,
+            owner: self.instruction.owner.expect("owner is not set"),
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -459,10 +444,11 @@ impl<'a, 'b> HarvestRewardsCpiBuilder<'a, 'b> {
 struct HarvestRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     holder_rewards_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    holder_rewards_pool_token_account_info:
+        Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    sponsor: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,
