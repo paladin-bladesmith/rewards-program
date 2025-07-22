@@ -212,13 +212,13 @@ fn validate_token_account(
     Ok(())
 }
 
-// Calculate the amount of rewards that can be harvested by the holder
-//
-// This is done by subtracting the `last_accumulated_rewards_per_token`
-// rate from the pool's current rate, then multiplying by the token account
-// balance.
-//
-// The holder should also be able to harvest any unharvested rewards.
+/// Calculate the amount of rewards that can be harvested by the holder
+///
+/// This is done by subtracting the `last_accumulated_rewards_per_token`
+/// rate from the pool's current rate, then multiplying by the token account
+/// balance.
+///
+/// The holder should also be able to harvest any unharvested rewards.
 fn calculate_rewards_to_harvest(
     holder_rewards_state: &mut HolderRewards,
     pool_state: &HolderRewardsPool,
@@ -242,7 +242,7 @@ fn calculate_rewards_to_harvest(
     if eligible_rewards > pool_excess_lamports {
         return Err(PaladinRewardsError::RewardsExcessPoolBalance.into());
     }
-    
+
     // Update the holder rewards state with last rewards per token
     holder_rewards_state.last_accumulated_rewards_per_token =
         pool_state.accumulated_rewards_per_token;
