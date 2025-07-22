@@ -241,11 +241,11 @@ fn calculate_rewards_to_harvest(
 
     if eligible_rewards > pool_excess_lamports {
         return Err(PaladinRewardsError::RewardsExcessPoolBalance.into());
-    } else {
-        // Update the holder rewards state with last rewards per token
-        holder_rewards_state.last_accumulated_rewards_per_token =
-            pool_state.accumulated_rewards_per_token;
     }
+    
+    // Update the holder rewards state with last rewards per token
+    holder_rewards_state.last_accumulated_rewards_per_token =
+        pool_state.accumulated_rewards_per_token;
 
     Ok(eligible_rewards)
 }
