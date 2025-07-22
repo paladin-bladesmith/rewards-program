@@ -581,22 +581,22 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
     let owner = next_account_info(accounts_iter)?;
     let token_program = next_account_info(accounts_iter)?;
 
-    // Ensure signer is the owner and can close this account
+    // Ensure signer is the owner and can close this account.
     if !owner.is_signer {
         return Err(PaladinRewardsError::OwnerNotSigner.into());
     }
 
-    // Validate pool token account
+    // Validate pool token account.
     validate_token_account(
         holder_rewards_pool_token_account_info,
         holder_rewards_pool_info.key,
         mint_info.key,
     )?;
 
-    // Validate the owner token account
+    // Validate the owner token account.
     validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
-    // Validate user have enough tokens to deposit
+    // Validate user has enough tokens to deposit.
     let owner_balance = get_token_account_balance_checked(mint_info.key, token_account_info)?;
     if owner_balance < amount {
         return Err(PaladinRewardsError::NotEnoughTokenToDeposit.into());
