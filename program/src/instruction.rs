@@ -78,6 +78,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         2,
+        signer,
         writable,
         name = "owner",
         desc = "Token account owner.",
@@ -139,6 +140,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
+        signer,
         writable,
         name = "owner",
         desc = "owner of token account",
@@ -175,6 +177,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         writable,
         name = "owner",
         desc = "Owner of the account.",
@@ -210,6 +213,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         name = "owner",
         desc = "Owner of the account.",
     )]
@@ -250,6 +254,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         name = "owner",
         desc = "Owner of the account.",
     )]

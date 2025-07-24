@@ -43,7 +43,7 @@ impl InitializeHolderRewards {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.owner, false,
+            self.owner, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards,
@@ -96,7 +96,7 @@ impl Default for InitializeHolderRewardsInstructionData {
 ///
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[]` holder_rewards_pool_token_account_info
-///   2. `[writable]` owner
+///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` token_account
 ///   5. `[]` mint
@@ -305,7 +305,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.owner.key,
-            false,
+            true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards.key,
@@ -366,7 +366,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
 ///
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[]` holder_rewards_pool_token_account_info
-///   2. `[writable]` owner
+///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` token_account
 ///   5. `[]` mint

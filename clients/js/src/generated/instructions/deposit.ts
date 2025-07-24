@@ -20,10 +20,13 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
+  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
+  type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
@@ -63,7 +66,8 @@ export type DepositInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountOwner extends string
-        ? ReadonlyAccount<TAccountOwner>
+        ? ReadonlySignerAccount<TAccountOwner> &
+            IAccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
@@ -123,7 +127,7 @@ export type DepositInput<
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** Owner of the account. */
-  owner: Address<TAccountOwner>;
+  owner: TransactionSigner<TAccountOwner>;
   /** token program */
   tokenProgram?: Address<TAccountTokenProgram>;
   amount: DepositInstructionDataArgs['amount'];

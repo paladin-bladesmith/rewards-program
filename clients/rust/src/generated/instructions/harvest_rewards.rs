@@ -46,7 +46,7 @@ impl HarvestRewards {
             self.mint, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.owner, false,
+            self.owner, true,
         ));
         accounts.extend_from_slice(remaining_accounts);
         let data = HarvestRewardsInstructionData::new().try_to_vec().unwrap();
@@ -84,7 +84,7 @@ impl Default for HarvestRewardsInstructionData {
 ///   1. `[]` holder_rewards_pool_token_account_info
 ///   2. `[writable]` holder_rewards
 ///   3. `[]` mint
-///   4. `[writable]` owner
+///   4. `[writable, signer]` owner
 #[derive(Clone, Debug, Default)]
 pub struct HarvestRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
@@ -267,7 +267,7 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.owner.key,
-            false,
+            true,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -310,7 +310,7 @@ impl<'a, 'b> HarvestRewardsCpi<'a, 'b> {
 ///   1. `[]` holder_rewards_pool_token_account_info
 ///   2. `[writable]` holder_rewards
 ///   3. `[]` mint
-///   4. `[writable]` owner
+///   4. `[writable, signer]` owner
 #[derive(Clone, Debug)]
 pub struct HarvestRewardsCpiBuilder<'a, 'b> {
     instruction: Box<HarvestRewardsCpiBuilderInstruction<'a, 'b>>,

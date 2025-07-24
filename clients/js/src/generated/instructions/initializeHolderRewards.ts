@@ -18,11 +18,14 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
+  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
@@ -52,7 +55,8 @@ export type InitializeHolderRewardsInstruction<
         ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
         : TAccountHolderRewardsPoolTokenAccountInfo,
       TAccountOwner extends string
-        ? WritableAccount<TAccountOwner>
+        ? WritableSignerAccount<TAccountOwner> &
+            IAccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
@@ -109,7 +113,7 @@ export type InitializeHolderRewardsInput<
   /** Holder rewards pool token account. */
   holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
   /** Token account owner. */
-  owner: Address<TAccountOwner>;
+  owner: TransactionSigner<TAccountOwner>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
   /** Token account. */
