@@ -91,16 +91,11 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
-        name = "token_account",
-        desc = "Token account.",
-    )]
-    #[account(
-        5,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        6,
+        5,
         name = "system_program",
         desc = "System program.",
     )]

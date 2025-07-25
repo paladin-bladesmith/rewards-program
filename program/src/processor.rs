@@ -362,7 +362,6 @@ fn process_initialize_holder_rewards(
     let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let owner = next_account_info(accounts_iter)?;
-    let token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _system_program = next_account_info(accounts_iter)?;
 
@@ -371,7 +370,6 @@ fn process_initialize_holder_rewards(
         holder_rewards_pool_info.key,
         mint_info.key,
     )?;
-    validate_token_account(token_account_info, owner.key, mint_info.key)?;
 
     // Confirm owner is the signer
     if !owner.is_signer {
