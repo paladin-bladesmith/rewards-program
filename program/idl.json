@@ -66,7 +66,7 @@
         {
           "name": "owner",
           "isMut": true,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
             "Token account owner."
           ]
@@ -77,14 +77,6 @@
           "isSigner": false,
           "docs": [
             "Holder rewards account."
-          ]
-        },
-        {
-          "name": "tokenAccount",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token account."
           ]
         },
         {
@@ -148,7 +140,7 @@
         {
           "name": "owner",
           "isMut": true,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
             "owner of token account"
           ]
@@ -206,7 +198,7 @@
         {
           "name": "owner",
           "isMut": true,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
             "Owner of the account."
           ]
@@ -264,7 +256,7 @@
         {
           "name": "owner",
           "isMut": false,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
             "Owner of the account."
           ]
@@ -335,7 +327,7 @@
         {
           "name": "owner",
           "isMut": false,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
             "Owner of the account."
           ]

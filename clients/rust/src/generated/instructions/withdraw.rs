@@ -54,7 +54,7 @@ impl Withdraw {
             self.mint, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.owner, false,
+            self.owner, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.token_program,
@@ -97,7 +97,7 @@ impl Default for WithdrawInstructionData {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[]` owner
+///   5. `[signer]` owner
 ///   6. `[optional]` token_program (default to
 ///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
@@ -315,7 +315,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.owner.key,
-            false,
+            true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.token_program.key,
@@ -365,7 +365,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[]` owner
+///   5. `[signer]` owner
 ///   6. `[]` token_program
 #[derive(Clone, Debug)]
 pub struct WithdrawCpiBuilder<'a, 'b> {

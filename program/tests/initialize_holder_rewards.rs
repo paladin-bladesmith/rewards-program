@@ -28,103 +28,6 @@ use {
 };
 
 #[tokio::test]
-async fn fail_token_account_invalid_data() {
-    let owner = Keypair::new();
-    let mint = Pubkey::new_unique();
-
-    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
-    let holder_rewards =
-        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
-    let holder_rewards_pool =
-        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
-    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
-
-    let mut context = setup().start_with_context().await;
-    setup_mint(&mut context, &mint, 0, None).await;
-    setup_token_account(
-        &mut context,
-        &pool_token_account,
-        &holder_rewards_pool,
-        &mint,
-        0,
-    )
-    .await;
-
-    // Set up a token account with invalid data.
-    context.set_account(
-        &token_account,
-        &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token::id()).unwrap(),
-    );
-
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &token_account,
-        &mint,
-    );
-
-    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
-    );
-}
-
-#[tokio::test]
-async fn fail_token_account_mint_mismatch() {
-    let owner = Keypair::new();
-    let mint = Pubkey::new_unique();
-
-    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
-    let holder_rewards =
-        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
-    let holder_rewards_pool =
-        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
-    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
-
-    let mut context = setup().start_with_context().await;
-    setup_token_account(
-        &mut context,
-        &token_account,
-        &owner.pubkey(),
-        &Pubkey::new_unique(), // Incorrect mint.
-        0,
-    )
-    .await;
-    setup_token_account(
-        &mut context,
-        &pool_token_account,
-        &holder_rewards_pool,
-        &mint,
-        0,
-    )
-    .await;
-    setup_mint(&mut context, &mint, 0, None).await;
-
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &token_account,
-        &mint,
-    );
-
-    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(
-            0,
-            InstructionError::Custom(PaladinRewardsError::TokenAccountMintMismatch as u32)
-        )
-    );
-}
-
-#[tokio::test]
 async fn fail_holder_rewards_pool_incorrect_owner() {
     let owner = Keypair::new();
     let mint = Pubkey::new_unique();
@@ -161,7 +64,6 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -202,7 +104,6 @@ async fn fail_holder_rewards_pool_incorrect_address() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -241,7 +142,6 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -298,7 +198,6 @@ async fn fail_holder_rewards_pool_invalid_data() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -339,7 +238,6 @@ async fn fail_holder_rewards_incorrect_address() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -397,7 +295,6 @@ async fn fail_holder_rewards_account_initialized() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 
@@ -473,7 +370,6 @@ async fn success() {
         &pool_token_account,
         &holder_rewards,
         &owner.pubkey(),
-        &token_account,
         &mint,
     );
 

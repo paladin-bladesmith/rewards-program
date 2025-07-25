@@ -78,6 +78,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         2,
+        signer,
         writable,
         name = "owner",
         desc = "Token account owner.",
@@ -90,16 +91,11 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
-        name = "token_account",
-        desc = "Token account.",
-    )]
-    #[account(
-        5,
         name = "mint",
         desc = "Token mint.",
     )]
     #[account(
-        6,
+        5,
         name = "system_program",
         desc = "System program.",
     )]
@@ -139,6 +135,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         4,
+        signer,
         writable,
         name = "owner",
         desc = "owner of token account",
@@ -175,6 +172,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         writable,
         name = "owner",
         desc = "Owner of the account.",
@@ -210,6 +208,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         name = "owner",
         desc = "Owner of the account.",
     )]
@@ -250,6 +249,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         5,
+        signer,
         name = "owner",
         desc = "Owner of the account.",
     )]
@@ -325,15 +325,13 @@ pub fn initialize_holder_rewards(
     holder_rewards_pool_token_account_address: &Pubkey,
     holder_rewards_address: &Pubkey,
     owner: &Pubkey,
-    token_account_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new_readonly(*holder_rewards_pool_token_account_address, false),
-        AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*owner, true),
-        AccountMeta::new_readonly(*token_account_address, false),
+        AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
