@@ -325,15 +325,13 @@ pub fn initialize_holder_rewards(
     holder_rewards_pool_token_account_address: &Pubkey,
     holder_rewards_address: &Pubkey,
     owner: &Pubkey,
-    token_account_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
         AccountMeta::new_readonly(*holder_rewards_pool_token_account_address, false),
-        AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new(*owner, true),
-        AccountMeta::new_readonly(*token_account_address, false),
+        AccountMeta::new(*holder_rewards_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
