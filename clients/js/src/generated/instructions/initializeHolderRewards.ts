@@ -38,7 +38,6 @@ export type InitializeHolderRewardsInstruction<
     | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
-  TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
@@ -61,9 +60,6 @@ export type InitializeHolderRewardsInstruction<
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
-      TAccountTokenAccount extends string
-        ? ReadonlyAccount<TAccountTokenAccount>
-        : TAccountTokenAccount,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
@@ -104,7 +100,6 @@ export type InitializeHolderRewardsInput<
   TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
   TAccountOwner extends string = string,
   TAccountHolderRewards extends string = string,
-  TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
@@ -116,8 +111,6 @@ export type InitializeHolderRewardsInput<
   owner: TransactionSigner<TAccountOwner>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
-  /** Token account. */
-  tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** System program. */
@@ -129,7 +122,6 @@ export function getInitializeHolderRewardsInstruction<
   TAccountHolderRewardsPoolTokenAccountInfo extends string,
   TAccountOwner extends string,
   TAccountHolderRewards extends string,
-  TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountSystemProgram extends string,
 >(
@@ -138,7 +130,6 @@ export function getInitializeHolderRewardsInstruction<
     TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountOwner,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountSystemProgram
   >
@@ -148,7 +139,6 @@ export function getInitializeHolderRewardsInstruction<
   TAccountHolderRewardsPoolTokenAccountInfo,
   TAccountOwner,
   TAccountHolderRewards,
-  TAccountTokenAccount,
   TAccountMint,
   TAccountSystemProgram
 > {
@@ -167,7 +157,6 @@ export function getInitializeHolderRewardsInstruction<
     },
     owner: { value: input.owner ?? null, isWritable: true },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
-    tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -189,7 +178,6 @@ export function getInitializeHolderRewardsInstruction<
       getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.holderRewards),
-      getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.systemProgram),
     ],
@@ -201,7 +189,6 @@ export function getInitializeHolderRewardsInstruction<
     TAccountHolderRewardsPoolTokenAccountInfo,
     TAccountOwner,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountSystemProgram
   >;
@@ -223,12 +210,10 @@ export type ParsedInitializeHolderRewardsInstruction<
     owner: TAccountMetas[2];
     /** Holder rewards account. */
     holderRewards: TAccountMetas[3];
-    /** Token account. */
-    tokenAccount: TAccountMetas[4];
     /** Token mint. */
-    mint: TAccountMetas[5];
+    mint: TAccountMetas[4];
     /** System program. */
-    systemProgram: TAccountMetas[6];
+    systemProgram: TAccountMetas[5];
   };
   data: InitializeHolderRewardsInstructionData;
 };
@@ -241,7 +226,7 @@ export function parseInitializeHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 7) {
+  if (instruction.accounts.length < 6) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -258,7 +243,6 @@ export function parseInitializeHolderRewardsInstruction<
       holderRewardsPoolTokenAccountInfo: getNextAccount(),
       owner: getNextAccount(),
       holderRewards: getNextAccount(),
-      tokenAccount: getNextAccount(),
       mint: getNextAccount(),
       systemProgram: getNextAccount(),
     },

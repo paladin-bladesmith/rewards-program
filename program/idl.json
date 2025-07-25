@@ -80,14 +80,6 @@
           ]
         },
         {
-          "name": "tokenAccount",
-          "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "Token account."
-          ]
-        },
-        {
           "name": "mint",
           "isMut": false,
           "isSigner": false,
