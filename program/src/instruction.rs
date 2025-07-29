@@ -186,6 +186,7 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         1,
+        writable,
         name = "holder_rewards_pool_token_account",
         desc = "Holder rewards pool token account."
     )]

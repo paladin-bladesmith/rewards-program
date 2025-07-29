@@ -223,7 +223,7 @@
         },
         {
           "name": "holderRewardsPoolTokenAccount",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "Holder rewards pool token account."
