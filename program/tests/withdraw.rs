@@ -14,10 +14,10 @@ use {
     },
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::withdraw,
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{get_holder_rewards_address, get_holder_rewards_pool_address},
     },
+    paladin_rewards_program_client::instructions::WithdrawBuilder,
     setup::setup,
     solana_program_test::*,
     solana_sdk::{
@@ -70,15 +70,15 @@ async fn fail_empty_pool() {
     .await;
 
     // Should fail as the user have more deposited tokens than the pool owns
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(0)
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -130,15 +130,15 @@ async fn fail_no_deposited_tokens() {
     .await;
 
     // Should fail as there are no tokens deposited in the pool by this user
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(0)
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -193,15 +193,15 @@ async fn success_with_rewards() {
     .await;
 
     // Do withdraw
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is 0 (single depositor withdrews all).
@@ -280,15 +280,15 @@ async fn success_without_rewards() {
     .await;
 
     // Do wihthdraw
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is 0 (single depositor withdrews all).
@@ -376,15 +376,15 @@ async fn success_withdraw_half() {
     .await;
 
     // Do withdraw
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT / 2,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT / 2)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is DEPOSIT_AMOUNT / 2 (single depositor withdrews half).

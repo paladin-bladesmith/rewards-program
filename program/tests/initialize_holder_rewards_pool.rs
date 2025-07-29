@@ -10,9 +10,9 @@ use {
     },
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::initialize_holder_rewards_pool,
         state::{get_holder_rewards_pool_address, HolderRewardsPool},
     },
+    paladin_rewards_program_client::instructions::InitializeHolderRewardsPoolBuilder,
     setup::{setup, setup_mint},
     solana_program_test::*,
     solana_sdk::{
@@ -43,8 +43,11 @@ async fn fail_mint_invalid_data() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards_pool(&holder_rewards_pool, &pool_token_account, &mint);
+    let instruction = InitializeHolderRewardsPoolBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
 
@@ -72,8 +75,11 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     )
     .await;
 
-    let instruction =
-        initialize_holder_rewards_pool(&holder_rewards_pool, &pool_token_account, &mint);
+    let instruction = InitializeHolderRewardsPoolBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
 
@@ -99,8 +105,11 @@ async fn fail_holder_rewards_pool_incorrect_token_address() {
     setup_mint(&mut context, &mint, 0, None).await;
     setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
 
-    let instruction =
-        initialize_holder_rewards_pool(&holder_rewards_pool, &pool_token_account, &mint);
+    let instruction = InitializeHolderRewardsPoolBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
 
@@ -145,8 +154,11 @@ async fn fail_holder_rewards_pool_account_initialized() {
         );
     }
 
-    let instruction =
-        initialize_holder_rewards_pool(&holder_rewards_pool, &pool_token_account, &mint);
+    let instruction = InitializeHolderRewardsPoolBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
 
@@ -183,8 +195,11 @@ async fn success() {
         &AccountSharedData::new(lamports, 0, &system_program::id()),
     );
 
-    let instruction =
-        initialize_holder_rewards_pool(&holder_rewards_pool, &pool_token_account, &mint);
+    let instruction = InitializeHolderRewardsPoolBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .mint(mint)
+        .instruction();
 
     execute_with_payer(&mut context, instruction, None).await;
 

@@ -14,10 +14,10 @@ use {
     },
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::close_holder_rewards,
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
     },
+    paladin_rewards_program_client::instructions::CloseHolderRewardsBuilder,
     setup::setup,
     solana_program_test::*,
     solana_sdk::{
@@ -66,13 +66,13 @@ async fn fail_pending_rewards() {
     )
     .await;
 
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &mint,
-        &owner.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -123,13 +123,13 @@ async fn fail_tokens_still_deposited() {
     )
     .await;
 
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &mint,
-        &owner.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -180,13 +180,13 @@ async fn success() {
     )
     .await;
 
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &mint,
-        &owner.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert that the owner got the rent lamprots

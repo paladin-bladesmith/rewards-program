@@ -16,12 +16,14 @@ use {
         },
     },
     paladin_rewards_program::{
-        instruction::{close_holder_rewards, deposit, harvest_rewards, withdraw},
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{
             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
             HolderRewardsPool,
         },
+    },
+    paladin_rewards_program_client::instructions::{
+        CloseHolderRewardsBuilder, DepositBuilder, HarvestRewardsBuilder, WithdrawBuilder,
     },
     setup::{setup, setup_mint},
     solana_program_test::*,
@@ -293,27 +295,27 @@ async fn test_e2e() {
     context.warp_forward_force_reward_interval_end().unwrap();
 
     // Alice deposits 100 tokens
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &alice_token,
-        &mint,
-        &alice.pubkey(),
-        100,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .token_account(alice_token)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .amount(100)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Bob deposits 50 tokens
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &bob_token,
-        &mint,
-        &bob.pubkey(),
-        50,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .token_account(bob_token)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .amount(50)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Validate counting is correct
@@ -351,23 +353,23 @@ async fn test_e2e() {
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 150).await;
 
     // Alice harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &mint,
-        &alice.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Bob harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &mint,
-        &bob.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Validate with rewards
@@ -421,38 +423,38 @@ async fn test_e2e() {
     context.warp_forward_force_reward_interval_end().unwrap();
 
     // Carol deposits 150 tokens
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &carol_token,
-        &mint,
-        &carol.pubkey(),
-        150,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .token_account(carol_token)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .amount(150)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     // Send 300 rewards
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 300).await;
 
     // Alice harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &mint,
-        &alice.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Carol harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &mint,
-        &carol.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     // Validate with rewards
@@ -519,50 +521,50 @@ async fn test_e2e() {
     context.warp_forward_force_reward_interval_end().unwrap();
 
     // Alice withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &alice_token,
-        &mint,
-        &alice.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .token_account(alice_token)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .amount(0)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Dave deposits
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &dave_holder_rewards,
-        &dave_token,
-        &mint,
-        &dave.pubkey(),
-        100,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(dave_holder_rewards)
+        .token_account(dave_token)
+        .mint(mint)
+        .owner(dave.pubkey())
+        .amount(100)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&dave)).await;
 
     // Send 300 rewards
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 300).await;
 
     // Bob harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &mint,
-        &bob.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Carol harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &mint,
-        &carol.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     validate_state(
@@ -635,72 +637,72 @@ async fn test_e2e() {
     context.warp_forward_force_reward_interval_end().unwrap();
 
     // Alice deposits
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &alice_token,
-        &mint,
-        &alice.pubkey(),
-        100,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .token_account(alice_token)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .amount(100)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Bob withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &bob_token,
-        &mint,
-        &bob.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .token_account(bob_token)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .amount(0)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Bob closes account
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &mint,
-        &bob.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Carol deposits
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &carol_token,
-        &mint,
-        &carol.pubkey(),
-        150,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .token_account(carol_token)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .amount(150)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     // Send 500 rewards
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 500).await;
 
     // Alice harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &mint,
-        &alice.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Carol harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &mint,
-        &carol.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     validate_state(
@@ -764,85 +766,85 @@ async fn test_e2e() {
     context.warp_forward_force_reward_interval_end().unwrap();
 
     // Alice withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &alice_token,
-        &mint,
-        &alice.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .token_account(alice_token)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .amount(0)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Alice closes account
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &alice_holder_rewards,
-        &mint,
-        &alice.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(alice_holder_rewards)
+        .mint(mint)
+        .owner(alice.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
     // Carol withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &carol_token,
-        &mint,
-        &carol.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .token_account(carol_token)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .amount(0)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     // Carol closes account
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &carol_holder_rewards,
-        &mint,
-        &carol.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(carol_holder_rewards)
+        .mint(mint)
+        .owner(carol.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
     // Bob creates new holder account
     setup_holder_rewards_account(&mut context, &bob_holder_rewards, 0, 0).await;
 
     // Bob deposits
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &bob_token,
-        &mint,
-        &bob.pubkey(),
-        100,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .token_account(bob_token)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .amount(100)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Send 200 rewards
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 200).await;
 
     // Bob harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &mint,
-        &bob.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Dave harvest rewards
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &dave_holder_rewards,
-        &mint,
-        &dave.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(dave_holder_rewards)
+        .mint(mint)
+        .owner(dave.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&dave)).await;
 
     let holder_rent_exempt_lamports = holder_rent_exempt_lamports(&mut context).await;
@@ -901,37 +903,37 @@ async fn test_e2e() {
     send_rewards_to_pool(&mut context, &holder_rewards_pool, 200).await;
 
     // Bob withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &bob_token,
-        &mint,
-        &bob.pubkey(),
-        0,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .token_account(bob_token)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .amount(0)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Bob closes account
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &bob_holder_rewards,
-        &mint,
-        &bob.pubkey(),
-    );
+    let instruction = CloseHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(bob_holder_rewards)
+        .mint(mint)
+        .owner(bob.pubkey())
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
     // Dave withdraws tokens
-    let instruction = withdraw(
-        &holder_rewards_pool,
-        &pool_token,
-        &dave_holder_rewards,
-        &dave_token,
-        &mint,
-        &dave.pubkey(),
-        50,
-    );
+    let instruction = WithdrawBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(dave_holder_rewards)
+        .token_account(dave_token)
+        .mint(mint)
+        .owner(dave.pubkey())
+        .amount(50)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&dave)).await;
 
     validate_state(

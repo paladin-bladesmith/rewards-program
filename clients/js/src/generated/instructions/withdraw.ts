@@ -25,12 +25,18 @@ import {
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
+
+export const WITHDRAW_DISCRIMINATOR = 5;
+
+export function getWithdrawDiscriminatorBytes() {
+  return getU8Encoder().encode(WITHDRAW_DISCRIMINATOR);
+}
 
 export type WithdrawInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
@@ -66,7 +72,7 @@ export type WithdrawInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
+        ? WritableSignerAccount<TAccountOwner> &
             IAccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountTokenProgram extends string
@@ -86,7 +92,7 @@ export function getWithdrawInstructionDataEncoder(): Encoder<WithdrawInstruction
       ['discriminator', getU8Encoder()],
       ['amount', getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: 5 })
+    (value) => ({ ...value, discriminator: WITHDRAW_DISCRIMINATOR })
   );
 }
 
@@ -141,6 +147,7 @@ export function getWithdrawInstruction<
   TAccountMint extends string,
   TAccountOwner extends string,
   TAccountTokenProgram extends string,
+  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: WithdrawInput<
     TAccountHolderRewardsPool,
@@ -150,9 +157,10 @@ export function getWithdrawInstruction<
     TAccountMint,
     TAccountOwner,
     TAccountTokenProgram
-  >
+  >,
+  config?: { programAddress?: TProgramAddress }
 ): WithdrawInstruction<
-  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+  TProgramAddress,
   TAccountHolderRewardsPool,
   TAccountHolderRewardsPoolTokenAccount,
   TAccountHolderRewards,
@@ -162,7 +170,8 @@ export function getWithdrawInstruction<
   TAccountTokenProgram
 > {
   // Program address.
-  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress =
+    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -177,7 +186,7 @@ export function getWithdrawInstruction<
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     tokenAccount: { value: input.tokenAccount ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
-    owner: { value: input.owner ?? null, isWritable: false },
+    owner: { value: input.owner ?? null, isWritable: true },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -210,7 +219,7 @@ export function getWithdrawInstruction<
       args as WithdrawInstructionDataArgs
     ),
   } as WithdrawInstruction<
-    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+    TProgramAddress,
     TAccountHolderRewardsPool,
     TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,

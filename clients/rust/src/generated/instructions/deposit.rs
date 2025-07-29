@@ -57,7 +57,7 @@ impl Deposit {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             self.owner, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -109,7 +109,7 @@ pub struct DepositInstructionArgs {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[signer]` owner
+///   5. `[writable, signer]` owner
 ///   6. `[optional]` token_program (default to
 ///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
@@ -183,7 +183,7 @@ impl DepositBuilder {
         self.amount = Some(amount);
         self
     }
-    /// Add an aditional account to the instruction.
+    /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
         &mut self,
@@ -338,7 +338,7 @@ impl<'a, 'b> DepositCpi<'a, 'b> {
             *self.mint.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             *self.owner.key,
             true,
         ));
@@ -392,7 +392,7 @@ impl<'a, 'b> DepositCpi<'a, 'b> {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[signer]` owner
+///   5. `[writable, signer]` owner
 ///   6. `[]` token_program
 #[derive(Clone, Debug)]
 pub struct DepositCpiBuilder<'a, 'b> {
