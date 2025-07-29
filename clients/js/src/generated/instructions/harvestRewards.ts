@@ -18,11 +18,14 @@ import {
   type Decoder,
   type Encoder,
   type IAccountMeta,
+  type IAccountSignerMeta,
   type IInstruction,
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
@@ -54,7 +57,8 @@ export type HarvestRewardsInstruction<
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
       TAccountOwner extends string
-        ? WritableAccount<TAccountOwner>
+        ? WritableSignerAccount<TAccountOwner> &
+            IAccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       ...TRemainingAccounts,
     ]
@@ -101,7 +105,7 @@ export type HarvestRewardsInput<
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** owner of token account */
-  owner: Address<TAccountOwner>;
+  owner: TransactionSigner<TAccountOwner>;
 };
 
 export function getHarvestRewardsInstruction<

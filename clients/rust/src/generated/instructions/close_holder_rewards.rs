@@ -52,7 +52,7 @@ impl CloseHolderRewards {
             self.mint, false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
-            self.owner, false,
+            self.owner, true,
         ));
         accounts.extend_from_slice(remaining_accounts);
         let data = CloseHolderRewardsInstructionData::new()
@@ -93,7 +93,7 @@ impl Default for CloseHolderRewardsInstructionData {
 ///   2. `[writable]` holder_rewards
 ///   3. `[]` token_account
 ///   4. `[]` mint
-///   5. `[writable]` owner
+///   5. `[writable, signer]` owner
 #[derive(Clone, Debug, Default)]
 pub struct CloseHolderRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
@@ -293,7 +293,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.owner.key,
-            false,
+            true,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
             accounts.push(solana_program::instruction::AccountMeta {
@@ -340,7 +340,7 @@ impl<'a, 'b> CloseHolderRewardsCpi<'a, 'b> {
 ///   2. `[writable]` holder_rewards
 ///   3. `[]` token_account
 ///   4. `[]` mint
-///   5. `[writable]` owner
+///   5. `[writable, signer]` owner
 #[derive(Clone, Debug)]
 pub struct CloseHolderRewardsCpiBuilder<'a, 'b> {
     instruction: Box<CloseHolderRewardsCpiBuilderInstruction<'a, 'b>>,
