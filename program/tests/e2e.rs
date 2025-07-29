@@ -526,6 +526,7 @@ async fn test_e2e() {
         &alice_token,
         &mint,
         &alice.pubkey(),
+        0,
     );
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
@@ -653,6 +654,7 @@ async fn test_e2e() {
         &bob_token,
         &mint,
         &bob.pubkey(),
+        0,
     );
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
@@ -769,6 +771,7 @@ async fn test_e2e() {
         &alice_token,
         &mint,
         &alice.pubkey(),
+        0,
     );
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
@@ -790,6 +793,7 @@ async fn test_e2e() {
         &carol_token,
         &mint,
         &carol.pubkey(),
+        0,
     );
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
@@ -904,6 +908,7 @@ async fn test_e2e() {
         &bob_token,
         &mint,
         &bob.pubkey(),
+        0,
     );
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
@@ -925,16 +930,7 @@ async fn test_e2e() {
         &dave_token,
         &mint,
         &dave.pubkey(),
-    );
-    execute_with_payer(&mut context, instruction, Some(&dave)).await;
-
-    // Bob closes account
-    let instruction = close_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &dave_holder_rewards,
-        &mint,
-        &dave.pubkey(),
+        50,
     );
     execute_with_payer(&mut context, instruction, Some(&dave)).await;
 
@@ -942,30 +938,34 @@ async fn test_e2e() {
         &mut context,
         &mint,
         Pool {
-            total_deposited: 0,
+            total_deposited: 50,
             accumulated_rewards_per_token: REWARDS_PER_TOKEN_SCALING_FACTOR * 6,
             pool_excess_lamports: 0,
             lamports_last: 0,
         },
-        &[],
+        &[(
+            &dave.pubkey(),
+            Holder {
+                last_accumulated_rewards_per_token: REWARDS_PER_TOKEN_SCALING_FACTOR * 6,
+                deposited: 50,
+                expected_lamports: 300 + 100,
+            },
+        )],
     )
     .await;
 
     let wallet_rent_exempt_lamports = wallet_rent_exempt_lamports(&mut context).await;
 
-    // assert bob have correct lamports ammount (rewards + new rewards + closed
-    // account lamports)
+    // assert bob have correct lamports ammount (rewards + new rewards + wallet rent
+    // + closed account lamports)
     let bob_lamports = get_account(&mut context, &bob.pubkey()).await.lamports;
     assert_eq!(
         bob_lamports,
         250 + 100 + wallet_rent_exempt_lamports + (holder_rent_exempt_lamports * 2)
     ); // Bob closed his account twice
 
-    // assert dave have correct lamports ammount (rewards + new rewards + closed
-    // account lamports)
+    // assert dave have correct lamports ammount (rewards + new rewards + wallet
+    // rent)
     let dave_lamports = get_account(&mut context, &dave.pubkey()).await.lamports;
-    assert_eq!(
-        dave_lamports,
-        300 + 100 + wallet_rent_exempt_lamports + holder_rent_exempt_lamports
-    );
+    assert_eq!(dave_lamports, 300 + 100 + wallet_rent_exempt_lamports);
 }

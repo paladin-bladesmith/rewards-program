@@ -10,6 +10,8 @@ import {
   combineCodec,
   getStructDecoder,
   getStructEncoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
@@ -74,19 +76,25 @@ export type WithdrawInstruction<
     ]
   >;
 
-export type WithdrawInstructionData = { discriminator: number };
+export type WithdrawInstructionData = { discriminator: number; amount: bigint };
 
-export type WithdrawInstructionDataArgs = {};
+export type WithdrawInstructionDataArgs = { amount: number | bigint };
 
 export function getWithdrawInstructionDataEncoder(): Encoder<WithdrawInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([['discriminator', getU8Encoder()]]),
+    getStructEncoder([
+      ['discriminator', getU8Encoder()],
+      ['amount', getU64Encoder()],
+    ]),
     (value) => ({ ...value, discriminator: 5 })
   );
 }
 
 export function getWithdrawInstructionDataDecoder(): Decoder<WithdrawInstructionData> {
-  return getStructDecoder([['discriminator', getU8Decoder()]]);
+  return getStructDecoder([
+    ['discriminator', getU8Decoder()],
+    ['amount', getU64Decoder()],
+  ]);
 }
 
 export function getWithdrawInstructionDataCodec(): Codec<
@@ -122,6 +130,7 @@ export type WithdrawInput<
   owner: TransactionSigner<TAccountOwner>;
   /** token program */
   tokenProgram?: Address<TAccountTokenProgram>;
+  amount: WithdrawInstructionDataArgs['amount'];
 };
 
 export function getWithdrawInstruction<
@@ -176,6 +185,9 @@ export function getWithdrawInstruction<
     ResolvedAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
@@ -194,7 +206,9 @@ export function getWithdrawInstruction<
       getAccountMeta(accounts.tokenProgram),
     ],
     programAddress,
-    data: getWithdrawInstructionDataEncoder().encode({}),
+    data: getWithdrawInstructionDataEncoder().encode(
+      args as WithdrawInstructionDataArgs
+    ),
   } as WithdrawInstruction<
     typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
     TAccountHolderRewardsPool,

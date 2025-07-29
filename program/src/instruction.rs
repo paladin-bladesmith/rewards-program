@@ -259,7 +259,7 @@ pub enum PaladinRewardsInstruction {
         name = "token program",
         desc = "token program",
     )]
-    Withdraw,
+    Withdraw { amount: u64},
 }
 
 impl PaladinRewardsInstruction {
@@ -278,7 +278,12 @@ impl PaladinRewardsInstruction {
                 data.extend_from_slice(&amount.to_le_bytes());
                 data
             }
-            PaladinRewardsInstruction::Withdraw => vec![5],
+            PaladinRewardsInstruction::Withdraw { amount } => {
+                let mut data = Vec::with_capacity(9);
+                data.push(5);
+                data.extend_from_slice(&amount.to_le_bytes());
+                data
+            }
         }
     }
 
@@ -295,7 +300,11 @@ impl PaladinRewardsInstruction {
 
                 Ok(PaladinRewardsInstruction::Deposit { amount })
             }
-            Some((&5, _)) => Ok(PaladinRewardsInstruction::Withdraw),
+            Some((&5, rest)) if rest.len() == 8 => {
+                let amount = u64::from_le_bytes(*array_ref![rest, 0, 8]);
+
+                Ok(PaladinRewardsInstruction::Withdraw { amount })
+            }
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -412,6 +421,7 @@ pub fn withdraw(
     token_account_address: &Pubkey,
     mint_address: &Pubkey,
     owner: &Pubkey,
+    amount: u64,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*holder_rewards_pool_address, false),
@@ -422,7 +432,7 @@ pub fn withdraw(
         AccountMeta::new(*owner, true),
         AccountMeta::new(spl_token::id(), false),
     ];
-    let data = PaladinRewardsInstruction::Withdraw.pack();
+    let data = PaladinRewardsInstruction::Withdraw { amount }.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -472,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_pack_unpack_withdraw() {
-        let original = PaladinRewardsInstruction::Withdraw;
+        let original = PaladinRewardsInstruction::Withdraw { amount: 1000 };
         let packed = original.pack();
         let unpacked = PaladinRewardsInstruction::unpack(&packed).unwrap();
         assert_eq!(original, unpacked);

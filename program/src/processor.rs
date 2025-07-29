@@ -423,7 +423,8 @@ fn process_initialize_holder_rewards(
         assert_rent_exempt(holder_rewards_info);
 
         // Write the data.
-        let mut data = holder_rewards_info.try_borrow_mut_data()?;
+        let mut data: std::cell::RefMut<'_, &mut [u8]> =
+            holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
@@ -667,7 +668,7 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
 
 /// Processes a [Withdraw](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
@@ -711,7 +712,15 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
     } else if holder_rewards_state.deposited > pool_balance {
         return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
+    } else if amount > holder_rewards_state.deposited {
+        return Err(PaladinRewardsError::WithdrawExceedsDeposited.into());
     }
+
+    let to_withdraw = if amount == 0 {
+        holder_rewards_state.deposited
+    } else {
+        amount
+    };
 
     // Handle any lamports received since last harvest.
     update_accumulated_rewards_per_token(
@@ -741,8 +750,10 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     }?;
 
     // Update total deposited tokens
-    let transfer_amount = holder_rewards_state.deposited;
-    holder_rewards_state.deposited = 0;
+    holder_rewards_state.deposited = holder_rewards_state
+        .deposited
+        .checked_sub(to_withdraw)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
 
     // Get pool token account signer seeds.
     let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(mint_info.key, program_id);
@@ -757,7 +768,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         token_account_info.key,
         holder_rewards_pool_info.key,
         &[holder_rewards_pool_info.key],
-        transfer_amount,
+        to_withdraw,
     )?;
 
     drop(pool_data);
@@ -815,9 +826,9 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             msg!("Instruction: Deposit");
             process_deposit(program_id, accounts, amount)
         }
-        PaladinRewardsInstruction::Withdraw => {
+        PaladinRewardsInstruction::Withdraw { amount } => {
             msg!("Instruction: Withdraw");
-            process_withdraw(program_id, accounts)
+            process_withdraw(program_id, accounts, amount)
         }
     }
 }

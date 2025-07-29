@@ -341,7 +341,12 @@
           ]
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ],
       "discriminant": {
         "type": "u8",
         "value": 5
@@ -460,6 +465,11 @@
       "code": 13,
       "name": "NotEnoughTokenToDeposit",
       "msg": "Owner doesn'thave enough tokens to deposit"
+    },
+    {
+      "code": 14,
+      "name": "WithdrawExceedsDeposited",
+      "msg": "Withdraw amount exceeds deposited"
     }
   ],
   "metadata": {

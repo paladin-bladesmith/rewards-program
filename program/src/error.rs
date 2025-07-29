@@ -56,6 +56,9 @@ pub enum PaladinRewardsError {
     /// Owner doesn'thave enough tokens to deposit.
     #[error("Owner doesn'thave enough tokens to deposit")]
     NotEnoughTokenToDeposit,
+    /// Withdraw amount exceeds deposited
+    #[error("Withdraw amount exceeds deposited")]
+    WithdrawExceedsDeposited,
 }
 
 impl PrintProgramError for PaladinRewardsError {
