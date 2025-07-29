@@ -93,7 +93,7 @@ async fn validate_state(
     {
         let pool_address = get_holder_rewards_pool_address(mint, &paladin_rewards_program::id());
         let pool_account = get_account(context, &pool_address).await;
-        let pool_token = get_associated_token_address(&pool_address, &mint);
+        let pool_token = get_associated_token_address(&pool_address, mint);
         let pool_token_account = get_account(context, &pool_token).await;
         let pool_token_state = TokenAccount::unpack(&pool_token_account.data).unwrap();
         assert_eq!(pool_token_state.amount, pool.total_deposited);
@@ -871,7 +871,7 @@ async fn test_e2e() {
                 Holder {
                     last_accumulated_rewards_per_token: REWARDS_PER_TOKEN_SCALING_FACTOR * 5,
                     deposited: 100,
-                    expected_lamports: 0 + 300,
+                    expected_lamports: 300,
                 },
             ),
         ],

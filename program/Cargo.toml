@@ -13,6 +13,7 @@ arrayref = "0.3.7"
 bytemuck = "1.16.0"
 num-derive = "0.3"
 num-traits = "0.2"
+paladin-rewards-program-client = { path = "../clients/rust" }
 shank = "0.4.2"
 solana-program = "2.1.4"
 spl-associated-token-account = { version = "4.0.0", features = [
@@ -20,7 +21,7 @@ spl-associated-token-account = { version = "4.0.0", features = [
 ] }
 spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
 thiserror = "1.0"
-paladin-rewards-program-client = {path = "../clients/rust"}
+
 
 [dev-dependencies]
 proptest = "1.5.0"
