@@ -423,8 +423,7 @@ fn process_initialize_holder_rewards(
         assert_rent_exempt(holder_rewards_info);
 
         // Write the data.
-        let mut data: std::cell::RefMut<'_, &mut [u8]> =
-            holder_rewards_info.try_borrow_mut_data()?;
+        let mut data = holder_rewards_info.try_borrow_mut_data()?;
         *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
             HolderRewards {
                 last_accumulated_rewards_per_token: pool_state.accumulated_rewards_per_token,
