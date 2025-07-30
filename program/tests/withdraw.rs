@@ -26,6 +26,7 @@ use {
     },
     spl_associated_token_account::get_associated_token_address,
     spl_token::state::Account as TokenAccount,
+    std::u64,
 };
 
 pub const REWARDS_AMOUNT: u64 = 100_000_000_000_000;
@@ -77,7 +78,7 @@ async fn fail_empty_pool() {
         .token_account(owner_token)
         .mint(mint)
         .owner(owner.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -137,7 +138,7 @@ async fn fail_no_deposited_tokens() {
         .token_account(owner_token)
         .mint(mint)
         .owner(owner.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 

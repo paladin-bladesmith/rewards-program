@@ -528,7 +528,7 @@ async fn test_e2e() {
         .token_account(alice_token)
         .mint(mint)
         .owner(alice.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
@@ -656,7 +656,7 @@ async fn test_e2e() {
         .token_account(bob_token)
         .mint(mint)
         .owner(bob.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 
@@ -773,7 +773,7 @@ async fn test_e2e() {
         .token_account(alice_token)
         .mint(mint)
         .owner(alice.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     execute_with_payer(&mut context, instruction, Some(&alice)).await;
 
@@ -795,7 +795,7 @@ async fn test_e2e() {
         .token_account(carol_token)
         .mint(mint)
         .owner(carol.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     execute_with_payer(&mut context, instruction, Some(&carol)).await;
 
@@ -910,7 +910,7 @@ async fn test_e2e() {
         .token_account(bob_token)
         .mint(mint)
         .owner(bob.pubkey())
-        .amount(0)
+        .amount(u64::MAX)
         .instruction();
     execute_with_payer(&mut context, instruction, Some(&bob)).await;
 

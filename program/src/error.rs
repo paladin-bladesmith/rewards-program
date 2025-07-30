@@ -14,49 +14,50 @@ use {
 // Note: Shank does not export the type when we use `spl_program_error`.
 #[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinRewardsError {
-    /// Incorrect holder rewards pool address.
+    /// 0 - Incorrect holder rewards pool address.
     #[error("Incorrect holder rewards pool address")]
     IncorrectHolderRewardsPoolAddress,
-    /// Incorrect holder rewards address.
+    /// 1 - Incorrect holder rewards address.
     #[error("Incorrect holder rewards address")]
     IncorrectHolderRewardsAddress,
-    /// Token account mint mismatch.
+    /// 2 - Token account mint mismatch.
     #[error("Token account mint mismatch")]
     TokenAccountMintMismatch,
-    /// Attempted to close a holder rewards account that had unclaimed rewards.
+    /// 3 - Attempted to close a holder rewards account that had unclaimed
+    /// rewards.
     #[error("Holder rewards has unclaimed rewards")]
     CloseWithUnclaimedRewards,
-    /// Cannot close holder rewards with current balance.
+    /// 4 - Cannot close holder rewards with current balance.
     #[error("Cannot close holder rewards with current balance")]
     InvalidClosingBalance,
-    /// Owner is not the signer.
+    /// 5 - Owner is not the signer.
     #[error("Owner is not the signer")]
     OwnerNotSigner,
-    /// Signer not owner of token account.
+    /// 6 - Signer not owner of token account.
     #[error("Signer not owner of token account")]
     NotOwnerTokenAccount,
-    /// Rewards amount exceeds pool balance.
+    /// 7 - Rewards amount exceeds pool balance.
     #[error("Rewards amount exceeds pool balance")]
     RewardsExcessPoolBalance,
-    /// Holder rewards has deposited tokens.
+    /// 8 - Holder rewards has deposited tokens.
     #[error("Holder rewards has deposited tokens")]
     CloseWithDepositedTokens,
-    /// Holder doesn't have any deposited tokens to withdraw.
+    /// 9 - Holder doesn't have any deposited tokens to withdraw.
     #[error("Holder doesn't have any deposited tokens to withdraw")]
     NoDepositedTokensToWithdraw,
-    /// Pool doesn't have enough balance to withdraw.
+    /// 10 - Pool doesn't have enough balance to withdraw.
     #[error("Pool doesn't have enough balance to withdraw")]
     WithdrawExceedsPoolBalance,
-    /// Token account owner mismatch.
+    /// 11 - Token account owner mismatch.
     #[error("Token account owner mismatch")]
     TokenAccountOwnerMissmatch,
-    /// Token account is frozen.
+    /// 12 - Token account is frozen.
     #[error("Token account is frozen")]
     TokenAccountFrozen,
-    /// Owner doesn'thave enough tokens to deposit.
+    /// 13 - Owner doesn'thave enough tokens to deposit.
     #[error("Owner doesn'thave enough tokens to deposit")]
     NotEnoughTokenToDeposit,
-    /// Withdraw amount exceeds deposited
+    /// 14 - Withdraw amount exceeds deposited
     #[error("Withdraw amount exceeds deposited")]
     WithdrawExceedsDeposited,
 }

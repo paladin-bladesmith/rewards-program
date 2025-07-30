@@ -707,19 +707,19 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) 
     // Validate that we have enough deposited tokens to withdraw
     let pool_balance =
         get_token_account_balance_checked(mint_info.key, holder_rewards_pool_token_account_info)?;
-    if holder_rewards_state.deposited == 0 {
-        return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
-    } else if holder_rewards_state.deposited > pool_balance {
-        return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
-    } else if amount > holder_rewards_state.deposited {
-        return Err(PaladinRewardsError::WithdrawExceedsDeposited.into());
-    }
-
-    let to_withdraw = if amount == 0 {
+    let to_withdraw = if amount == u64::MAX {
         holder_rewards_state.deposited
     } else {
         amount
     };
+
+    if holder_rewards_state.deposited == 0 {
+        return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
+    } else if holder_rewards_state.deposited > pool_balance {
+        return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
+    } else if to_withdraw > holder_rewards_state.deposited {
+        return Err(PaladinRewardsError::WithdrawExceedsDeposited.into());
+    }
 
     // Handle any lamports received since last harvest.
     update_accumulated_rewards_per_token(
