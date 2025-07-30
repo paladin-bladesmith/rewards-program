@@ -25,22 +25,22 @@ impl HolderRewards {
     /// Values are positional and appear in the following order:
     ///
     ///   0. `HolderRewards::PREFIX`
-    ///   1. token_account (`Pubkey`)
+    ///   1. owner (`Pubkey`)
     pub const PREFIX: &'static [u8] = "holder".as_bytes();
 
     pub fn create_pda(
-        token_account: Pubkey,
+        owner: Pubkey,
         bump: u8,
     ) -> Result<solana_program::pubkey::Pubkey, solana_program::pubkey::PubkeyError> {
         solana_program::pubkey::Pubkey::create_program_address(
-            &["holder".as_bytes(), token_account.as_ref(), &[bump]],
+            &["holder".as_bytes(), owner.as_ref(), &[bump]],
             &crate::PALADIN_REWARDS_ID,
         )
     }
 
-    pub fn find_pda(token_account: &Pubkey) -> (solana_program::pubkey::Pubkey, u8) {
+    pub fn find_pda(owner: &Pubkey) -> (solana_program::pubkey::Pubkey, u8) {
         solana_program::pubkey::Pubkey::find_program_address(
-            &["holder".as_bytes(), token_account.as_ref()],
+            &["holder".as_bytes(), owner.as_ref()],
             &crate::PALADIN_REWARDS_ID,
         )
     }

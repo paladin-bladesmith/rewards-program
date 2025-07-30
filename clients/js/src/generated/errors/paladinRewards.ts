@@ -42,6 +42,8 @@ export const PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_OWNER_MISSMATCH = 0xb; // 11
 export const PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_FROZEN = 0xc; // 12
 /** NotEnoughTokenToDeposit: Owner doesn'thave enough tokens to deposit */
 export const PALADIN_REWARDS_ERROR__NOT_ENOUGH_TOKEN_TO_DEPOSIT = 0xd; // 13
+/** WithdrawExceedsDeposited: Withdraw amount exceeds deposited */
+export const PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_DEPOSITED = 0xe; // 14
 
 export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS
@@ -57,6 +59,7 @@ export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_FROZEN
   | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH
   | typeof PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_OWNER_MISSMATCH
+  | typeof PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_DEPOSITED
   | typeof PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_POOL_BALANCE;
 
 let paladinRewardsErrorMessages:
@@ -77,6 +80,7 @@ if (process.env.NODE_ENV !== 'production') {
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_FROZEN]: `Token account is frozen`,
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_MINT_MISMATCH]: `Token account mint mismatch`,
     [PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_OWNER_MISSMATCH]: `Token account owner mismatch`,
+    [PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_DEPOSITED]: `Withdraw amount exceeds deposited`,
     [PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_POOL_BALANCE]: `Pool doesn't have enough balance to withdraw`,
   };
 }

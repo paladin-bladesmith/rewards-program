@@ -30,10 +30,16 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
+export const INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR = 1;
+
+export function getInitializeHolderRewardsDiscriminatorBytes() {
+  return getU8Encoder().encode(INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR);
+}
+
 export type InitializeHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends
+  TAccountHolderRewardsPoolTokenAccount extends
     | string
     | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
@@ -50,9 +56,9 @@ export type InitializeHolderRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
-      TAccountHolderRewardsPoolTokenAccountInfo extends string
-        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccountInfo>
-        : TAccountHolderRewardsPoolTokenAccountInfo,
+      TAccountHolderRewardsPoolTokenAccount extends string
+        ? ReadonlyAccount<TAccountHolderRewardsPoolTokenAccount>
+        : TAccountHolderRewardsPoolTokenAccount,
       TAccountOwner extends string
         ? WritableSignerAccount<TAccountOwner> &
             IAccountSignerMeta<TAccountOwner>
@@ -77,7 +83,10 @@ export type InitializeHolderRewardsInstructionDataArgs = {};
 export function getInitializeHolderRewardsInstructionDataEncoder(): Encoder<InitializeHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 1 })
+    (value) => ({
+      ...value,
+      discriminator: INITIALIZE_HOLDER_REWARDS_DISCRIMINATOR,
+    })
   );
 }
 
@@ -97,7 +106,7 @@ export function getInitializeHolderRewardsInstructionDataCodec(): Codec<
 
 export type InitializeHolderRewardsInput<
   TAccountHolderRewardsPool extends string = string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
+  TAccountHolderRewardsPoolTokenAccount extends string = string,
   TAccountOwner extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountMint extends string = string,
@@ -106,7 +115,7 @@ export type InitializeHolderRewardsInput<
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
   /** Holder rewards pool token account. */
-  holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
+  holderRewardsPoolTokenAccount: Address<TAccountHolderRewardsPoolTokenAccount>;
   /** Token account owner. */
   owner: TransactionSigner<TAccountOwner>;
   /** Holder rewards account. */
@@ -119,31 +128,34 @@ export type InitializeHolderRewardsInput<
 
 export function getInitializeHolderRewardsInstruction<
   TAccountHolderRewardsPool extends string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends string,
+  TAccountHolderRewardsPoolTokenAccount extends string,
   TAccountOwner extends string,
   TAccountHolderRewards extends string,
   TAccountMint extends string,
   TAccountSystemProgram extends string,
+  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: InitializeHolderRewardsInput<
     TAccountHolderRewardsPool,
-    TAccountHolderRewardsPoolTokenAccountInfo,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountOwner,
     TAccountHolderRewards,
     TAccountMint,
     TAccountSystemProgram
-  >
+  >,
+  config?: { programAddress?: TProgramAddress }
 ): InitializeHolderRewardsInstruction<
-  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+  TProgramAddress,
   TAccountHolderRewardsPool,
-  TAccountHolderRewardsPoolTokenAccountInfo,
+  TAccountHolderRewardsPoolTokenAccount,
   TAccountOwner,
   TAccountHolderRewards,
   TAccountMint,
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress =
+    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -151,8 +163,8 @@ export function getInitializeHolderRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
-    holderRewardsPoolTokenAccountInfo: {
-      value: input.holderRewardsPoolTokenAccountInfo ?? null,
+    holderRewardsPoolTokenAccount: {
+      value: input.holderRewardsPoolTokenAccount ?? null,
       isWritable: false,
     },
     owner: { value: input.owner ?? null, isWritable: true },
@@ -175,7 +187,7 @@ export function getInitializeHolderRewardsInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
-      getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccount),
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.mint),
@@ -184,9 +196,9 @@ export function getInitializeHolderRewardsInstruction<
     programAddress,
     data: getInitializeHolderRewardsInstructionDataEncoder().encode({}),
   } as InitializeHolderRewardsInstruction<
-    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+    TProgramAddress,
     TAccountHolderRewardsPool,
-    TAccountHolderRewardsPoolTokenAccountInfo,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountOwner,
     TAccountHolderRewards,
     TAccountMint,
@@ -205,7 +217,7 @@ export type ParsedInitializeHolderRewardsInstruction<
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
     /** Holder rewards pool token account. */
-    holderRewardsPoolTokenAccountInfo: TAccountMetas[1];
+    holderRewardsPoolTokenAccount: TAccountMetas[1];
     /** Token account owner. */
     owner: TAccountMetas[2];
     /** Holder rewards account. */
@@ -240,7 +252,7 @@ export function parseInitializeHolderRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
-      holderRewardsPoolTokenAccountInfo: getNextAccount(),
+      holderRewardsPoolTokenAccount: getNextAccount(),
       owner: getNextAccount(),
       holderRewards: getNextAccount(),
       mint: getNextAccount(),

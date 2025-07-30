@@ -26,9 +26,9 @@ kinobi.update(
       seeds: [
         k.constantPdaSeedNodeFromString("utf8", "holder"),
         k.variablePdaSeedNode(
-          "tokenAccount",
+          "owner",
           k.publicKeyTypeNode(),
-          "Token account"
+          "Owner"
         ),
       ],
     },

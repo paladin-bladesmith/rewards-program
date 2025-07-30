@@ -667,7 +667,7 @@ fn process_deposit(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -
 
 /// Processes a [Withdraw](enum.PaladinRewardsInstruction.html)
 /// instruction.
-fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
@@ -707,10 +707,18 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Validate that we have enough deposited tokens to withdraw
     let pool_balance =
         get_token_account_balance_checked(mint_info.key, holder_rewards_pool_token_account_info)?;
+    let to_withdraw = if amount == u64::MAX {
+        holder_rewards_state.deposited
+    } else {
+        amount
+    };
+
     if holder_rewards_state.deposited == 0 {
         return Err(PaladinRewardsError::NoDepositedTokensToWithdraw.into());
     } else if holder_rewards_state.deposited > pool_balance {
         return Err(PaladinRewardsError::WithdrawExceedsPoolBalance.into());
+    } else if to_withdraw > holder_rewards_state.deposited {
+        return Err(PaladinRewardsError::WithdrawExceedsDeposited.into());
     }
 
     // Handle any lamports received since last harvest.
@@ -741,8 +749,10 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     }?;
 
     // Update total deposited tokens
-    let transfer_amount = holder_rewards_state.deposited;
-    holder_rewards_state.deposited = 0;
+    holder_rewards_state.deposited = holder_rewards_state
+        .deposited
+        .checked_sub(to_withdraw)
+        .ok_or(ProgramError::ArithmeticOverflow)?;
 
     // Get pool token account signer seeds.
     let (_, bump_seed) = get_holder_rewards_pool_address_and_bump_seed(mint_info.key, program_id);
@@ -757,7 +767,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         token_account_info.key,
         holder_rewards_pool_info.key,
         &[holder_rewards_pool_info.key],
-        transfer_amount,
+        to_withdraw,
     )?;
 
     drop(pool_data);
@@ -815,9 +825,9 @@ pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> P
             msg!("Instruction: Deposit");
             process_deposit(program_id, accounts, amount)
         }
-        PaladinRewardsInstruction::Withdraw => {
+        PaladinRewardsInstruction::Withdraw { amount } => {
             msg!("Instruction: Withdraw");
-            process_withdraw(program_id, accounts)
+            process_withdraw(program_id, accounts, amount)
         }
     }
 }

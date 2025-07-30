@@ -11,7 +11,7 @@ pub struct InitializeHolderRewards {
     /// Holder rewards pool account.
     pub holder_rewards_pool: solana_program::pubkey::Pubkey,
     /// Holder rewards pool token account.
-    pub holder_rewards_pool_token_account_info: solana_program::pubkey::Pubkey,
+    pub holder_rewards_pool_token_account: solana_program::pubkey::Pubkey,
     /// Token account owner.
     pub owner: solana_program::pubkey::Pubkey,
     /// Holder rewards account.
@@ -37,7 +37,7 @@ impl InitializeHolderRewards {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            self.holder_rewards_pool_token_account_info,
+            self.holder_rewards_pool_token_account,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -89,7 +89,7 @@ impl Default for InitializeHolderRewardsInstructionData {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[]` holder_rewards_pool_token_account_info
+///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` mint
@@ -98,7 +98,7 @@ impl Default for InitializeHolderRewardsInstructionData {
 #[derive(Clone, Debug, Default)]
 pub struct InitializeHolderRewardsBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
-    holder_rewards_pool_token_account_info: Option<solana_program::pubkey::Pubkey>,
+    holder_rewards_pool_token_account: Option<solana_program::pubkey::Pubkey>,
     owner: Option<solana_program::pubkey::Pubkey>,
     holder_rewards: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
@@ -121,11 +121,11 @@ impl InitializeHolderRewardsBuilder {
     }
     /// Holder rewards pool token account.
     #[inline(always)]
-    pub fn holder_rewards_pool_token_account_info(
+    pub fn holder_rewards_pool_token_account(
         &mut self,
-        holder_rewards_pool_token_account_info: solana_program::pubkey::Pubkey,
+        holder_rewards_pool_token_account: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
-        self.holder_rewards_pool_token_account_info = Some(holder_rewards_pool_token_account_info);
+        self.holder_rewards_pool_token_account = Some(holder_rewards_pool_token_account);
         self
     }
     /// Token account owner.
@@ -153,7 +153,7 @@ impl InitializeHolderRewardsBuilder {
         self.system_program = Some(system_program);
         self
     }
-    /// Add an aditional account to the instruction.
+    /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
         &mut self,
@@ -177,9 +177,9 @@ impl InitializeHolderRewardsBuilder {
             holder_rewards_pool: self
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
-            holder_rewards_pool_token_account_info: self
-                .holder_rewards_pool_token_account_info
-                .expect("holder_rewards_pool_token_account_info is not set"),
+            holder_rewards_pool_token_account: self
+                .holder_rewards_pool_token_account
+                .expect("holder_rewards_pool_token_account is not set"),
             owner: self.owner.expect("owner is not set"),
             holder_rewards: self.holder_rewards.expect("holder_rewards is not set"),
             mint: self.mint.expect("mint is not set"),
@@ -197,7 +197,7 @@ pub struct InitializeHolderRewardsCpiAccounts<'a, 'b> {
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool token account.
-    pub holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
+    pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token account owner.
     pub owner: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
@@ -215,7 +215,7 @@ pub struct InitializeHolderRewardsCpi<'a, 'b> {
     /// Holder rewards pool account.
     pub holder_rewards_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards pool token account.
-    pub holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
+    pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token account owner.
     pub owner: &'b solana_program::account_info::AccountInfo<'a>,
     /// Holder rewards account.
@@ -234,7 +234,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
         Self {
             __program: program,
             holder_rewards_pool: accounts.holder_rewards_pool,
-            holder_rewards_pool_token_account_info: accounts.holder_rewards_pool_token_account_info,
+            holder_rewards_pool_token_account: accounts.holder_rewards_pool_token_account,
             owner: accounts.owner,
             holder_rewards: accounts.holder_rewards,
             mint: accounts.mint,
@@ -280,7 +280,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
-            *self.holder_rewards_pool_token_account_info.key,
+            *self.holder_rewards_pool_token_account.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -318,7 +318,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
         let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
-        account_infos.push(self.holder_rewards_pool_token_account_info.clone());
+        account_infos.push(self.holder_rewards_pool_token_account.clone());
         account_infos.push(self.owner.clone());
         account_infos.push(self.holder_rewards.clone());
         account_infos.push(self.mint.clone());
@@ -340,7 +340,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
 /// ### Accounts:
 ///
 ///   0. `[writable]` holder_rewards_pool
-///   1. `[]` holder_rewards_pool_token_account_info
+///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` mint
@@ -355,7 +355,7 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
         let instruction = Box::new(InitializeHolderRewardsCpiBuilderInstruction {
             __program: program,
             holder_rewards_pool: None,
-            holder_rewards_pool_token_account_info: None,
+            holder_rewards_pool_token_account: None,
             owner: None,
             holder_rewards: None,
             mint: None,
@@ -375,12 +375,12 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
     }
     /// Holder rewards pool token account.
     #[inline(always)]
-    pub fn holder_rewards_pool_token_account_info(
+    pub fn holder_rewards_pool_token_account(
         &mut self,
-        holder_rewards_pool_token_account_info: &'b solana_program::account_info::AccountInfo<'a>,
+        holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
-        self.instruction.holder_rewards_pool_token_account_info =
-            Some(holder_rewards_pool_token_account_info);
+        self.instruction.holder_rewards_pool_token_account =
+            Some(holder_rewards_pool_token_account);
         self
     }
     /// Token account owner.
@@ -463,10 +463,10 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
                 .holder_rewards_pool
                 .expect("holder_rewards_pool is not set"),
 
-            holder_rewards_pool_token_account_info: self
+            holder_rewards_pool_token_account: self
                 .instruction
-                .holder_rewards_pool_token_account_info
-                .expect("holder_rewards_pool_token_account_info is not set"),
+                .holder_rewards_pool_token_account
+                .expect("holder_rewards_pool_token_account is not set"),
 
             owner: self.instruction.owner.expect("owner is not set"),
 
@@ -493,8 +493,7 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
 struct InitializeHolderRewardsCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     holder_rewards_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    holder_rewards_pool_token_account_info:
-        Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    holder_rewards_pool_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,

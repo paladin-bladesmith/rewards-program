@@ -25,12 +25,16 @@ pub struct Withdraw {
 }
 
 impl Withdraw {
-    pub fn instruction(&self) -> solana_program::instruction::Instruction {
-        self.instruction_with_remaining_accounts(&[])
+    pub fn instruction(
+        &self,
+        args: WithdrawInstructionArgs,
+    ) -> solana_program::instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
+        args: WithdrawInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
         let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
@@ -53,7 +57,7 @@ impl Withdraw {
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             self.owner, true,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -61,7 +65,9 @@ impl Withdraw {
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let data = WithdrawInstructionData::new().try_to_vec().unwrap();
+        let mut data = WithdrawInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
 
         solana_program::instruction::Instruction {
             program_id: crate::PALADIN_REWARDS_ID,
@@ -88,6 +94,12 @@ impl Default for WithdrawInstructionData {
     }
 }
 
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct WithdrawInstructionArgs {
+    pub amount: u64,
+}
+
 /// Instruction builder for `Withdraw`.
 ///
 /// ### Accounts:
@@ -97,7 +109,7 @@ impl Default for WithdrawInstructionData {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[signer]` owner
+///   5. `[writable, signer]` owner
 ///   6. `[optional]` token_program (default to
 ///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
@@ -109,6 +121,7 @@ pub struct WithdrawBuilder {
     mint: Option<solana_program::pubkey::Pubkey>,
     owner: Option<solana_program::pubkey::Pubkey>,
     token_program: Option<solana_program::pubkey::Pubkey>,
+    amount: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -165,7 +178,12 @@ impl WithdrawBuilder {
         self.token_program = Some(token_program);
         self
     }
-    /// Add an aditional account to the instruction.
+    #[inline(always)]
+    pub fn amount(&mut self, amount: u64) -> &mut Self {
+        self.amount = Some(amount);
+        self
+    }
+    /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
         &mut self,
@@ -200,8 +218,11 @@ impl WithdrawBuilder {
                 "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
             )),
         };
+        let args = WithdrawInstructionArgs {
+            amount: self.amount.clone().expect("amount is not set"),
+        };
 
-        accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
     }
 }
 
@@ -241,12 +262,15 @@ pub struct WithdrawCpi<'a, 'b> {
     pub owner: &'b solana_program::account_info::AccountInfo<'a>,
     /// token program
     pub token_program: &'b solana_program::account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
+    pub __args: WithdrawInstructionArgs,
 }
 
 impl<'a, 'b> WithdrawCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_program::account_info::AccountInfo<'a>,
         accounts: WithdrawCpiAccounts<'a, 'b>,
+        args: WithdrawInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
@@ -257,6 +281,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
             mint: accounts.mint,
             owner: accounts.owner,
             token_program: accounts.token_program,
+            __args: args,
         }
     }
     #[inline(always)]
@@ -313,7 +338,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
             *self.mint.key,
             false,
         ));
-        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+        accounts.push(solana_program::instruction::AccountMeta::new(
             *self.owner.key,
             true,
         ));
@@ -328,7 +353,9 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let data = WithdrawInstructionData::new().try_to_vec().unwrap();
+        let mut data = WithdrawInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
 
         let instruction = solana_program::instruction::Instruction {
             program_id: crate::PALADIN_REWARDS_ID,
@@ -365,7 +392,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
 ///   2. `[writable]` holder_rewards
 ///   3. `[writable]` token_account
 ///   4. `[]` mint
-///   5. `[signer]` owner
+///   5. `[writable, signer]` owner
 ///   6. `[]` token_program
 #[derive(Clone, Debug)]
 pub struct WithdrawCpiBuilder<'a, 'b> {
@@ -383,6 +410,7 @@ impl<'a, 'b> WithdrawCpiBuilder<'a, 'b> {
             mint: None,
             owner: None,
             token_program: None,
+            amount: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -445,6 +473,11 @@ impl<'a, 'b> WithdrawCpiBuilder<'a, 'b> {
         self.instruction.token_program = Some(token_program);
         self
     }
+    #[inline(always)]
+    pub fn amount(&mut self, amount: u64) -> &mut Self {
+        self.instruction.amount = Some(amount);
+        self
+    }
     /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
@@ -487,6 +520,9 @@ impl<'a, 'b> WithdrawCpiBuilder<'a, 'b> {
         &self,
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
+        let args = WithdrawInstructionArgs {
+            amount: self.instruction.amount.clone().expect("amount is not set"),
+        };
         let instruction = WithdrawCpi {
             __program: self.instruction.__program,
 
@@ -518,6 +554,7 @@ impl<'a, 'b> WithdrawCpiBuilder<'a, 'b> {
                 .instruction
                 .token_program
                 .expect("token_program is not set"),
+            __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -536,6 +573,7 @@ struct WithdrawCpiBuilderInstruction<'a, 'b> {
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    amount: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

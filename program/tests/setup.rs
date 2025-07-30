@@ -38,7 +38,7 @@ pub async fn setup_mint(
         let state = Mint {
             is_initialized: true,
             supply,
-            mint_authority: mint_authority.try_into().unwrap(),
+            mint_authority: mint_authority.into(),
             ..Mint::default()
         };
         Mint::pack(state, &mut data).unwrap();
@@ -155,7 +155,7 @@ pub async fn setup_holder_rewards_pool_account_with_token_account(
 
     setup_token_account(
         context,
-        &holder_rewards_pool_token_account_address,
+        holder_rewards_pool_token_account_address,
         holder_rewards_pool_address,
         mint,
         token_balance,

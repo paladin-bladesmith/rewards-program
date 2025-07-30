@@ -50,6 +50,9 @@ pub enum PaladinRewardsError {
     /// 13 - Owner doesn'thave enough tokens to deposit
     #[error("Owner doesn'thave enough tokens to deposit")]
     NotEnoughTokenToDeposit = 0xD,
+    /// 14 - Withdraw amount exceeds deposited
+    #[error("Withdraw amount exceeds deposited")]
+    WithdrawExceedsDeposited = 0xE,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {

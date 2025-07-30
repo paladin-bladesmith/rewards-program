@@ -15,8 +15,8 @@ import {
 } from '@solana/web3.js';
 
 export type HolderRewardsSeeds = {
-  /** Token account */
-  tokenAccount: Address;
+  /** Owner */
+  owner: Address;
 };
 
 export async function findHolderRewardsPda(
@@ -30,7 +30,7 @@ export async function findHolderRewardsPda(
     programAddress,
     seeds: [
       getUtf8Encoder().encode('holder'),
-      getAddressEncoder().encode(seeds.tokenAccount),
+      getAddressEncoder().encode(seeds.owner),
     ],
   });
 }

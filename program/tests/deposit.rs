@@ -14,13 +14,13 @@ use {
     },
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::deposit,
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{
             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
             HolderRewardsPool,
         },
     },
+    paladin_rewards_program_client::instructions::DepositBuilder,
     setup::setup,
     solana_program_test::*,
     solana_sdk::{
@@ -70,16 +70,15 @@ async fn fail_pool_doesnt_have_enough_rewards() {
     )
     .await;
 
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT,
-    );
-
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT)
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -130,16 +129,15 @@ async fn fail_not_enough_tokens_to_deposit() {
     )
     .await;
 
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        INITIAL_OWNER_BALANCE,
-    );
-
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(INITIAL_OWNER_BALANCE)
+        .instruction();
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
     assert_eq!(
@@ -190,15 +188,15 @@ async fn success() {
     )
     .await;
 
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is DEPOSIT_AMOUNT.
@@ -259,15 +257,15 @@ async fn success() {
     assert_eq!(check_pool_lamports, previous_pool_lamports + rewards_amount);
 
     // Deposit again to check if rewards are being sent
-    let instruction = deposit(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &owner_token,
-        &mint,
-        &owner.pubkey(),
-        DEPOSIT_AMOUNT / 2,
-    );
+    let instruction = DepositBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .token_account(owner_token)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .amount(DEPOSIT_AMOUNT / 2)
+        .instruction();
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 
     // Assert pool balance is DEPOSIT_AMOUNT * 2.

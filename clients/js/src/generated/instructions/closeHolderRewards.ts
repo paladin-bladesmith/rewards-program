@@ -30,14 +30,19 @@ import {
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
+export const CLOSE_HOLDER_REWARDS_DISCRIMINATOR = 3;
+
+export function getCloseHolderRewardsDiscriminatorBytes() {
+  return getU8Encoder().encode(CLOSE_HOLDER_REWARDS_DISCRIMINATOR);
+}
+
 export type CloseHolderRewardsInstruction<
   TProgram extends string = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
   TAccountHolderRewardsPool extends string | IAccountMeta<string> = string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends
+  TAccountHolderRewardsPoolTokenAccount extends
     | string
     | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
-  TAccountTokenAccount extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
   TAccountOwner extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
@@ -48,15 +53,12 @@ export type CloseHolderRewardsInstruction<
       TAccountHolderRewardsPool extends string
         ? WritableAccount<TAccountHolderRewardsPool>
         : TAccountHolderRewardsPool,
-      TAccountHolderRewardsPoolTokenAccountInfo extends string
-        ? WritableAccount<TAccountHolderRewardsPoolTokenAccountInfo>
-        : TAccountHolderRewardsPoolTokenAccountInfo,
+      TAccountHolderRewardsPoolTokenAccount extends string
+        ? WritableAccount<TAccountHolderRewardsPoolTokenAccount>
+        : TAccountHolderRewardsPoolTokenAccount,
       TAccountHolderRewards extends string
         ? WritableAccount<TAccountHolderRewards>
         : TAccountHolderRewards,
-      TAccountTokenAccount extends string
-        ? ReadonlyAccount<TAccountTokenAccount>
-        : TAccountTokenAccount,
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
@@ -75,7 +77,7 @@ export type CloseHolderRewardsInstructionDataArgs = {};
 export function getCloseHolderRewardsInstructionDataEncoder(): Encoder<CloseHolderRewardsInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 3 })
+    (value) => ({ ...value, discriminator: CLOSE_HOLDER_REWARDS_DISCRIMINATOR })
   );
 }
 
@@ -95,20 +97,17 @@ export function getCloseHolderRewardsInstructionDataCodec(): Codec<
 
 export type CloseHolderRewardsInput<
   TAccountHolderRewardsPool extends string = string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends string = string,
+  TAccountHolderRewardsPoolTokenAccount extends string = string,
   TAccountHolderRewards extends string = string,
-  TAccountTokenAccount extends string = string,
   TAccountMint extends string = string,
   TAccountOwner extends string = string,
 > = {
   /** Holder rewards pool account. */
   holderRewardsPool: Address<TAccountHolderRewardsPool>;
   /** Holder rewards pool token account. */
-  holderRewardsPoolTokenAccountInfo: Address<TAccountHolderRewardsPoolTokenAccountInfo>;
+  holderRewardsPoolTokenAccount: Address<TAccountHolderRewardsPoolTokenAccount>;
   /** Holder rewards account. */
   holderRewards: Address<TAccountHolderRewards>;
-  /** Token account. */
-  tokenAccount: Address<TAccountTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
   /** Owner of the account. */
@@ -117,31 +116,31 @@ export type CloseHolderRewardsInput<
 
 export function getCloseHolderRewardsInstruction<
   TAccountHolderRewardsPool extends string,
-  TAccountHolderRewardsPoolTokenAccountInfo extends string,
+  TAccountHolderRewardsPoolTokenAccount extends string,
   TAccountHolderRewards extends string,
-  TAccountTokenAccount extends string,
   TAccountMint extends string,
   TAccountOwner extends string,
+  TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
   input: CloseHolderRewardsInput<
     TAccountHolderRewardsPool,
-    TAccountHolderRewardsPoolTokenAccountInfo,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountOwner
-  >
+  >,
+  config?: { programAddress?: TProgramAddress }
 ): CloseHolderRewardsInstruction<
-  typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+  TProgramAddress,
   TAccountHolderRewardsPool,
-  TAccountHolderRewardsPoolTokenAccountInfo,
+  TAccountHolderRewardsPoolTokenAccount,
   TAccountHolderRewards,
-  TAccountTokenAccount,
   TAccountMint,
   TAccountOwner
 > {
   // Program address.
-  const programAddress = PALADIN_REWARDS_PROGRAM_ADDRESS;
+  const programAddress =
+    config?.programAddress ?? PALADIN_REWARDS_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -149,12 +148,11 @@ export function getCloseHolderRewardsInstruction<
       value: input.holderRewardsPool ?? null,
       isWritable: true,
     },
-    holderRewardsPoolTokenAccountInfo: {
-      value: input.holderRewardsPoolTokenAccountInfo ?? null,
+    holderRewardsPoolTokenAccount: {
+      value: input.holderRewardsPoolTokenAccount ?? null,
       isWritable: true,
     },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
-    tokenAccount: { value: input.tokenAccount ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
     owner: { value: input.owner ?? null, isWritable: true },
   };
@@ -167,20 +165,18 @@ export function getCloseHolderRewardsInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.holderRewardsPool),
-      getAccountMeta(accounts.holderRewardsPoolTokenAccountInfo),
+      getAccountMeta(accounts.holderRewardsPoolTokenAccount),
       getAccountMeta(accounts.holderRewards),
-      getAccountMeta(accounts.tokenAccount),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.owner),
     ],
     programAddress,
     data: getCloseHolderRewardsInstructionDataEncoder().encode({}),
   } as CloseHolderRewardsInstruction<
-    typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
+    TProgramAddress,
     TAccountHolderRewardsPool,
-    TAccountHolderRewardsPoolTokenAccountInfo,
+    TAccountHolderRewardsPoolTokenAccount,
     TAccountHolderRewards,
-    TAccountTokenAccount,
     TAccountMint,
     TAccountOwner
   >;
@@ -197,15 +193,13 @@ export type ParsedCloseHolderRewardsInstruction<
     /** Holder rewards pool account. */
     holderRewardsPool: TAccountMetas[0];
     /** Holder rewards pool token account. */
-    holderRewardsPoolTokenAccountInfo: TAccountMetas[1];
+    holderRewardsPoolTokenAccount: TAccountMetas[1];
     /** Holder rewards account. */
     holderRewards: TAccountMetas[2];
-    /** Token account. */
-    tokenAccount: TAccountMetas[3];
     /** Token mint. */
-    mint: TAccountMetas[4];
+    mint: TAccountMetas[3];
     /** Owner of the account. */
-    owner: TAccountMetas[5];
+    owner: TAccountMetas[4];
   };
   data: CloseHolderRewardsInstructionData;
 };
@@ -218,7 +212,7 @@ export function parseCloseHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedCloseHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 5) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -232,9 +226,8 @@ export function parseCloseHolderRewardsInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       holderRewardsPool: getNextAccount(),
-      holderRewardsPoolTokenAccountInfo: getNextAccount(),
+      holderRewardsPoolTokenAccount: getNextAccount(),
       holderRewards: getNextAccount(),
-      tokenAccount: getNextAccount(),
       mint: getNextAccount(),
       owner: getNextAccount(),
     },

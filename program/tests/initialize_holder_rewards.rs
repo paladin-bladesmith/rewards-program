@@ -7,12 +7,12 @@ use {
     crate::execute_utils::{execute_with_payer, execute_with_payer_err},
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::initialize_holder_rewards,
         state::{
             get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards,
             HolderRewardsPool,
         },
     },
+    paladin_rewards_program_client::instructions::InitializeHolderRewardsBuilder,
     setup::{setup, setup_holder_rewards_pool_account, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
@@ -59,13 +59,13 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         );
     }
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -99,13 +99,13 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     .await;
     setup_mint(&mut context, &mint, 0, None).await;
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -137,13 +137,13 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
     setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -193,13 +193,13 @@ async fn fail_holder_rewards_pool_invalid_data() {
         );
     }
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -233,13 +233,13 @@ async fn fail_holder_rewards_incorrect_address() {
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -290,13 +290,13 @@ async fn fail_holder_rewards_account_initialized() {
         );
     }
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -365,13 +365,13 @@ async fn success() {
         );
     }
 
-    let instruction = initialize_holder_rewards(
-        &holder_rewards_pool,
-        &pool_token_account,
-        &holder_rewards,
-        &owner.pubkey(),
-        &mint,
-    );
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .instruction();
 
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
 

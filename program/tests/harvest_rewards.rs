@@ -13,10 +13,10 @@ use {
     },
     paladin_rewards_program::{
         error::PaladinRewardsError,
-        instruction::harvest_rewards,
         processor::REWARDS_PER_TOKEN_SCALING_FACTOR,
         state::{get_holder_rewards_address, get_holder_rewards_pool_address, HolderRewards},
     },
+    paladin_rewards_program_client::instructions::HarvestRewardsBuilder,
     setup::setup,
     solana_program_test::*,
     solana_sdk::{
@@ -69,13 +69,13 @@ async fn fail_not_enough_lamports() {
     )
     .await;
 
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &mint,
-        &owner.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
 
@@ -262,13 +262,13 @@ async fn success(pool: Pool, holder: Holder, expected_harvested_rewards: u64) {
         .lamports;
     let owner_beginning_lamports: u64 = 0;
 
-    let instruction = harvest_rewards(
-        &holder_rewards_pool,
-        &pool_token,
-        &holder_rewards,
-        &mint,
-        &owner.pubkey(),
-    );
+    let instruction = HarvestRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token)
+        .holder_rewards(holder_rewards)
+        .mint(mint)
+        .owner(owner.pubkey())
+        .instruction();
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
