@@ -51,6 +51,7 @@ async fn fail_empty_pool() {
         0,
         0,
         DEPOSIT_AMOUNT,
+        None,
     )
     .await;
 
@@ -111,6 +112,7 @@ async fn fail_no_deposited_tokens() {
         0,
         0,
         DEPOSIT_AMOUNT,
+        None,
     )
     .await;
 
@@ -171,6 +173,7 @@ async fn success_with_rewards() {
         0,
         0,
         DEPOSIT_AMOUNT,
+        None,
     )
     .await;
 
@@ -261,6 +264,7 @@ async fn success_without_rewards() {
         REWARDS_PER_TOKEN_SCALING_FACTOR.checked_mul(10).unwrap(), /* unaccounted rewards more
                                                                     * then current lamport */
         DEPOSIT_AMOUNT,
+        None,
     )
     .await;
 
@@ -354,6 +358,7 @@ async fn success_withdraw_half() {
         0,
         0,
         DEPOSIT_AMOUNT,
+        None,
     )
     .await;
 

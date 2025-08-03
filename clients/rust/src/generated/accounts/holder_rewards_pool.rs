@@ -14,11 +14,17 @@ use {
 pub struct HolderRewardsPool {
     pub accumulated_rewards_per_token: u128,
     pub lamports_last: u64,
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
+    )]
+    pub stake_program_vault_pda: Pubkey,
+    pub duna_document_hash: [u8; 32],
     pub padding: u64,
 }
 
 impl HolderRewardsPool {
-    pub const LEN: usize = 32;
+    pub const LEN: usize = 96;
 
     /// Prefix values used to generate a PDA for this account.
     ///

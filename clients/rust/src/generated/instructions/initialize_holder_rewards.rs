@@ -18,6 +18,8 @@ pub struct InitializeHolderRewards {
     pub holder_rewards: solana_program::pubkey::Pubkey,
     /// Token mint.
     pub mint: solana_program::pubkey::Pubkey,
+    /// DUNA document PDA account
+    pub duna_document_pda: solana_program::pubkey::Pubkey,
     /// System program.
     pub system_program: solana_program::pubkey::Pubkey,
 }
@@ -31,7 +33,7 @@ impl InitializeHolderRewards {
         &self,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
             false,
@@ -49,6 +51,10 @@ impl InitializeHolderRewards {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.duna_document_pda,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
@@ -93,7 +99,8 @@ impl Default for InitializeHolderRewardsInstructionData {
 ///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` mint
-///   5. `[optional]` system_program (default to
+///   5. `[]` duna_document_pda
+///   6. `[optional]` system_program (default to
 ///      `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeHolderRewardsBuilder {
@@ -102,6 +109,7 @@ pub struct InitializeHolderRewardsBuilder {
     owner: Option<solana_program::pubkey::Pubkey>,
     holder_rewards: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
+    duna_document_pda: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -146,6 +154,15 @@ impl InitializeHolderRewardsBuilder {
         self.mint = Some(mint);
         self
     }
+    /// DUNA document PDA account
+    #[inline(always)]
+    pub fn duna_document_pda(
+        &mut self,
+        duna_document_pda: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.duna_document_pda = Some(duna_document_pda);
+        self
+    }
     /// `[optional account, default to '11111111111111111111111111111111']`
     /// System program.
     #[inline(always)]
@@ -183,6 +200,9 @@ impl InitializeHolderRewardsBuilder {
             owner: self.owner.expect("owner is not set"),
             holder_rewards: self.holder_rewards.expect("holder_rewards is not set"),
             mint: self.mint.expect("mint is not set"),
+            duna_document_pda: self
+                .duna_document_pda
+                .expect("duna_document_pda is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
@@ -204,6 +224,8 @@ pub struct InitializeHolderRewardsCpiAccounts<'a, 'b> {
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
+    /// DUNA document PDA account
+    pub duna_document_pda: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -222,6 +244,8 @@ pub struct InitializeHolderRewardsCpi<'a, 'b> {
     pub holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
+    /// DUNA document PDA account
+    pub duna_document_pda: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -238,6 +262,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
             owner: accounts.owner,
             holder_rewards: accounts.holder_rewards,
             mint: accounts.mint,
+            duna_document_pda: accounts.duna_document_pda,
             system_program: accounts.system_program,
         }
     }
@@ -274,7 +299,7 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(7 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
             false,
@@ -293,6 +318,10 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.mint.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.duna_document_pda.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -315,13 +344,14 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(7 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
         account_infos.push(self.holder_rewards_pool_token_account.clone());
         account_infos.push(self.owner.clone());
         account_infos.push(self.holder_rewards.clone());
         account_infos.push(self.mint.clone());
+        account_infos.push(self.duna_document_pda.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -344,7 +374,8 @@ impl<'a, 'b> InitializeHolderRewardsCpi<'a, 'b> {
 ///   2. `[writable, signer]` owner
 ///   3. `[writable]` holder_rewards
 ///   4. `[]` mint
-///   5. `[]` system_program
+///   5. `[]` duna_document_pda
+///   6. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeHolderRewardsCpiBuilder<'a, 'b> {
     instruction: Box<InitializeHolderRewardsCpiBuilderInstruction<'a, 'b>>,
@@ -359,6 +390,7 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
             owner: None,
             holder_rewards: None,
             mint: None,
+            duna_document_pda: None,
             system_program: None,
             __remaining_accounts: Vec::new(),
         });
@@ -402,6 +434,15 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn mint(&mut self, mint: &'b solana_program::account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.mint = Some(mint);
+        self
+    }
+    /// DUNA document PDA account
+    #[inline(always)]
+    pub fn duna_document_pda(
+        &mut self,
+        duna_document_pda: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.duna_document_pda = Some(duna_document_pda);
         self
     }
     /// System program.
@@ -477,6 +518,11 @@ impl<'a, 'b> InitializeHolderRewardsCpiBuilder<'a, 'b> {
 
             mint: self.instruction.mint.expect("mint is not set"),
 
+            duna_document_pda: self
+                .instruction
+                .duna_document_pda
+                .expect("duna_document_pda is not set"),
+
             system_program: self
                 .instruction
                 .system_program
@@ -497,6 +543,7 @@ struct InitializeHolderRewardsCpiBuilderInstruction<'a, 'b> {
     owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    duna_document_pda: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

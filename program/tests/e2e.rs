@@ -108,6 +108,8 @@ async fn validate_state(
             &HolderRewardsPool {
                 accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
                 lamports_last: pool.lamports_last + pool_rent_exempt_lamports,
+                stake_program_vault_pda: Pubkey::default(),
+                duna_document_hash: [1; 32],
                 _padding: 0,
             }
         );
@@ -165,6 +167,7 @@ async fn test_e2e() {
         0,
         0,
         0,
+        None,
     )
     .await;
 

@@ -6,9 +6,9 @@ use {
         instruction::PaladinRewardsInstruction,
         state::{
             collect_holder_rewards_pool_signer_seeds, collect_holder_rewards_signer_seeds,
-            get_holder_rewards_address, get_holder_rewards_address_and_bump_seed,
-            get_holder_rewards_pool_address, get_holder_rewards_pool_address_and_bump_seed,
-            HolderRewards, HolderRewardsPool,
+            find_duna_document_pda, get_holder_rewards_address,
+            get_holder_rewards_address_and_bump_seed, get_holder_rewards_pool_address,
+            get_holder_rewards_pool_address_and_bump_seed, HolderRewards, HolderRewardsPool,
         },
     },
     solana_program::{
@@ -274,12 +274,36 @@ fn send_rewards(
     Ok(())
 }
 
+// Check that duna document is signed
+pub(crate) fn check_duna_document_signed(
+    signer: &Pubkey,
+    doc_pda: &AccountInfo,
+    doc_hash: &[u8; 32],
+) -> ProgramResult {
+    let (duna_document_pda, _) = find_duna_document_pda(signer, doc_hash);
+
+    // Check the duna document PDA is correct.
+    if doc_pda.key != &duna_document_pda {
+        return Err(PaladinRewardsError::InvalidDunaPdaSeeds.into());
+    }
+    // Ensure the duna document PDA is initialized.
+    let duna_document_data = doc_pda.try_borrow_data()?;
+
+    if duna_document_data.first() != Some(&1) {
+        return Err(PaladinRewardsError::DunaDocumentNotInitialized.into());
+    }
+
+    Ok(())
+}
+
 /// Processes an
 /// [InitializeHolderRewardsPool](enum.PaladinRewardsInstruction.html)
 /// instruction.
 fn process_initialize_holder_rewards_pool(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
+    stake_program_vault_pda: Pubkey,
+    duna_document_hash: [u8; 32],
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
@@ -342,6 +366,8 @@ fn process_initialize_holder_rewards_pool(
             HolderRewardsPool {
                 accumulated_rewards_per_token: 0,
                 lamports_last: holder_rewards_pool_info.lamports(),
+                stake_program_vault_pda,
+                duna_document_hash,
                 _padding: 0,
             };
     }
@@ -363,6 +389,7 @@ fn process_initialize_holder_rewards(
     let owner = next_account_info(accounts_iter)?;
     let holder_rewards_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
+    let duna_document_info = next_account_info(accounts_iter)?;
     let _system_program = next_account_info(accounts_iter)?;
 
     validate_token_account(
@@ -381,6 +408,16 @@ fn process_initialize_holder_rewards(
     let mut pool_data = holder_rewards_pool_info.try_borrow_mut_data()?;
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // If owner is not stake program vault pda, owner must have duna signed
+    if owner.key != &pool_state.stake_program_vault_pda {
+        // Check duna is signed
+        check_duna_document_signed(
+            owner.key,
+            duna_document_info,
+            &pool_state.duna_document_hash,
+        )?;
+    }
 
     // Process any received lamports.
     update_accumulated_rewards_per_token(
@@ -805,9 +842,17 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) 
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinRewardsInstruction::unpack(input)?;
     match instruction {
-        PaladinRewardsInstruction::InitializeHolderRewardsPool => {
+        PaladinRewardsInstruction::InitializeHolderRewardsPool {
+            stake_program_vault_pda,
+            duna_document_hash,
+        } => {
             msg!("Instruction: InitializeHolderRewardsPool");
-            process_initialize_holder_rewards_pool(program_id, accounts)
+            process_initialize_holder_rewards_pool(
+                program_id,
+                accounts,
+                stake_program_vault_pda,
+                duna_document_hash,
+            )
         }
         PaladinRewardsInstruction::InitializeHolderRewards => {
             msg!("Instruction: InitializeHolderRewards");

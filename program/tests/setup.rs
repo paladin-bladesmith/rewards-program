@@ -2,7 +2,9 @@
 #![allow(dead_code)]
 
 use {
-    paladin_rewards_program::state::{HolderRewards, HolderRewardsPool},
+    paladin_rewards_program::state::{
+        find_duna_document_pda, HolderRewards, HolderRewardsPool, DUNA_PROGRAM_ID,
+    },
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -109,18 +111,20 @@ pub async fn setup_system_account(
     setup_rent_exempt_account(context, address, excess_lamports, &system_program::id()).await;
 }
 
-// #[allow(clippy::arithmetic_side_effects)]
 pub async fn setup_holder_rewards_pool_account(
     context: &mut ProgramTestContext,
     holder_rewards_pool_address: &Pubkey,
     excess_lamports: u64,
     accumulated_rewards_per_token: u128,
+    stake_program_vault_pda: Pubkey,
 ) {
     let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(HolderRewardsPool::LEN) + excess_lamports;
     let state = HolderRewardsPool {
         accumulated_rewards_per_token,
         lamports_last: lamports,
+        stake_program_vault_pda,
+        duna_document_hash: [1; 32],
         _padding: 0,
     };
     let data = bytemuck::bytes_of(&state).to_vec();
@@ -144,12 +148,14 @@ pub async fn setup_holder_rewards_pool_account_with_token_account(
     excess_lamports: u64,
     accumulated_rewards_per_token: u128,
     token_balance: u64,
+    stake_program_vault_pda: Option<Pubkey>,
 ) {
     setup_holder_rewards_pool_account(
         context,
         holder_rewards_pool_address,
         excess_lamports,
         accumulated_rewards_per_token,
+        stake_program_vault_pda.unwrap_or(Pubkey::default()),
     )
     .await;
 
@@ -201,6 +207,7 @@ pub async fn setup_holder_rewards_account_with_token_account(
     last_accumulated_rewards_per_token: u128,
     token_balance: u64,
 ) {
+    sign_duna_document(context, owner);
     setup_holder_rewards_account(
         context,
         holder_rewards,
@@ -240,4 +247,27 @@ pub async fn setup_owner(context: &mut ProgramTestContext, owner: &Pubkey) {
             ..Account::default()
         }),
     );
+}
+
+pub fn sign_duna_document(context: &mut ProgramTestContext, acc: &Pubkey) -> Pubkey {
+    sign_duna_document_with_data(context, acc, vec![1; 1])
+}
+pub fn sign_duna_document_with_data(
+    context: &mut ProgramTestContext,
+    acc: &Pubkey,
+    data: Vec<u8>,
+) -> Pubkey {
+    let (duna_acc, _) = find_duna_document_pda(acc, &[1; 32]);
+
+    context.set_account(
+        &duna_acc,
+        &AccountSharedData::from(Account {
+            lamports: 100_000_000,
+            data,
+            owner: DUNA_PROGRAM_ID,
+            ..Default::default()
+        }),
+    );
+
+    duna_acc
 }

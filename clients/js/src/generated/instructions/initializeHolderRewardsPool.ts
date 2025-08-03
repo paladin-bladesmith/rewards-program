@@ -8,6 +8,12 @@
 
 import {
   combineCodec,
+  fixDecoderSize,
+  fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU8Decoder,
@@ -22,6 +28,7 @@ import {
   type IInstructionWithAccounts,
   type IInstructionWithData,
   type ReadonlyAccount,
+  type ReadonlyUint8Array,
   type WritableAccount,
 } from '@solana/web3.js';
 import { PALADIN_REWARDS_PROGRAM_ADDRESS } from '../programs';
@@ -66,13 +73,22 @@ export type InitializeHolderRewardsPoolInstruction<
 
 export type InitializeHolderRewardsPoolInstructionData = {
   discriminator: number;
+  stakeProgramVaultPda: Address;
+  dunaDocumentHash: ReadonlyUint8Array;
 };
 
-export type InitializeHolderRewardsPoolInstructionDataArgs = {};
+export type InitializeHolderRewardsPoolInstructionDataArgs = {
+  stakeProgramVaultPda: Address;
+  dunaDocumentHash: ReadonlyUint8Array;
+};
 
 export function getInitializeHolderRewardsPoolInstructionDataEncoder(): Encoder<InitializeHolderRewardsPoolInstructionDataArgs> {
   return transformEncoder(
-    getStructEncoder([['discriminator', getU8Encoder()]]),
+    getStructEncoder([
+      ['discriminator', getU8Encoder()],
+      ['stakeProgramVaultPda', getAddressEncoder()],
+      ['dunaDocumentHash', fixEncoderSize(getBytesEncoder(), 32)],
+    ]),
     (value) => ({
       ...value,
       discriminator: INITIALIZE_HOLDER_REWARDS_POOL_DISCRIMINATOR,
@@ -81,7 +97,11 @@ export function getInitializeHolderRewardsPoolInstructionDataEncoder(): Encoder<
 }
 
 export function getInitializeHolderRewardsPoolInstructionDataDecoder(): Decoder<InitializeHolderRewardsPoolInstructionData> {
-  return getStructDecoder([['discriminator', getU8Decoder()]]);
+  return getStructDecoder([
+    ['discriminator', getU8Decoder()],
+    ['stakeProgramVaultPda', getAddressDecoder()],
+    ['dunaDocumentHash', fixDecoderSize(getBytesDecoder(), 32)],
+  ]);
 }
 
 export function getInitializeHolderRewardsPoolInstructionDataCodec(): Codec<
@@ -108,6 +128,8 @@ export type InitializeHolderRewardsPoolInput<
   mint: Address<TAccountMint>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
+  stakeProgramVaultPda: InitializeHolderRewardsPoolInstructionDataArgs['stakeProgramVaultPda'];
+  dunaDocumentHash: InitializeHolderRewardsPoolInstructionDataArgs['dunaDocumentHash'];
 };
 
 export function getInitializeHolderRewardsPoolInstruction<
@@ -153,6 +175,9 @@ export function getInitializeHolderRewardsPoolInstruction<
     ResolvedAccount
   >;
 
+  // Original args.
+  const args = { ...input };
+
   // Resolve default values.
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -168,7 +193,9 @@ export function getInitializeHolderRewardsPoolInstruction<
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
-    data: getInitializeHolderRewardsPoolInstructionDataEncoder().encode({}),
+    data: getInitializeHolderRewardsPoolInstructionDataEncoder().encode(
+      args as InitializeHolderRewardsPoolInstructionDataArgs
+    ),
   } as InitializeHolderRewardsPoolInstruction<
     TProgramAddress,
     TAccountHolderRewardsPool,

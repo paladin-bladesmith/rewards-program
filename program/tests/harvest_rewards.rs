@@ -50,6 +50,7 @@ async fn fail_not_enough_lamports() {
         DEPOSIT_AMOUNT / 25, // Not enough rewards (expected DEPOSIT_AMOUNT / 50)
         REWARDS_PER_TOKEN_SCALING_FACTOR, // accumalated per token
         DEPOSIT_AMOUNT,      // pool balance (total deposited by all users)
+        None,
     )
     .await;
 
@@ -233,6 +234,7 @@ async fn success(pool: Pool, holder: Holder, expected_harvested_rewards: u64) {
         excess_lamports,
         accumulated_rewards_per_token,
         total_deposited,
+        None,
     )
     .await;
 

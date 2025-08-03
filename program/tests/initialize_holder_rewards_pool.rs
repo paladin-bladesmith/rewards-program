@@ -47,6 +47,8 @@ async fn fail_mint_invalid_data() {
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .mint(mint)
+        .stake_program_vault_pda(Pubkey::default())
+        .duna_document_hash([1; 32])
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
@@ -79,6 +81,8 @@ async fn fail_holder_rewards_pool_incorrect_address() {
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .mint(mint)
+        .stake_program_vault_pda(Pubkey::default())
+        .duna_document_hash([1; 32])
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
@@ -109,6 +113,8 @@ async fn fail_holder_rewards_pool_incorrect_token_address() {
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .mint(mint)
+        .stake_program_vault_pda(Pubkey::default())
+        .duna_document_hash([1; 32])
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
@@ -158,6 +164,8 @@ async fn fail_holder_rewards_pool_account_initialized() {
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .mint(mint)
+        .stake_program_vault_pda(Pubkey::default())
+        .duna_document_hash([1; 32])
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, None).await;
@@ -199,6 +207,8 @@ async fn success() {
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .mint(mint)
+        .stake_program_vault_pda(Pubkey::default())
+        .duna_document_hash([1; 32])
         .instruction();
 
     execute_with_payer(&mut context, instruction, None).await;
@@ -215,6 +225,8 @@ async fn success() {
         &HolderRewardsPool {
             accumulated_rewards_per_token: 0,
             lamports_last: rent.minimum_balance(HolderRewardsPool::LEN),
+            stake_program_vault_pda: Pubkey::default(),
+            duna_document_hash: [1; 32],
             _padding: 0,
         }
     );

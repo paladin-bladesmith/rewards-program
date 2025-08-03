@@ -53,6 +53,12 @@ pub enum PaladinRewardsError {
     /// 14 - Withdraw amount exceeds deposited
     #[error("Withdraw amount exceeds deposited")]
     WithdrawExceedsDeposited = 0xE,
+    /// 15 - DUNA document is not initialized
+    #[error("DUNA document is not initialized")]
+    DunaDocumentNotInitialized = 0xF,
+    /// 16 - DUNA PDA invalid seeds
+    #[error("DUNA PDA invalid seeds")]
+    InvalidDunaPdaSeeds = 0x10,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinRewardsError {
