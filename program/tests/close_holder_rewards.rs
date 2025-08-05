@@ -47,7 +47,6 @@ async fn fail_pending_rewards() {
         0,
         REWARDS_PER_TOKEN_SCALING_FACTOR.checked_mul(1).unwrap(), // accumulated per token
         DEPOSIT_AMOUNT,
-        None,
     )
     .await;
 
@@ -105,7 +104,6 @@ async fn fail_tokens_still_deposited() {
         0,
         0,
         DEPOSIT_AMOUNT,
-        None,
     )
     .await;
 
@@ -163,7 +161,6 @@ async fn success() {
         0,
         0,
         0,
-        None,
     )
     .await;
 

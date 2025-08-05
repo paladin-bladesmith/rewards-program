@@ -51,7 +51,6 @@ async fn fail_pool_doesnt_have_enough_rewards() {
         0,                                                           // no rewards
         REWARDS_PER_TOKEN_SCALING_FACTOR.checked_mul(1000).unwrap(), // accumalated per token
         100_000_000_000, // pool balance (total deposited by all users)
-        None,
     )
     .await;
 
@@ -111,7 +110,6 @@ async fn fail_not_enough_tokens_to_deposit() {
         0,
         0,
         0,
-        None,
     )
     .await;
 
@@ -171,7 +169,6 @@ async fn success() {
         0,
         0,
         0,
-        None,
     )
     .await;
 

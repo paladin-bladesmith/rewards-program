@@ -15,8 +15,6 @@ import {
   fetchEncodedAccounts,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -42,7 +40,6 @@ import { HolderRewardsPoolSeeds, findHolderRewardsPoolPda } from '../pdas';
 export type HolderRewardsPool = {
   accumulatedRewardsPerToken: bigint;
   lamportsLast: bigint;
-  stakeProgramVaultPda: Address;
   dunaDocumentHash: ReadonlyUint8Array;
   padding: bigint;
 };
@@ -50,7 +47,6 @@ export type HolderRewardsPool = {
 export type HolderRewardsPoolArgs = {
   accumulatedRewardsPerToken: number | bigint;
   lamportsLast: number | bigint;
-  stakeProgramVaultPda: Address;
   dunaDocumentHash: ReadonlyUint8Array;
   padding: number | bigint;
 };
@@ -59,7 +55,6 @@ export function getHolderRewardsPoolEncoder(): Encoder<HolderRewardsPoolArgs> {
   return getStructEncoder([
     ['accumulatedRewardsPerToken', getU128Encoder()],
     ['lamportsLast', getU64Encoder()],
-    ['stakeProgramVaultPda', getAddressEncoder()],
     ['dunaDocumentHash', fixEncoderSize(getBytesEncoder(), 32)],
     ['padding', getU64Encoder()],
   ]);
@@ -69,7 +64,6 @@ export function getHolderRewardsPoolDecoder(): Decoder<HolderRewardsPool> {
   return getStructDecoder([
     ['accumulatedRewardsPerToken', getU128Decoder()],
     ['lamportsLast', getU64Decoder()],
-    ['stakeProgramVaultPda', getAddressDecoder()],
     ['dunaDocumentHash', fixDecoderSize(getBytesDecoder(), 32)],
     ['padding', getU64Decoder()],
   ]);
@@ -149,7 +143,7 @@ export async function fetchAllMaybeHolderRewardsPool(
 }
 
 export function getHolderRewardsPoolSize(): number {
-  return 96;
+  return 64;
 }
 
 export async function fetchHolderRewardsPoolFromSeeds(

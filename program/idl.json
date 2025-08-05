@@ -30,6 +30,22 @@
           ]
         },
         {
+          "name": "stakeVaultPda",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "vaultHolderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
@@ -39,10 +55,6 @@
         }
       ],
       "args": [
-        {
-          "name": "stakeProgramVaultPda",
-          "type": "publicKey"
-        },
         {
           "name": "dunaDocumentHash",
           "type": {
@@ -400,10 +412,6 @@
           {
             "name": "lamportsLast",
             "type": "u64"
-          },
-          {
-            "name": "stakeProgramVaultPda",
-            "type": "publicKey"
           },
           {
             "name": "dunaDocumentHash",

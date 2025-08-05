@@ -1,10 +1,6 @@
 //! Program instruction types.
 
-use {
-    arrayref::array_ref,
-    shank::ShankInstruction,
-    solana_program::{program_error::ProgramError, pubkey::Pubkey},
-};
+use {arrayref::array_ref, shank::ShankInstruction, solana_program::program_error::ProgramError};
 
 /// Instructions supported by the Paladin Rewards program.
 #[rustfmt::skip]
@@ -43,11 +39,21 @@ pub enum PaladinRewardsInstruction {
     )]
     #[account(
         3,
+        name = "stake_vault_pda",
+        desc = "Token mint.",
+    )]
+    #[account(
+        4,
+        writable,
+        name = "vault_holder_rewards",
+        desc = "Token mint.",
+    )]
+    #[account(
+        5,
         name = "system_program",
         desc = "System program.",
     )]
-    InitializeHolderRewardsPool { 
-        stake_program_vault_pda: Pubkey, 
+    InitializeHolderRewardsPool {
         duna_document_hash: [u8; 32],
     },
     /// Initializes a holder rewards account for a token account.
@@ -268,13 +274,9 @@ impl PaladinRewardsInstruction {
     /// into a byte buffer.
     pub fn pack(&self) -> Vec<u8> {
         match self {
-            PaladinRewardsInstruction::InitializeHolderRewardsPool {
-                stake_program_vault_pda,
-                duna_document_hash,
-            } => {
-                let mut data = Vec::with_capacity(65);
+            PaladinRewardsInstruction::InitializeHolderRewardsPool { duna_document_hash } => {
+                let mut data = Vec::with_capacity(33);
                 data.push(0);
-                data.extend_from_slice(&stake_program_vault_pda.to_bytes());
                 data.extend_from_slice(duna_document_hash);
                 data
             }
@@ -301,13 +303,9 @@ impl PaladinRewardsInstruction {
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         match input.split_first() {
             Some((&0, rest)) => {
-                let stake_program_vault_pda = Pubkey::new_from_array(*array_ref![rest, 0, 32]);
-                let duna_document_hash = *array_ref![rest, 32, 32];
+                let duna_document_hash = *array_ref![rest, 0, 32];
 
-                Ok(PaladinRewardsInstruction::InitializeHolderRewardsPool {
-                    stake_program_vault_pda,
-                    duna_document_hash,
-                })
+                Ok(PaladinRewardsInstruction::InitializeHolderRewardsPool { duna_document_hash })
             }
             Some((&1, _)) => Ok(PaladinRewardsInstruction::InitializeHolderRewards),
             Some((&2, _)) => Ok(PaladinRewardsInstruction::HarvestRewards),
@@ -334,7 +332,6 @@ mod tests {
     #[test]
     fn test_pack_unpack_initialize_holder_rewards_pool() {
         let original = PaladinRewardsInstruction::InitializeHolderRewardsPool {
-            stake_program_vault_pda: Pubkey::new_unique(),
             duna_document_hash: [0; 32],
         };
         let packed = original.pack();

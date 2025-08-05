@@ -10,8 +10,6 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -47,6 +45,8 @@ export type InitializeHolderRewardsPoolInstruction<
     | string
     | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
+  TAccountStakeVaultPda extends string | IAccountMeta<string> = string,
+  TAccountVaultHolderRewards extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
@@ -64,6 +64,12 @@ export type InitializeHolderRewardsPoolInstruction<
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
+      TAccountStakeVaultPda extends string
+        ? ReadonlyAccount<TAccountStakeVaultPda>
+        : TAccountStakeVaultPda,
+      TAccountVaultHolderRewards extends string
+        ? WritableAccount<TAccountVaultHolderRewards>
+        : TAccountVaultHolderRewards,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -73,12 +79,10 @@ export type InitializeHolderRewardsPoolInstruction<
 
 export type InitializeHolderRewardsPoolInstructionData = {
   discriminator: number;
-  stakeProgramVaultPda: Address;
   dunaDocumentHash: ReadonlyUint8Array;
 };
 
 export type InitializeHolderRewardsPoolInstructionDataArgs = {
-  stakeProgramVaultPda: Address;
   dunaDocumentHash: ReadonlyUint8Array;
 };
 
@@ -86,7 +90,6 @@ export function getInitializeHolderRewardsPoolInstructionDataEncoder(): Encoder<
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['stakeProgramVaultPda', getAddressEncoder()],
       ['dunaDocumentHash', fixEncoderSize(getBytesEncoder(), 32)],
     ]),
     (value) => ({
@@ -99,7 +102,6 @@ export function getInitializeHolderRewardsPoolInstructionDataEncoder(): Encoder<
 export function getInitializeHolderRewardsPoolInstructionDataDecoder(): Decoder<InitializeHolderRewardsPoolInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['stakeProgramVaultPda', getAddressDecoder()],
     ['dunaDocumentHash', fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
@@ -118,6 +120,8 @@ export type InitializeHolderRewardsPoolInput<
   TAccountHolderRewardsPool extends string = string,
   TAccountHolderRewardsPoolTokenAccount extends string = string,
   TAccountMint extends string = string,
+  TAccountStakeVaultPda extends string = string,
+  TAccountVaultHolderRewards extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
@@ -126,9 +130,12 @@ export type InitializeHolderRewardsPoolInput<
   holderRewardsPoolTokenAccount: Address<TAccountHolderRewardsPoolTokenAccount>;
   /** Token mint. */
   mint: Address<TAccountMint>;
+  /** Token mint. */
+  stakeVaultPda: Address<TAccountStakeVaultPda>;
+  /** Token mint. */
+  vaultHolderRewards: Address<TAccountVaultHolderRewards>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
-  stakeProgramVaultPda: InitializeHolderRewardsPoolInstructionDataArgs['stakeProgramVaultPda'];
   dunaDocumentHash: InitializeHolderRewardsPoolInstructionDataArgs['dunaDocumentHash'];
 };
 
@@ -136,6 +143,8 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool extends string,
   TAccountHolderRewardsPoolTokenAccount extends string,
   TAccountMint extends string,
+  TAccountStakeVaultPda extends string,
+  TAccountVaultHolderRewards extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
@@ -143,6 +152,8 @@ export function getInitializeHolderRewardsPoolInstruction<
     TAccountHolderRewardsPool,
     TAccountHolderRewardsPoolTokenAccount,
     TAccountMint,
+    TAccountStakeVaultPda,
+    TAccountVaultHolderRewards,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
@@ -151,6 +162,8 @@ export function getInitializeHolderRewardsPoolInstruction<
   TAccountHolderRewardsPool,
   TAccountHolderRewardsPoolTokenAccount,
   TAccountMint,
+  TAccountStakeVaultPda,
+  TAccountVaultHolderRewards,
   TAccountSystemProgram
 > {
   // Program address.
@@ -168,6 +181,11 @@ export function getInitializeHolderRewardsPoolInstruction<
       isWritable: false,
     },
     mint: { value: input.mint ?? null, isWritable: false },
+    stakeVaultPda: { value: input.stakeVaultPda ?? null, isWritable: false },
+    vaultHolderRewards: {
+      value: input.vaultHolderRewards ?? null,
+      isWritable: true,
+    },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -190,6 +208,8 @@ export function getInitializeHolderRewardsPoolInstruction<
       getAccountMeta(accounts.holderRewardsPool),
       getAccountMeta(accounts.holderRewardsPoolTokenAccount),
       getAccountMeta(accounts.mint),
+      getAccountMeta(accounts.stakeVaultPda),
+      getAccountMeta(accounts.vaultHolderRewards),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -201,6 +221,8 @@ export function getInitializeHolderRewardsPoolInstruction<
     TAccountHolderRewardsPool,
     TAccountHolderRewardsPoolTokenAccount,
     TAccountMint,
+    TAccountStakeVaultPda,
+    TAccountVaultHolderRewards,
     TAccountSystemProgram
   >;
 
@@ -219,8 +241,12 @@ export type ParsedInitializeHolderRewardsPoolInstruction<
     holderRewardsPoolTokenAccount: TAccountMetas[1];
     /** Token mint. */
     mint: TAccountMetas[2];
+    /** Token mint. */
+    stakeVaultPda: TAccountMetas[3];
+    /** Token mint. */
+    vaultHolderRewards: TAccountMetas[4];
     /** System program. */
-    systemProgram: TAccountMetas[3];
+    systemProgram: TAccountMetas[5];
   };
   data: InitializeHolderRewardsPoolInstructionData;
 };
@@ -233,7 +259,7 @@ export function parseInitializeHolderRewardsPoolInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsPoolInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 6) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -249,6 +275,8 @@ export function parseInitializeHolderRewardsPoolInstruction<
       holderRewardsPool: getNextAccount(),
       holderRewardsPoolTokenAccount: getNextAccount(),
       mint: getNextAccount(),
+      stakeVaultPda: getNextAccount(),
+      vaultHolderRewards: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializeHolderRewardsPoolInstructionDataDecoder().decode(

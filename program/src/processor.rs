@@ -302,7 +302,6 @@ pub(crate) fn check_duna_document_signed(
 fn process_initialize_holder_rewards_pool(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    stake_program_vault_pda: Pubkey,
     duna_document_hash: [u8; 32],
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
@@ -310,6 +309,8 @@ fn process_initialize_holder_rewards_pool(
     let holder_rewards_pool_info = next_account_info(accounts_iter)?;
     let holder_rewards_pool_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
+    let vault_pda_info = next_account_info(accounts_iter)?;
+    let vault_holder_rewards_info = next_account_info(accounts_iter)?;
     let _system_program_info = next_account_info(accounts_iter)?;
 
     // Run checks on the mint.
@@ -366,12 +367,52 @@ fn process_initialize_holder_rewards_pool(
             HolderRewardsPool {
                 accumulated_rewards_per_token: 0,
                 lamports_last: holder_rewards_pool_info.lamports(),
-                stake_program_vault_pda,
                 duna_document_hash,
                 _padding: 0,
             };
     }
 
+    // Initialize stake program vault holder rewards account
+    {
+        let (holder_rewards_address, bump_seed) =
+            get_holder_rewards_address_and_bump_seed(vault_pda_info.key, program_id);
+        let bump_seed = [bump_seed];
+        let holder_rewards_signer_seeds =
+            collect_holder_rewards_signer_seeds(vault_pda_info.key, &bump_seed);
+
+        // Ensure the provided holder rewards address is the correct address
+        // derived from the token account.
+        if vault_holder_rewards_info.key != &holder_rewards_address {
+            return Err(PaladinRewardsError::IncorrectHolderRewardsAddress.into());
+        }
+
+        // Ensure the holder rewards account has not already been initialized.
+        if vault_holder_rewards_info.data.borrow().len() != 0 {
+            return Err(ProgramError::AccountAlreadyInitialized);
+        }
+
+        // Allocate & assign.
+        invoke_signed(
+            &system_instruction::allocate(&holder_rewards_address, HolderRewards::LEN as u64),
+            &[vault_holder_rewards_info.clone()],
+            &[&holder_rewards_signer_seeds],
+        )?;
+        invoke_signed(
+            &system_instruction::assign(&holder_rewards_address, program_id),
+            &[vault_holder_rewards_info.clone()],
+            &[&holder_rewards_signer_seeds],
+        )?;
+        assert_rent_exempt(vault_holder_rewards_info);
+
+        // Write the data.
+        let mut data = vault_holder_rewards_info.try_borrow_mut_data()?;
+        *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
+            HolderRewards {
+                last_accumulated_rewards_per_token: 0,
+                deposited: 0,
+                _padding: 0,
+            };
+    }
     Ok(())
 }
 
@@ -409,15 +450,12 @@ fn process_initialize_holder_rewards(
     let pool_state = bytemuck::try_from_bytes_mut::<HolderRewardsPool>(&mut pool_data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
-    // If owner is not stake program vault pda, owner must have duna signed
-    if owner.key != &pool_state.stake_program_vault_pda {
-        // Check duna is signed
-        check_duna_document_signed(
-            owner.key,
-            duna_document_info,
-            &pool_state.duna_document_hash,
-        )?;
-    }
+    // Check duna is signed
+    check_duna_document_signed(
+        owner.key,
+        duna_document_info,
+        &pool_state.duna_document_hash,
+    )?;
 
     // Process any received lamports.
     update_accumulated_rewards_per_token(
@@ -842,17 +880,9 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) 
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinRewardsInstruction::unpack(input)?;
     match instruction {
-        PaladinRewardsInstruction::InitializeHolderRewardsPool {
-            stake_program_vault_pda,
-            duna_document_hash,
-        } => {
+        PaladinRewardsInstruction::InitializeHolderRewardsPool { duna_document_hash } => {
             msg!("Instruction: InitializeHolderRewardsPool");
-            process_initialize_holder_rewards_pool(
-                program_id,
-                accounts,
-                stake_program_vault_pda,
-                duna_document_hash,
-            )
+            process_initialize_holder_rewards_pool(program_id, accounts, duna_document_hash)
         }
         PaladinRewardsInstruction::InitializeHolderRewards => {
             msg!("Instruction: InitializeHolderRewards");

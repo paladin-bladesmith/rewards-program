@@ -4,10 +4,7 @@
 //!
 //! <https://github.com/kinobi-so/kinobi>
 
-use {
-    borsh::{BorshDeserialize, BorshSerialize},
-    solana_program::pubkey::Pubkey,
-};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
 pub struct InitializeHolderRewardsPool {
@@ -17,6 +14,10 @@ pub struct InitializeHolderRewardsPool {
     pub holder_rewards_pool_token_account: solana_program::pubkey::Pubkey,
     /// Token mint.
     pub mint: solana_program::pubkey::Pubkey,
+    /// Token mint.
+    pub stake_vault_pda: solana_program::pubkey::Pubkey,
+    /// Token mint.
+    pub vault_holder_rewards: solana_program::pubkey::Pubkey,
     /// System program.
     pub system_program: solana_program::pubkey::Pubkey,
 }
@@ -34,7 +35,7 @@ impl InitializeHolderRewardsPool {
         args: InitializeHolderRewardsPoolInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.holder_rewards_pool,
             false,
@@ -45,6 +46,14 @@ impl InitializeHolderRewardsPool {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.mint, false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            self.stake_vault_pda,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.vault_holder_rewards,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.system_program,
@@ -85,7 +94,6 @@ impl Default for InitializeHolderRewardsPoolInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializeHolderRewardsPoolInstructionArgs {
-    pub stake_program_vault_pda: Pubkey,
     pub duna_document_hash: [u8; 32],
 }
 
@@ -96,15 +104,18 @@ pub struct InitializeHolderRewardsPoolInstructionArgs {
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[]` mint
-///   3. `[optional]` system_program (default to
+///   3. `[]` stake_vault_pda
+///   4. `[writable]` vault_holder_rewards
+///   5. `[optional]` system_program (default to
 ///      `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeHolderRewardsPoolBuilder {
     holder_rewards_pool: Option<solana_program::pubkey::Pubkey>,
     holder_rewards_pool_token_account: Option<solana_program::pubkey::Pubkey>,
     mint: Option<solana_program::pubkey::Pubkey>,
+    stake_vault_pda: Option<solana_program::pubkey::Pubkey>,
+    vault_holder_rewards: Option<solana_program::pubkey::Pubkey>,
     system_program: Option<solana_program::pubkey::Pubkey>,
-    stake_program_vault_pda: Option<Pubkey>,
     duna_document_hash: Option<[u8; 32]>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -137,16 +148,29 @@ impl InitializeHolderRewardsPoolBuilder {
         self.mint = Some(mint);
         self
     }
+    /// Token mint.
+    #[inline(always)]
+    pub fn stake_vault_pda(
+        &mut self,
+        stake_vault_pda: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.stake_vault_pda = Some(stake_vault_pda);
+        self
+    }
+    /// Token mint.
+    #[inline(always)]
+    pub fn vault_holder_rewards(
+        &mut self,
+        vault_holder_rewards: solana_program::pubkey::Pubkey,
+    ) -> &mut Self {
+        self.vault_holder_rewards = Some(vault_holder_rewards);
+        self
+    }
     /// `[optional account, default to '11111111111111111111111111111111']`
     /// System program.
     #[inline(always)]
     pub fn system_program(&mut self, system_program: solana_program::pubkey::Pubkey) -> &mut Self {
         self.system_program = Some(system_program);
-        self
-    }
-    #[inline(always)]
-    pub fn stake_program_vault_pda(&mut self, stake_program_vault_pda: Pubkey) -> &mut Self {
-        self.stake_program_vault_pda = Some(stake_program_vault_pda);
         self
     }
     #[inline(always)]
@@ -182,15 +206,15 @@ impl InitializeHolderRewardsPoolBuilder {
                 .holder_rewards_pool_token_account
                 .expect("holder_rewards_pool_token_account is not set"),
             mint: self.mint.expect("mint is not set"),
+            stake_vault_pda: self.stake_vault_pda.expect("stake_vault_pda is not set"),
+            vault_holder_rewards: self
+                .vault_holder_rewards
+                .expect("vault_holder_rewards is not set"),
             system_program: self
                 .system_program
                 .unwrap_or(solana_program::pubkey!("11111111111111111111111111111111")),
         };
         let args = InitializeHolderRewardsPoolInstructionArgs {
-            stake_program_vault_pda: self
-                .stake_program_vault_pda
-                .clone()
-                .expect("stake_program_vault_pda is not set"),
             duna_document_hash: self
                 .duna_document_hash
                 .clone()
@@ -209,6 +233,10 @@ pub struct InitializeHolderRewardsPoolCpiAccounts<'a, 'b> {
     pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub stake_vault_pda: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub vault_holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -223,6 +251,10 @@ pub struct InitializeHolderRewardsPoolCpi<'a, 'b> {
     pub holder_rewards_pool_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Token mint.
     pub mint: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub stake_vault_pda: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Token mint.
+    pub vault_holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
     /// System program.
     pub system_program: &'b solana_program::account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
@@ -240,6 +272,8 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
             holder_rewards_pool: accounts.holder_rewards_pool,
             holder_rewards_pool_token_account: accounts.holder_rewards_pool_token_account,
             mint: accounts.mint,
+            stake_vault_pda: accounts.stake_vault_pda,
+            vault_holder_rewards: accounts.vault_holder_rewards,
             system_program: accounts.system_program,
             __args: args,
         }
@@ -277,7 +311,7 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.holder_rewards_pool.key,
             false,
@@ -288,6 +322,14 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.mint.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new_readonly(
+            *self.stake_vault_pda.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.vault_holder_rewards.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
@@ -312,11 +354,13 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(4 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(6 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.holder_rewards_pool.clone());
         account_infos.push(self.holder_rewards_pool_token_account.clone());
         account_infos.push(self.mint.clone());
+        account_infos.push(self.stake_vault_pda.clone());
+        account_infos.push(self.vault_holder_rewards.clone());
         account_infos.push(self.system_program.clone());
         remaining_accounts
             .iter()
@@ -337,7 +381,9 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpi<'a, 'b> {
 ///   0. `[writable]` holder_rewards_pool
 ///   1. `[]` holder_rewards_pool_token_account
 ///   2. `[]` mint
-///   3. `[]` system_program
+///   3. `[]` stake_vault_pda
+///   4. `[writable]` vault_holder_rewards
+///   5. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
     instruction: Box<InitializeHolderRewardsPoolCpiBuilderInstruction<'a, 'b>>,
@@ -350,8 +396,9 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
             holder_rewards_pool: None,
             holder_rewards_pool_token_account: None,
             mint: None,
+            stake_vault_pda: None,
+            vault_holder_rewards: None,
             system_program: None,
-            stake_program_vault_pda: None,
             duna_document_hash: None,
             __remaining_accounts: Vec::new(),
         });
@@ -382,6 +429,24 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
         self.instruction.mint = Some(mint);
         self
     }
+    /// Token mint.
+    #[inline(always)]
+    pub fn stake_vault_pda(
+        &mut self,
+        stake_vault_pda: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.stake_vault_pda = Some(stake_vault_pda);
+        self
+    }
+    /// Token mint.
+    #[inline(always)]
+    pub fn vault_holder_rewards(
+        &mut self,
+        vault_holder_rewards: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.vault_holder_rewards = Some(vault_holder_rewards);
+        self
+    }
     /// System program.
     #[inline(always)]
     pub fn system_program(
@@ -389,11 +454,6 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
         system_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.system_program = Some(system_program);
-        self
-    }
-    #[inline(always)]
-    pub fn stake_program_vault_pda(&mut self, stake_program_vault_pda: Pubkey) -> &mut Self {
-        self.instruction.stake_program_vault_pda = Some(stake_program_vault_pda);
         self
     }
     #[inline(always)]
@@ -444,11 +504,6 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = InitializeHolderRewardsPoolInstructionArgs {
-            stake_program_vault_pda: self
-                .instruction
-                .stake_program_vault_pda
-                .clone()
-                .expect("stake_program_vault_pda is not set"),
             duna_document_hash: self
                 .instruction
                 .duna_document_hash
@@ -470,6 +525,16 @@ impl<'a, 'b> InitializeHolderRewardsPoolCpiBuilder<'a, 'b> {
 
             mint: self.instruction.mint.expect("mint is not set"),
 
+            stake_vault_pda: self
+                .instruction
+                .stake_vault_pda
+                .expect("stake_vault_pda is not set"),
+
+            vault_holder_rewards: self
+                .instruction
+                .vault_holder_rewards
+                .expect("vault_holder_rewards is not set"),
+
             system_program: self
                 .instruction
                 .system_program
@@ -489,8 +554,9 @@ struct InitializeHolderRewardsPoolCpiBuilderInstruction<'a, 'b> {
     holder_rewards_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     holder_rewards_pool_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    stake_vault_pda: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    vault_holder_rewards: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     system_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    stake_program_vault_pda: Option<Pubkey>,
     duna_document_hash: Option<[u8; 32]>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

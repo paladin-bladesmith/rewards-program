@@ -92,8 +92,7 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_token_account(
         &mut context,
@@ -140,8 +139,7 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
     let pool_token_account = get_associated_token_address(&rand, &mint); // Incorrect token account address.
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
@@ -234,8 +232,7 @@ async fn fail_holder_rewards_incorrect_address() {
     let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(
         &mut context,
         &pool_token_account,
@@ -281,8 +278,7 @@ async fn fail_holder_rewards_account_initialized() {
     let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(
         &mut context,
         &pool_token_account,
@@ -338,8 +334,7 @@ async fn fail_wrong_duna_pda() {
     let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(
         &mut context,
         &pool_token_account,
@@ -395,8 +390,7 @@ async fn fail_not_signed_duna_pda() {
     let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
 
     let mut context = setup().start_with_context().await;
-    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0, Pubkey::default())
-        .await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
     setup_token_account(
         &mut context,
         &pool_token_account,
@@ -461,7 +455,6 @@ async fn success() {
         &holder_rewards_pool,
         0, // Excess lamports (not used here).
         accumulated_rewards_per_token,
-        Pubkey::default(),
     )
     .await;
     setup_token_account(
@@ -542,7 +535,6 @@ async fn success() {
         &HolderRewardsPool {
             accumulated_rewards_per_token,
             lamports_last: holder_rewards_pool_account.lamports,
-            stake_program_vault_pda: Pubkey::default(),
             duna_document_hash: [1; 32],
             _padding: 0,
         }

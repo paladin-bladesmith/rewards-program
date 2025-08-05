@@ -116,14 +116,12 @@ pub async fn setup_holder_rewards_pool_account(
     holder_rewards_pool_address: &Pubkey,
     excess_lamports: u64,
     accumulated_rewards_per_token: u128,
-    stake_program_vault_pda: Pubkey,
 ) {
     let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(HolderRewardsPool::LEN) + excess_lamports;
     let state = HolderRewardsPool {
         accumulated_rewards_per_token,
         lamports_last: lamports,
-        stake_program_vault_pda,
         duna_document_hash: [1; 32],
         _padding: 0,
     };
@@ -148,14 +146,12 @@ pub async fn setup_holder_rewards_pool_account_with_token_account(
     excess_lamports: u64,
     accumulated_rewards_per_token: u128,
     token_balance: u64,
-    stake_program_vault_pda: Option<Pubkey>,
 ) {
     setup_holder_rewards_pool_account(
         context,
         holder_rewards_pool_address,
         excess_lamports,
         accumulated_rewards_per_token,
-        stake_program_vault_pda.unwrap_or(Pubkey::default()),
     )
     .await;
 

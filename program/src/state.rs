@@ -252,9 +252,6 @@ pub struct HolderRewardsPool {
     pub accumulated_rewards_per_token: u128,
     /// Tracks the last updated lmaports so we can track inbound payments.
     pub lamports_last: u64,
-    /// The address of our stake program vault PDA
-    /// needed for duna check
-    pub stake_program_vault_pda: Pubkey,
     /// Duna document hash
     pub duna_document_hash: [u8; 32],
 
