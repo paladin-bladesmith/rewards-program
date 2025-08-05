@@ -286,6 +286,7 @@ pub(crate) fn check_duna_document_signed(
     if doc_pda.key != &duna_document_pda {
         return Err(PaladinRewardsError::InvalidDunaPdaSeeds.into());
     }
+
     // Ensure the duna document PDA is initialized.
     let duna_document_data = doc_pda.try_borrow_data()?;
 
