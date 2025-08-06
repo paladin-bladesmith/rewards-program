@@ -30,6 +30,22 @@
           ]
         },
         {
+          "name": "stakeVaultPda",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
+          "name": "vaultHolderRewards",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Token mint."
+          ]
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
@@ -38,7 +54,17 @@
           ]
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "dunaDocumentHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ],
       "discriminant": {
         "type": "u8",
         "value": 0
@@ -85,6 +111,14 @@
           "isSigner": false,
           "docs": [
             "Token mint."
+          ]
+        },
+        {
+          "name": "dunaDocumentPda",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "DUNA document PDA account"
           ]
         },
         {
@@ -380,6 +414,15 @@
             "type": "u64"
           },
           {
+            "name": "dunaDocumentHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "padding",
             "type": "u64"
           }
@@ -462,6 +505,16 @@
       "code": 14,
       "name": "WithdrawExceedsDeposited",
       "msg": "Withdraw amount exceeds deposited"
+    },
+    {
+      "code": 15,
+      "name": "DunaDocumentNotInitialized",
+      "msg": "DUNA document is not initialized"
+    },
+    {
+      "code": 16,
+      "name": "InvalidDunaPdaSeeds",
+      "msg": "DUNA PDA invalid seeds"
     }
   ],
   "metadata": {

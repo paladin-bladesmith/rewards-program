@@ -145,7 +145,7 @@
 use {
     bytemuck::{Pod, Zeroable},
     shank::ShankAccount,
-    solana_program::pubkey::Pubkey,
+    solana_program::pubkey::{pubkey, Pubkey},
 };
 
 /// The seed prefix (`"sweep"`) in bytes used to derive the address of the
@@ -160,6 +160,8 @@ pub const SEED_PREFIX_HOLDER_REWARDS: &[u8] = b"holder";
 /// the mint's holder rewards pool account.
 /// Seeds: `"holder_pool" + mint_address`.
 pub const SEED_PREFIX_HOLDER_REWARDS_POOL: &[u8] = b"holder_pool";
+/// Duna program pubkey
+pub const DUNA_PROGRAM_ID: Pubkey = pubkey!("8TwDM3rkxQuFCiS2iPB1HB3Q3qnN7b6J4SCTDCpw9SS1");
 
 /// Derive the address of a holder rewards account.
 pub fn get_holder_rewards_address(owner_address: &Pubkey, program_id: &Pubkey) -> Pubkey {
@@ -250,10 +252,20 @@ pub struct HolderRewardsPool {
     pub accumulated_rewards_per_token: u128,
     /// Tracks the last updated lmaports so we can track inbound payments.
     pub lamports_last: u64,
+    /// Duna document hash
+    pub duna_document_hash: [u8; 32],
 
     pub _padding: u64,
 }
 
 impl HolderRewardsPool {
     pub const LEN: usize = std::mem::size_of::<HolderRewardsPool>();
+}
+
+#[inline(always)]
+pub fn find_duna_document_pda(signer: &Pubkey, doc_hash: &[u8; 32]) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"consitution", signer.as_ref(), doc_hash],
+        &DUNA_PROGRAM_ID,
+    )
 }

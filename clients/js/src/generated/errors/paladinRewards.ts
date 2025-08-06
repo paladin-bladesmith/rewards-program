@@ -44,13 +44,19 @@ export const PALADIN_REWARDS_ERROR__TOKEN_ACCOUNT_FROZEN = 0xc; // 12
 export const PALADIN_REWARDS_ERROR__NOT_ENOUGH_TOKEN_TO_DEPOSIT = 0xd; // 13
 /** WithdrawExceedsDeposited: Withdraw amount exceeds deposited */
 export const PALADIN_REWARDS_ERROR__WITHDRAW_EXCEEDS_DEPOSITED = 0xe; // 14
+/** DunaDocumentNotInitialized: DUNA document is not initialized */
+export const PALADIN_REWARDS_ERROR__DUNA_DOCUMENT_NOT_INITIALIZED = 0xf; // 15
+/** InvalidDunaPdaSeeds: DUNA PDA invalid seeds */
+export const PALADIN_REWARDS_ERROR__INVALID_DUNA_PDA_SEEDS = 0x10; // 16
 
 export type PaladinRewardsError =
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS
   | typeof PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS
+  | typeof PALADIN_REWARDS_ERROR__DUNA_DOCUMENT_NOT_INITIALIZED
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS
   | typeof PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE
+  | typeof PALADIN_REWARDS_ERROR__INVALID_DUNA_PDA_SEEDS
   | typeof PALADIN_REWARDS_ERROR__NO_DEPOSITED_TOKENS_TO_WITHDRAW
   | typeof PALADIN_REWARDS_ERROR__NOT_ENOUGH_TOKEN_TO_DEPOSIT
   | typeof PALADIN_REWARDS_ERROR__NOT_OWNER_TOKEN_ACCOUNT
@@ -69,9 +75,11 @@ if (process.env.NODE_ENV !== 'production') {
   paladinRewardsErrorMessages = {
     [PALADIN_REWARDS_ERROR__CLOSE_WITH_DEPOSITED_TOKENS]: `Holder rewards has deposited tokens`,
     [PALADIN_REWARDS_ERROR__CLOSE_WITH_UNCLAIMED_REWARDS]: `Holder rewards has unclaimed rewards`,
+    [PALADIN_REWARDS_ERROR__DUNA_DOCUMENT_NOT_INITIALIZED]: `DUNA document is not initialized`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_ADDRESS]: `Incorrect holder rewards address`,
     [PALADIN_REWARDS_ERROR__INCORRECT_HOLDER_REWARDS_POOL_ADDRESS]: `Incorrect holder rewards pool address`,
     [PALADIN_REWARDS_ERROR__INVALID_CLOSING_BALANCE]: `Cannot close holder rewards with current balance`,
+    [PALADIN_REWARDS_ERROR__INVALID_DUNA_PDA_SEEDS]: `DUNA PDA invalid seeds`,
     [PALADIN_REWARDS_ERROR__NO_DEPOSITED_TOKENS_TO_WITHDRAW]: `Holder doesn't have any deposited tokens to withdraw`,
     [PALADIN_REWARDS_ERROR__NOT_ENOUGH_TOKEN_TO_DEPOSIT]: `Owner doesn'thave enough tokens to deposit`,
     [PALADIN_REWARDS_ERROR__NOT_OWNER_TOKEN_ACCOUNT]: `Signer not owner of token account`,

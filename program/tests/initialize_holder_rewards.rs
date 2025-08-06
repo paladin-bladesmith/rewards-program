@@ -4,7 +4,10 @@ mod execute_utils;
 mod setup;
 
 use {
-    crate::execute_utils::{execute_with_payer, execute_with_payer_err},
+    crate::{
+        execute_utils::{execute_with_payer, execute_with_payer_err},
+        setup::{sign_duna_document, sign_duna_document_with_data},
+    },
     paladin_rewards_program::{
         error::PaladinRewardsError,
         state::{
@@ -59,12 +62,14 @@ async fn fail_holder_rewards_pool_incorrect_owner() {
         );
     }
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -99,12 +104,14 @@ async fn fail_holder_rewards_pool_incorrect_address() {
     .await;
     setup_mint(&mut context, &mint, 0, None).await;
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -137,12 +144,14 @@ async fn fail_holder_rewards_pool_token_incorrect_address() {
     setup_token_account(&mut context, &pool_token_account, &rand, &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -193,12 +202,14 @@ async fn fail_holder_rewards_pool_invalid_data() {
         );
     }
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -233,12 +244,14 @@ async fn fail_holder_rewards_incorrect_address() {
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
     setup_mint(&mut context, &mint, 0, None).await;
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -290,12 +303,14 @@ async fn fail_holder_rewards_account_initialized() {
         );
     }
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
@@ -303,6 +318,118 @@ async fn fail_holder_rewards_account_initialized() {
     assert_eq!(
         err,
         TransactionError::InstructionError(0, InstructionError::AccountAlreadyInitialized)
+    );
+}
+
+#[tokio::test]
+async fn fail_wrong_duna_pda() {
+    let owner = Keypair::new();
+    let mint = Pubkey::new_unique();
+
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
+
+    let mut context = setup().start_with_context().await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
+
+    // Fund the holder rewards account.
+    {
+        let rent = context.banks_client.get_rent().await.unwrap();
+        let lamports = rent.minimum_balance(std::mem::size_of::<HolderRewards>());
+        context.set_account(
+            &holder_rewards,
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
+        );
+    }
+
+    let duna_pda = sign_duna_document(&mut context, &Pubkey::new_unique());
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .duna_document_pda(duna_pda)
+        .instruction();
+
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinRewardsError::InvalidDunaPdaSeeds as u32)
+        )
+    );
+}
+
+#[tokio::test]
+async fn fail_not_signed_duna_pda() {
+    let owner = Keypair::new();
+    let mint = Pubkey::new_unique();
+
+    let token_account = get_associated_token_address(&owner.pubkey(), &mint);
+    let holder_rewards =
+        get_holder_rewards_address(&owner.pubkey(), &paladin_rewards_program::id());
+    let holder_rewards_pool =
+        get_holder_rewards_pool_address(&mint, &paladin_rewards_program::id());
+    let pool_token_account = get_associated_token_address(&holder_rewards_pool, &mint);
+
+    let mut context = setup().start_with_context().await;
+    setup_holder_rewards_pool_account(&mut context, &holder_rewards_pool, 0, 0).await;
+    setup_token_account(
+        &mut context,
+        &pool_token_account,
+        &holder_rewards_pool,
+        &mint,
+        0,
+    )
+    .await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 0).await;
+    setup_mint(&mut context, &mint, 0, None).await;
+
+    // Fund the holder rewards account.
+    {
+        let rent = context.banks_client.get_rent().await.unwrap();
+        let lamports = rent.minimum_balance(std::mem::size_of::<HolderRewards>());
+        context.set_account(
+            &holder_rewards,
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
+        );
+    }
+
+    let duna_pda = sign_duna_document_with_data(&mut context, &owner.pubkey(), vec![0]);
+    let instruction = InitializeHolderRewardsBuilder::new()
+        .holder_rewards_pool(holder_rewards_pool)
+        .holder_rewards_pool_token_account(pool_token_account)
+        .holder_rewards(holder_rewards)
+        .owner(owner.pubkey())
+        .mint(mint)
+        .duna_document_pda(duna_pda)
+        .instruction();
+
+    let err = execute_with_payer_err(&mut context, instruction, Some(&owner)).await;
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinRewardsError::DunaDocumentNotInitialized as u32)
+        )
     );
 }
 
@@ -365,12 +492,14 @@ async fn success() {
         );
     }
 
+    let duna_pda = sign_duna_document(&mut context, &owner.pubkey());
     let instruction = InitializeHolderRewardsBuilder::new()
         .holder_rewards_pool(holder_rewards_pool)
         .holder_rewards_pool_token_account(pool_token_account)
         .holder_rewards(holder_rewards)
         .owner(owner.pubkey())
         .mint(mint)
+        .duna_document_pda(duna_pda)
         .instruction();
 
     execute_with_payer(&mut context, instruction, Some(&owner)).await;
@@ -406,6 +535,7 @@ async fn success() {
         &HolderRewardsPool {
             accumulated_rewards_per_token,
             lamports_last: holder_rewards_pool_account.lamports,
+            duna_document_hash: [1; 32],
             _padding: 0,
         }
     );

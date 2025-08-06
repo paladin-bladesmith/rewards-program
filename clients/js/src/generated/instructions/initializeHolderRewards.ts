@@ -45,6 +45,7 @@ export type InitializeHolderRewardsInstruction<
   TAccountOwner extends string | IAccountMeta<string> = string,
   TAccountHolderRewards extends string | IAccountMeta<string> = string,
   TAccountMint extends string | IAccountMeta<string> = string,
+  TAccountDunaDocumentPda extends string | IAccountMeta<string> = string,
   TAccountSystemProgram extends
     | string
     | IAccountMeta<string> = '11111111111111111111111111111111',
@@ -69,6 +70,9 @@ export type InitializeHolderRewardsInstruction<
       TAccountMint extends string
         ? ReadonlyAccount<TAccountMint>
         : TAccountMint,
+      TAccountDunaDocumentPda extends string
+        ? ReadonlyAccount<TAccountDunaDocumentPda>
+        : TAccountDunaDocumentPda,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -110,6 +114,7 @@ export type InitializeHolderRewardsInput<
   TAccountOwner extends string = string,
   TAccountHolderRewards extends string = string,
   TAccountMint extends string = string,
+  TAccountDunaDocumentPda extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   /** Holder rewards pool account. */
@@ -122,6 +127,8 @@ export type InitializeHolderRewardsInput<
   holderRewards: Address<TAccountHolderRewards>;
   /** Token mint. */
   mint: Address<TAccountMint>;
+  /** DUNA document PDA account */
+  dunaDocumentPda: Address<TAccountDunaDocumentPda>;
   /** System program. */
   systemProgram?: Address<TAccountSystemProgram>;
 };
@@ -132,6 +139,7 @@ export function getInitializeHolderRewardsInstruction<
   TAccountOwner extends string,
   TAccountHolderRewards extends string,
   TAccountMint extends string,
+  TAccountDunaDocumentPda extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PALADIN_REWARDS_PROGRAM_ADDRESS,
 >(
@@ -141,6 +149,7 @@ export function getInitializeHolderRewardsInstruction<
     TAccountOwner,
     TAccountHolderRewards,
     TAccountMint,
+    TAccountDunaDocumentPda,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress }
@@ -151,6 +160,7 @@ export function getInitializeHolderRewardsInstruction<
   TAccountOwner,
   TAccountHolderRewards,
   TAccountMint,
+  TAccountDunaDocumentPda,
   TAccountSystemProgram
 > {
   // Program address.
@@ -170,6 +180,10 @@ export function getInitializeHolderRewardsInstruction<
     owner: { value: input.owner ?? null, isWritable: true },
     holderRewards: { value: input.holderRewards ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
+    dunaDocumentPda: {
+      value: input.dunaDocumentPda ?? null,
+      isWritable: false,
+    },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -191,6 +205,7 @@ export function getInitializeHolderRewardsInstruction<
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.holderRewards),
       getAccountMeta(accounts.mint),
+      getAccountMeta(accounts.dunaDocumentPda),
       getAccountMeta(accounts.systemProgram),
     ],
     programAddress,
@@ -202,6 +217,7 @@ export function getInitializeHolderRewardsInstruction<
     TAccountOwner,
     TAccountHolderRewards,
     TAccountMint,
+    TAccountDunaDocumentPda,
     TAccountSystemProgram
   >;
 
@@ -224,8 +240,10 @@ export type ParsedInitializeHolderRewardsInstruction<
     holderRewards: TAccountMetas[3];
     /** Token mint. */
     mint: TAccountMetas[4];
+    /** DUNA document PDA account */
+    dunaDocumentPda: TAccountMetas[5];
     /** System program. */
-    systemProgram: TAccountMetas[5];
+    systemProgram: TAccountMetas[6];
   };
   data: InitializeHolderRewardsInstructionData;
 };
@@ -238,7 +256,7 @@ export function parseInitializeHolderRewardsInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedInitializeHolderRewardsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 6) {
+  if (instruction.accounts.length < 7) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -256,6 +274,7 @@ export function parseInitializeHolderRewardsInstruction<
       owner: getNextAccount(),
       holderRewards: getNextAccount(),
       mint: getNextAccount(),
+      dunaDocumentPda: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializeHolderRewardsInstructionDataDecoder().decode(

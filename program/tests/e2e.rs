@@ -108,6 +108,7 @@ async fn validate_state(
             &HolderRewardsPool {
                 accumulated_rewards_per_token: pool.accumulated_rewards_per_token,
                 lamports_last: pool.lamports_last + pool_rent_exempt_lamports,
+                duna_document_hash: [1; 32],
                 _padding: 0,
             }
         );
